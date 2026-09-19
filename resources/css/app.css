@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../views/**/*.blade.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+
+    --color-neo-bg: #f4f6fb;
+    --color-neo-main: #5294ff;
+    --color-neo-yellow: #ffd43b;
+    --color-neo-green: #20c997;
+    --color-neo-red: #ff6b6b;
+    --color-neo-purple: #845ef7;
+    --color-neo-card: #ffffff;
+    --color-neo-border: #000000;
+
+    --shadow-neo: 4px 4px 0px 0px #000000;
+    --shadow-neo-sm: 2px 2px 0px 0px #000000;
+    --shadow-neo-lg: 6px 6px 0px 0px #000000;
+    --shadow-neo-xl: 8px 8px 0px 0px #000000;
+
+    --radius-neo: 6px;
+    --radius-neo-lg: 10px;
+}
+
+/* Neobrutalism Helper Utilities */
+.neo-box {
+    border: 2px solid #000000;
+    box-shadow: 4px 4px 0px 0px #000000;
+    border-radius: 6px;
+}
+
+.neo-box-sm {
+    border: 2px solid #000000;
+    box-shadow: 2px 2px 0px 0px #000000;
+    border-radius: 4px;
+}
+
+.neo-box-lg {
+    border: 3px solid #000000;
+    box-shadow: 6px 6px 0px 0px #000000;
+    border-radius: 10px;
+}
+
+.neo-btn {
+    border: 2px solid #000000;
+    box-shadow: 3px 3px 0px 0px #000000;
+    border-radius: 6px;
+    font-weight: 700;
+    transition: all 0.15s ease-in-out;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.neo-btn:hover:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0px 0px #000000;
+}
+
+.neo-btn:active:not(:disabled) {
+    transform: translate(3px, 3px);
+    box-shadow: none;
+}
+
+.neo-input {
+    border: 2px solid #000000;
+    box-shadow: 2px 2px 0px 0px #000000;
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.15s ease-in-out;
+}
+
+.neo-input:focus {
+    box-shadow: 4px 4px 0px 0px #000000;
+    background-color: #ffffff;
+}
+
+.neo-badge {
+    border: 1.5px solid #000000;
+    box-shadow: 1.5px 1.5px 0px 0px #000000;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+}
