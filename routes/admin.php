@@ -34,6 +34,9 @@ Route::match(['get', 'post'], 'students/cards/print', [StudentCardController::cl
 Route::get('students/{student}/card', [StudentCardController::class, 'single'])->name('students.card.single');
 
 // Master Data Siswa & Mata Pelajaran
+Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
+Route::post('students/import', [StudentController::class, 'importExcel'])->name('students.import');
+Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->name('students.reset-password');
 Route::resource('students', StudentController::class)->except(['create', 'edit', 'show']);
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);

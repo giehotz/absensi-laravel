@@ -62,7 +62,7 @@
                 <span>👥</span> Daftar Anggota Rombel
             </span>
             <span class="neo-badge bg-slate-100 text-black text-[10px] font-mono">
-                {{ $students->total() }} Data
+                {{ $students->count() }} Data
             </span>
         </div>
 
@@ -109,7 +109,7 @@
                     @forelse($students as $index => $student)
                     <tr class="hover:bg-slate-50 font-medium">
                         <td class="p-3.5 font-bold text-center border-r border-black">
-                            {{ $students->firstItem() + $index }}
+                            {{ $loop->iteration }}
                         </td>
                         <td class="p-3.5 border-r border-black font-mono text-xs">
                             <span class="font-bold text-black">{{ $student->nis }}</span>
@@ -177,11 +177,7 @@
             </table>
         </div>
 
-        @if($students->hasPages())
-        <div class="p-4 border-t-2 border-black bg-slate-50">
-            {{ $students->links() }}
-        </div>
-        @endif
+
     </div>
 </div>
 
@@ -282,14 +278,14 @@
             <button onclick="closeModal('importStudentModal')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer">✕</button>
         </div>
 
-        <div class="bg-[#E7F5FF] border-2 border-black p-3.5 rounded text-xs text-blue-950 space-y-1.5 font-medium">
-            <div class="font-bold flex items-center gap-1.5">
+        <div class="bg-[#E7F5FF] border-2 border-black p-3.5 text-xs text-blue-950 space-y-1.5 font-medium shadow-[2px_2px_0px_#000]">
+            <div class="font-bold flex items-center gap-1.5 font-heading">
                 <span>💡</span> Petunjuk Pengisian File:
             </div>
             <ul class="list-disc list-inside space-y-0.5 text-slate-700 pl-1">
-                <li>Gunakan template resmi agar baris siswa langsung terhubung ke <b>{{ $class->name }}</b>.</li>
-                <li>Kolom <b>Nama Lengkap Siswa</b> dan <b>NIS</b> wajib diisi.</li>
-                <li>Kolom Jenis Kelamin diisi <b>L</b> (Laki-laki) atau <b>P</b> (Perempuan).</li>
+                <li>Gunakan template resmi 24 kolom standar (No, NIS, NISN, Nama, JK, Tgl Lahir, dsb).</li>
+                <li>Kolom <b>NAMA</b> dan <b>NIS</b> wajib terisi pada setiap baris data.</li>
+                <li>Jika kolom <b>Password</b> kosong, sistem akan otomatis menggunakan NIS sebagai kata sandi.</li>
                 <li>Format file yang didukung: <b>.xlsx, .xls, .csv</b> (Maksimal 5MB).</li>
             </ul>
             <div class="pt-1">
@@ -318,11 +314,19 @@
                 </div>
             </div>
 
+            <div class="bg-[#FFF9DB] border-2 border-black p-3 flex items-start gap-2.5">
+                <input type="checkbox" name="upsert" id="class_student_upsert_check" value="1" checked class="mt-0.5 border-2 border-black text-black focus:ring-0 cursor-pointer">
+                <label for="class_student_upsert_check" class="text-xs font-semibold text-black cursor-pointer leading-tight">
+                    <span class="font-bold block">Perbarui data jika NIS sudah terdaftar (Upsert)</span>
+                    <span class="text-[11px] text-slate-600 block mt-0.5">Jika dicentang, siswa dengan NIS yang sama akan diperbarui biodatanya, bukan dilewati.</span>
+                </label>
+            </div>
+
             <div class="pt-3 border-t-2 border-slate-200 flex items-center justify-end gap-3">
                 <button type="button" onclick="closeModal('importStudentModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs cursor-pointer">
                     Batal
                 </button>
-                <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-5 py-2 text-xs font-heading flex items-center gap-1.5 cursor-pointer">
+                <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-5 py-2 text-xs font-heading flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]">
                     <span>🚀</span> Upload & Proses Data Siswa
                 </button>
             </div>

@@ -20,15 +20,32 @@ class Student extends Model
         'nisn',
         'qr_code_identifier',
         'gender',
-        'photo',
+        'birth_place',
         'birth_date',
+        'photo',
         'phone',
+        'address',
+        'religion',
+        'family_status',
+        'child_number',
+        'previous_school',
+        'admission_date',
+        'entry_grade',
+        'father_name',
+        'mother_name',
+        'father_job',
+        'mother_job',
+        'parent_address',
+        'guardian_name',
+        'guardian_job',
+        'guardian_address',
     ];
 
     protected function casts(): array
     {
         return [
             'birth_date' => 'date',
+            'admission_date' => 'date',
         ];
     }
 

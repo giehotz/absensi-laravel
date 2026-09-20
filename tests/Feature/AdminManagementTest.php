@@ -11,6 +11,7 @@ use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -133,22 +134,54 @@ class AdminManagementTest extends TestCase
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setCellValue('A1', 'No');
-        $sheet->setCellValue('B1', 'Nama Lengkap Siswa');
-        $sheet->setCellValue('C1', 'NIS');
-        $sheet->setCellValue('D1', 'NISN');
-        $sheet->setCellValue('E1', 'Jenis Kelamin (L/P)');
-        $sheet->setCellValue('F1', 'Tanggal Lahir');
-        $sheet->setCellValue('G1', 'No. Telepon');
-        $sheet->setCellValue('H1', 'Email');
+        $sheet->setCellValue('B1', 'Nis Lokal');
+        $sheet->setCellValue('C1', 'NISN');
+        $sheet->setCellValue('D1', 'NAMA');
+        $sheet->setCellValue('E1', 'JENIS KELAMIN');
+        $sheet->setCellValue('F1', 'Tempat Lahir');
+        $sheet->setCellValue('G1', 'Tgl Lahir (dd-mm-yyyy)');
+        $sheet->setCellValue('H1', 'Password');
+        $sheet->setCellValue('I1', 'Alamat Siswa');
+        $sheet->setCellValue('J1', 'Agama');
+        $sheet->setCellValue('K1', 'Status Keluarga');
+        $sheet->setCellValue('L1', 'Anak Ke');
+        $sheet->setCellValue('M1', 'Nomor HP');
+        $sheet->setCellValue('N1', 'Sekolah Asal');
+        $sheet->setCellValue('O1', 'Tgl Terima');
+        $sheet->setCellValue('P1', 'Tingkat Awal');
+        $sheet->setCellValue('Q1', 'Nama Ayah');
+        $sheet->setCellValue('R1', 'Nama Ibu');
+        $sheet->setCellValue('S1', 'Pekerjaan Ayah');
+        $sheet->setCellValue('T1', 'Pekerjaan Ibu');
+        $sheet->setCellValue('U1', 'Alamat Orang Tua');
+        $sheet->setCellValue('V1', 'Nama Wali');
+        $sheet->setCellValue('W1', 'Pekerjaan Wali');
+        $sheet->setCellValue('X1', 'Alamat Wali');
 
         $sheet->setCellValue('A2', 1);
-        $sheet->setCellValue('B2', 'Siswa Rombel Import');
-        $sheet->setCellValueExplicit('C2', '77889900', DataType::TYPE_STRING);
-        $sheet->setCellValueExplicit('D2', '0099887766', DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('B2', '77889900', DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('C2', '0099887766', DataType::TYPE_STRING);
+        $sheet->setCellValue('D2', 'Siswa Rombel Import');
         $sheet->setCellValue('E2', 'P');
-        $sheet->setCellValue('F2', '2010-06-12');
-        $sheet->setCellValueExplicit('G2', '081299998888', DataType::TYPE_STRING);
-        $sheet->setCellValue('H2', 'siswarombel@sekolah.sch.id');
+        $sheet->setCellValue('F2', 'Surabaya');
+        $sheet->setCellValue('G2', '12-06-2010');
+        $sheet->setCellValue('H2', 'password123');
+        $sheet->setCellValue('I2', 'Jl. Dharmawangsa No. 12');
+        $sheet->setCellValue('J2', 'Islam');
+        $sheet->setCellValue('K2', 'Anak Kandung');
+        $sheet->setCellValue('L2', '1');
+        $sheet->setCellValueExplicit('M2', '081299998888', DataType::TYPE_STRING);
+        $sheet->setCellValue('N2', 'SDN 1 Surabaya');
+        $sheet->setCellValue('O2', '15-07-2023');
+        $sheet->setCellValue('P2', 'VII');
+        $sheet->setCellValue('Q2', 'Budi Santoso');
+        $sheet->setCellValue('R2', 'Siti Rahma');
+        $sheet->setCellValue('S2', 'Wiraswasta');
+        $sheet->setCellValue('T2', 'Guru');
+        $sheet->setCellValue('U2', 'Jl. Dharmawangsa No. 12');
+        $sheet->setCellValue('V2', '');
+        $sheet->setCellValue('W2', '');
+        $sheet->setCellValue('X2', '');
 
         $tempPath = tempnam(sys_get_temp_dir(), 'test_class_students_').'.xlsx';
         $writer = new Xlsx($spreadsheet);
@@ -167,16 +200,237 @@ class AdminManagementTest extends TestCase
             'nis' => '77889900',
             'school_class_id' => $schoolClass->id,
             'gender' => 'P',
+            'birth_place' => 'Surabaya',
+            'father_name' => 'Budi Santoso',
+            'mother_name' => 'Siti Rahma',
         ]);
         $this->assertDatabaseHas('users', [
             'name' => 'Siswa Rombel Import',
-            'email' => 'siswarombel@sekolah.sch.id',
             'role' => 'siswa',
         ]);
 
         $this->assertEquals($initialCount + 1, $schoolClass->fresh()->students()->count());
 
         @unlink($tempPath);
+    }
+
+    public function test_admin_can_download_general_students_template(): void
+    {
+        $this->actingAs($this->admin);
+
+        $response = $this->get(route('admin.students.template'));
+        $response->assertStatus(200);
+        $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
+    public function test_admin_can_import_students_via_excel_with_full_profile(): void
+    {
+        $this->actingAs($this->admin);
+
+        $schoolClass = SchoolClass::first();
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A1', 'No');
+        $sheet->setCellValue('B1', 'Nis Lokal');
+        $sheet->setCellValue('C1', 'NISN');
+        $sheet->setCellValue('D1', 'NAMA');
+        $sheet->setCellValue('E1', 'JENIS KELAMIN');
+        $sheet->setCellValue('F1', 'Tempat Lahir');
+        $sheet->setCellValue('G1', 'Tgl Lahir (dd-mm-yyyy)');
+        $sheet->setCellValue('H1', 'Password');
+        $sheet->setCellValue('I1', 'Alamat Siswa');
+        $sheet->setCellValue('J1', 'Agama');
+        $sheet->setCellValue('K1', 'Status Keluarga');
+        $sheet->setCellValue('L1', 'Anak Ke');
+        $sheet->setCellValue('M1', 'Nomor HP');
+        $sheet->setCellValue('N1', 'Sekolah Asal');
+        $sheet->setCellValue('O1', 'Tgl Terima');
+        $sheet->setCellValue('P1', 'Tingkat Awal');
+        $sheet->setCellValue('Q1', 'Nama Ayah');
+        $sheet->setCellValue('R1', 'Nama Ibu');
+        $sheet->setCellValue('S1', 'Pekerjaan Ayah');
+        $sheet->setCellValue('T1', 'Pekerjaan Ibu');
+        $sheet->setCellValue('U1', 'Alamat Orang Tua');
+        $sheet->setCellValue('V1', 'Nama Wali');
+        $sheet->setCellValue('W1', 'Pekerjaan Wali');
+        $sheet->setCellValue('X1', 'Alamat Wali');
+        $sheet->setCellValue('Y1', 'Kelas (Opsional)');
+
+        $sheet->setCellValue('A2', 1);
+        $sheet->setCellValueExplicit('B2', '88990011', DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('C2', '0088990011', DataType::TYPE_STRING);
+        $sheet->setCellValue('D2', 'Ahmad Farhan');
+        $sheet->setCellValue('E2', 'L');
+        $sheet->setCellValue('F2', 'Malang');
+        $sheet->setCellValue('G2', '14-08-2011');
+        $sheet->setCellValue('H2', 'farhan123');
+        $sheet->setCellValue('I2', 'Jl. Ijen No. 45 Malang');
+        $sheet->setCellValue('J2', 'Islam');
+        $sheet->setCellValue('K2', 'Anak Kandung');
+        $sheet->setCellValue('L2', '2');
+        $sheet->setCellValueExplicit('M2', '081333444555', DataType::TYPE_STRING);
+        $sheet->setCellValue('N2', 'SDN 1 Malang');
+        $sheet->setCellValue('O2', '10-07-2023');
+        $sheet->setCellValue('P2', 'VII');
+        $sheet->setCellValue('Q2', 'Hendra Wijaya');
+        $sheet->setCellValue('R2', 'Sri Wahyuni');
+        $sheet->setCellValue('S2', 'PNS');
+        $sheet->setCellValue('T2', 'PNS');
+        $sheet->setCellValue('U2', 'Jl. Ijen No. 45 Malang');
+        $sheet->setCellValue('V2', '');
+        $sheet->setCellValue('W2', '');
+        $sheet->setCellValue('X2', '');
+        $sheet->setCellValue('Y2', $schoolClass->name);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_admin_students_').'.xlsx';
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempPath);
+
+        $file = new UploadedFile($tempPath, 'siswa_baru.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+
+        $response = $this->post(route('admin.students.import'), [
+            'file' => $file,
+            'school_class_id' => $schoolClass->id,
+            'upsert' => 1,
+        ]);
+
+        $response->assertRedirect(route('admin.students.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('students', [
+            'nis' => '88990011',
+            'birth_place' => 'Malang',
+            'father_name' => 'Hendra Wijaya',
+            'mother_name' => 'Sri Wahyuni',
+            'address' => 'Jl. Ijen No. 45 Malang',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'name' => 'Ahmad Farhan',
+            'role' => 'siswa',
+        ]);
+
+        @unlink($tempPath);
+    }
+
+    public function test_admin_can_upsert_students_via_excel(): void
+    {
+        $this->actingAs($this->admin);
+
+        $schoolClass = SchoolClass::first();
+        $student = Student::first();
+
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setCellValue('A1', 'No');
+        $sheet->setCellValue('B1', 'Nis Lokal');
+        $sheet->setCellValue('C1', 'NISN');
+        $sheet->setCellValue('D1', 'NAMA');
+        $sheet->setCellValue('E1', 'JENIS KELAMIN');
+        $sheet->setCellValue('F1', 'Tempat Lahir');
+        $sheet->setCellValue('G1', 'Tgl Lahir (dd-mm-yyyy)');
+        $sheet->setCellValue('H1', 'Password');
+        $sheet->setCellValue('I1', 'Alamat Siswa');
+        $sheet->setCellValue('J1', 'Agama');
+        $sheet->setCellValue('K1', 'Status Keluarga');
+        $sheet->setCellValue('L1', 'Anak Ke');
+        $sheet->setCellValue('M1', 'Nomor HP');
+        $sheet->setCellValue('N1', 'Sekolah Asal');
+        $sheet->setCellValue('O1', 'Tgl Terima');
+        $sheet->setCellValue('P1', 'Tingkat Awal');
+        $sheet->setCellValue('Q1', 'Nama Ayah');
+        $sheet->setCellValue('R1', 'Nama Ibu');
+        $sheet->setCellValue('S1', 'Pekerjaan Ayah');
+        $sheet->setCellValue('T1', 'Pekerjaan Ibu');
+        $sheet->setCellValue('U1', 'Alamat Orang Tua');
+        $sheet->setCellValue('V1', 'Nama Wali');
+        $sheet->setCellValue('W1', 'Pekerjaan Wali');
+        $sheet->setCellValue('X1', 'Alamat Wali');
+        $sheet->setCellValue('Y1', 'Kelas (Opsional)');
+
+        // Gunakan NIS yang sudah ada di database
+        $sheet->setCellValue('A2', 1);
+        $sheet->setCellValueExplicit('B2', (string) $student->nis, DataType::TYPE_STRING);
+        $sheet->setCellValueExplicit('C2', '9999888877', DataType::TYPE_STRING);
+        $sheet->setCellValue('D2', 'Nama Siswa Terupdate');
+        $sheet->setCellValue('E2', 'L');
+        $sheet->setCellValue('F2', 'Semarang');
+        $sheet->setCellValue('G2', '20-05-2010');
+        $sheet->setCellValue('H2', '');
+        $sheet->setCellValue('I2', 'Alamat Baru');
+        $sheet->setCellValue('J2', 'Islam');
+        $sheet->setCellValue('K2', 'Anak Kandung');
+        $sheet->setCellValue('L2', '1');
+        $sheet->setCellValue('M2', '081999888777');
+        $sheet->setCellValue('N2', 'SD Asal Baru');
+        $sheet->setCellValue('O2', '01-07-2023');
+        $sheet->setCellValue('P2', 'VII');
+        $sheet->setCellValue('Q2', 'Ayah Baru');
+        $sheet->setCellValue('R2', 'Ibu Baru');
+        $sheet->setCellValue('S2', 'Dokter');
+        $sheet->setCellValue('T2', 'Arsitek');
+        $sheet->setCellValue('U2', 'Alamat Ortu Baru');
+        $sheet->setCellValue('V2', '');
+        $sheet->setCellValue('W2', '');
+        $sheet->setCellValue('X2', '');
+        $sheet->setCellValue('Y2', $schoolClass->name);
+
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_upsert_students_').'.xlsx';
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempPath);
+
+        $file = new UploadedFile($tempPath, 'siswa_upsert.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+
+        $response = $this->post(route('admin.students.import'), [
+            'file' => $file,
+            'school_class_id' => $schoolClass->id,
+            'upsert' => 1,
+        ]);
+
+        $response->assertRedirect(route('admin.students.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('students', [
+            'id' => $student->id,
+            'nis' => $student->nis,
+            'birth_place' => 'Semarang',
+            'father_name' => 'Ayah Baru',
+            'mother_name' => 'Ibu Baru',
+        ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $student->user_id,
+            'name' => 'Nama Siswa Terupdate',
+        ]);
+
+        @unlink($tempPath);
+    }
+
+    public function test_admin_can_filter_students_by_class_and_per_page(): void
+    {
+        $this->actingAs($this->admin);
+
+        $totalCount = Student::count();
+
+        // 1. Filter semua kelas default
+        $response = $this->get(route('admin.students.index'));
+        $response->assertStatus(200);
+        $response->assertSee("Total Seluruh Siswa: {$totalCount} Siswa");
+        $response->assertViewHas('totalStudentsCount', $totalCount);
+
+        // 2. Filter kelas tertentu
+        $schoolClass = SchoolClass::first();
+        $classCount = Student::where('school_class_id', $schoolClass->id)->count();
+
+        $responseClass = $this->get(route('admin.students.index', ['class_id' => $schoolClass->id]));
+        $responseClass->assertStatus(200);
+        $responseClass->assertSee("Rombel {$schoolClass->name}: {$classCount} Siswa");
+        $responseClass->assertSee("(Total Seluruh Kelas: {$totalCount} Siswa)");
+        $responseClass->assertViewHas('classStudentsCount', $classCount);
+
+        // 3. Filter per_page (25, 50, 100, semua)
+        $responseAll = $this->get(route('admin.students.index', ['per_page' => 'semua']));
+        $responseAll->assertStatus(200);
+        $responseAll->assertViewHas('perPage', 'semua');
     }
 
     public function test_admin_can_create_student_with_auto_generated_qr(): void
@@ -300,6 +554,54 @@ class AdminManagementTest extends TestCase
 
         Storage::disk('public')->assertMissing($photoPath);
         $this->assertDatabaseMissing('students', ['id' => $student->id]);
+    }
+
+    public function test_admin_can_reset_student_password_to_nisn(): void
+    {
+        $this->actingAs($this->admin);
+
+        $student = Student::first();
+        $student->update(['nisn' => '0081234567']);
+        $student->user->update(['password' => Hash::make('old_random_password')]);
+
+        $response = $this->post(route('admin.students.reset-password', $student));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $student->user->refresh();
+        $this->assertTrue(Hash::check('0081234567', $student->user->password));
+    }
+
+    public function test_admin_can_reset_student_password_to_nis_when_nisn_is_empty(): void
+    {
+        $this->actingAs($this->admin);
+
+        $student = Student::first();
+        $student->update(['nisn' => null, 'nis' => '88991']);
+        $student->user->update(['password' => Hash::make('old_random_password')]);
+
+        $response = $this->post(route('admin.students.reset-password', $student));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $student->user->refresh();
+        $this->assertTrue(Hash::check('88991', $student->user->password));
+    }
+
+    public function test_admin_students_table_renders_tooltips_and_action_buttons(): void
+    {
+        $this->actingAs($this->admin);
+
+        $response = $this->get(route('admin.students.index'));
+        $response->assertStatus(200);
+
+        // Pastikan 4 aksi tombol icon dan tooltip tersedia
+        $response->assertSee('Kartu & QR', false);
+        $response->assertSee('Reset Password');
+        $response->assertSee('Edit');
+        $response->assertSee('Hapus');
+        $response->assertSee('confirmResetPassword');
+        $response->assertSee('confirmDeleteStudent');
     }
 
     public function test_admin_can_create_subject(): void

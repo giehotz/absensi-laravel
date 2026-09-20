@@ -11,16 +11,34 @@
             <h2 class="font-heading font-black text-xl text-black flex items-center gap-2">
                 <span>🎓</span> Data Siswa & Identitas QR
             </h2>
-            <p class="text-xs font-semibold text-slate-600 mt-1">
-                Kelola data profil siswa, generate identifikasi QR unik, dan cetak kartu absensi.
-            </p>
+            <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                <p class="text-xs font-semibold text-slate-600">
+                    Kelola data profil siswa, generate identifikasi QR unik, dan cetak kartu absensi.
+                </p>
+                <!-- Badge Jumlah Siswa Sesuai Filter -->
+                @if(!empty($selectedClass))
+                    <span class="neo-badge bg-[#D0EBFF] text-blue-950 text-xs font-mono font-bold">
+                        Rombel {{ $selectedClass->name }}: {{ $classStudentsCount }} Siswa
+                    </span>
+                    <span class="neo-badge bg-slate-100 text-slate-700 text-xs font-mono">
+                        (Total Seluruh Kelas: {{ $totalStudentsCount }} Siswa)
+                    </span>
+                @else
+                    <span class="neo-badge bg-[#FFF9DB] text-amber-950 text-xs font-mono font-bold">
+                        Total Seluruh Siswa: {{ $totalStudentsCount }} Siswa
+                    </span>
+                @endif
+            </div>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
             <!-- Filter Kelas -->
             <form method="GET" action="{{ route('admin.students.index') }}" class="flex items-center gap-2">
-                <select name="class_id" onchange="this.form.submit()" class="px-3 py-2 neo-input text-xs bg-[#FFF9DB] font-bold">
-                    <option value="">-- Semua Kelas --</option>
+                @if(!empty($perPage) && $perPage != '25')
+                    <input type="hidden" name="per_page" value="{{ $perPage }}">
+                @endif
+                <select name="class_id" onchange="this.form.submit()" class="px-3 py-2 neo-input text-xs bg-[#FFF9DB] font-bold cursor-pointer">
+                    <option value="">-- Semua Kelas ({{ $totalStudentsCount }}) --</option>
                     @foreach($classes as $cls)
                         <option value="{{ $cls->id }}" {{ $selectedClassId == $cls->id ? 'selected' : '' }}>
                             {{ $cls->name }}
@@ -29,19 +47,86 @@
                 </select>
             </form>
 
-            <a href="{{ route('admin.students.cards', ['class_id' => $selectedClassId]) }}" 
-               class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 cursor-pointer font-heading shadow-[2px_2px_0px_#000]">
-                <span>🪪</span> Studio Cetak Kartu
+            <!-- Unduh Template Excel -->
+            <a href="{{ route('admin.students.template') }}" 
+               class="neo-btn bg-[#FFF9DB] hover:bg-[#ffec99] text-black p-2.5 text-xs flex items-center justify-center cursor-pointer font-heading shadow-[2px_2px_0px_#000] group relative" 
+               title="Unduh Template Excel" aria-label="Unduh Template Excel">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <span class="absolute -top-9 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                    Unduh Template
+                </span>
             </a>
 
-            <button onclick="openModal('createStudentModal')" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 cursor-pointer font-heading">
-                <span>+</span> Tambah Siswa Baru
+            <!-- Upload Excel Siswa -->
+            <button type="button" onclick="openModal('importStudentModal')" 
+                    class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black p-2.5 text-xs flex items-center justify-center cursor-pointer font-heading shadow-[2px_2px_0px_#000] group relative"
+                    title="Upload File Excel" aria-label="Upload File Excel">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <span class="absolute -top-9 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                    Upload Excel
+                </span>
+            </button>
+
+            <!-- Studio Cetak Kartu -->
+            <a href="{{ route('admin.students.cards', ['class_id' => $selectedClassId]) }}" 
+               class="neo-btn bg-white hover:bg-slate-100 text-black p-2.5 text-xs flex items-center justify-center cursor-pointer font-heading shadow-[2px_2px_0px_#000] group relative"
+               title="Studio Cetak Kartu" aria-label="Studio Cetak Kartu">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                </svg>
+                <span class="absolute -top-9 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                    Studio Cetak
+                </span>
+            </a>
+
+            <!-- Tambah Siswa Baru -->
+            <button type="button" onclick="openModal('createStudentModal')" 
+                    class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black p-2.5 text-xs flex items-center justify-center cursor-pointer font-heading shadow-[2px_2px_0px_#000] group relative"
+                    title="Tambah Siswa Baru" aria-label="Tambah Siswa Baru">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span class="absolute -top-9 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                    Tambah Siswa
+                </span>
             </button>
         </div>
     </div>
 
     <!-- Table Card -->
     <div class="bg-white neo-box overflow-hidden">
+        <!-- Table Toolbar -->
+        <div class="p-3.5 border-b-2 border-black bg-[#FFF9DB]/40 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-black uppercase tracking-wider font-heading text-black flex items-center gap-1.5">
+                    <span>📋</span> Tabel Siswa
+                </span>
+                <span class="neo-badge bg-white text-black text-[11px] font-mono font-bold">
+                    {{ $students->total() }} Data
+                </span>
+            </div>
+
+            <!-- Filter Jumlah Tampilan (25, 50, 100, Semua) -->
+            <form method="GET" action="{{ route('admin.students.index') }}" class="flex items-center gap-2">
+                @if(!empty($selectedClassId))
+                    <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
+                @endif
+                <div class="flex items-center gap-1 bg-white border-2 border-black px-2.5 py-1.5 shadow-[2px_2px_0px_#000]">
+                    <span class="text-[10px] font-black uppercase text-slate-600 font-heading">Tampil:</span>
+                    <select name="per_page" onchange="this.form.submit()" class="bg-transparent text-xs font-bold text-black focus:outline-none cursor-pointer">
+                        <option value="25" {{ $perPage == '25' ? 'selected' : '' }}>25</option>
+                        <option value="50" {{ $perPage == '50' ? 'selected' : '' }}>50</option>
+                        <option value="100" {{ $perPage == '100' ? 'selected' : '' }}>100</option>
+                        <option value="semua" {{ $perPage == 'semua' || $perPage == 'all' ? 'selected' : '' }}>Semua</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead class="bg-[#FFF9DB] border-b-2 border-black text-xs font-black uppercase tracking-wider">
@@ -52,7 +137,7 @@
                         <th class="p-3.5 border-r border-black">Kelas</th>
                         <th class="p-3.5 border-r border-black">L/P</th>
                         <th class="p-3.5 border-r border-black">QR Identifier</th>
-                        <th class="p-3.5 text-center">Aksi</th>
+                        <th class="p-3.5 text-center w-48">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y-2 divide-black">
@@ -120,43 +205,87 @@
                             </div>
                         </td>
                         <td class="p-3.5 text-center">
-                            <div class="flex items-center justify-center gap-2">
-                                <!-- Tombol Preview Kartu QR -->
-                                <button onclick="previewQr({{ json_encode([
-                                    'id' => $student->id,
-                                    'name' => $student->user->name ?? '',
-                                    'nis' => $student->nis,
-                                    'nisn' => $student->nisn ?? '-',
-                                    'class_name' => $student->schoolClass->name ?? '-',
-                                    'birth_date' => $student->birth_date ? $student->birth_date->format('d/m/Y') : '-',
-                                    'gender' => $student->gender == 'L' ? 'LAKI-LAKI' : 'PEREMPUAN',
-                                    'qr' => $student->qr_code_identifier,
-                                    'qr_image' => $student->qr_data_uri,
-                                    'photo_url' => $student->photo ? $student->photo_url : null,
-                                ]) }})" class="neo-btn bg-[#20C997] text-black px-2.5 py-1 text-xs cursor-pointer flex items-center gap-1">
-                                    <span>🪪</span> QR
+                            <div class="flex items-center justify-center gap-1.5">
+                                <!-- 1. Kartu & QR (🪪) -->
+                                <button type="button" 
+                                        onclick="previewQr({{ json_encode([
+                                            'id' => $student->id,
+                                            'name' => $student->user->name ?? '',
+                                            'nis' => $student->nis,
+                                            'nisn' => $student->nisn ?? '-',
+                                            'class_name' => $student->schoolClass->name ?? '-',
+                                            'birth_date' => $student->birth_date ? $student->birth_date->format('d/m/Y') : '-',
+                                            'gender' => $student->gender == 'L' ? 'LAKI-LAKI' : 'PEREMPUAN',
+                                            'qr' => $student->qr_code_identifier,
+                                            'qr_image' => $student->qr_data_uri,
+                                            'photo_url' => $student->photo ? $student->photo_url : null,
+                                        ]) }})" 
+                                        class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
+                                        title="Kartu & QR" aria-label="Lihat Kartu & QR">
+                                    <span class="text-sm leading-none block">🪪</span>
+                                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                        Kartu & QR
+                                    </span>
                                 </button>
 
-                                <button onclick="editStudent({{ json_encode([
-                                    'id' => $student->id,
-                                    'name' => $student->user->name ?? '',
-                                    'email' => $student->user->email ?? '',
-                                    'nis' => $student->nis,
-                                    'nisn' => $student->nisn ?? '',
-                                    'school_class_id' => $student->school_class_id,
-                                    'gender' => $student->gender,
-                                    'birth_date' => $student->birth_date ? $student->birth_date->format('Y-m-d') : '',
-                                    'phone' => $student->phone ?? '',
-                                    'photo_url' => $student->photo ? $student->photo_url : null,
-                                ]) }})" class="neo-btn bg-[#FFD43B] text-black px-2.5 py-1 text-xs cursor-pointer">
-                                    Edit
+                                <!-- 2. Reset Password (Default NISN) -->
+                                @php
+                                    $resetPassDefault = !empty($student->nisn) ? $student->nisn : (!empty($student->nis) ? $student->nis : 'password');
+                                    $resetPassLabel = !empty($student->nisn) ? 'NISN' : (!empty($student->nis) ? 'NIS' : 'Default');
+                                @endphp
+                                <form action="{{ route('admin.students.reset-password', $student) }}" method="POST">
+                                    @csrf
+                                    <button type="button" 
+                                            onclick="confirmResetPassword(this, {{ json_encode($student->user->name ?? 'Siswa') }}, {{ json_encode($resetPassDefault) }}, {{ json_encode($resetPassLabel) }})"
+                                            class="neo-btn bg-[#5294FF] hover:bg-blue-600 text-white p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
+                                            title="Reset Password ({{ $resetPassLabel }})" aria-label="Reset Password">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                                        </svg>
+                                        <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                            Reset Password ({{ $resetPassLabel }})
+                                        </span>
+                                    </button>
+                                </form>
+
+                                <!-- 3. Edit Siswa -->
+                                <button type="button" 
+                                        onclick="editStudent({{ json_encode([
+                                            'id' => $student->id,
+                                            'name' => $student->user->name ?? '',
+                                            'email' => $student->user->email ?? '',
+                                            'nis' => $student->nis,
+                                            'nisn' => $student->nisn ?? '',
+                                            'school_class_id' => $student->school_class_id,
+                                            'gender' => $student->gender,
+                                            'birth_date' => $student->birth_date ? $student->birth_date->format('Y-m-d') : '',
+                                            'phone' => $student->phone ?? '',
+                                            'photo_url' => $student->photo ? $student->photo_url : null,
+                                        ]) }})" 
+                                        class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
+                                        title="Edit Siswa" aria-label="Edit Siswa">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                        Edit
+                                    </span>
                                 </button>
 
-                                <form action="{{ route('admin.students.destroy', $student) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data siswa ini?')">
+                                <!-- 4. Hapus Siswa -->
+                                <form action="{{ route('admin.students.destroy', $student) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="neo-btn bg-[#FF6B6B] text-white px-2.5 py-1 text-xs cursor-pointer">
-                                        Hapus
+                                    <button type="button" 
+                                            onclick="confirmDeleteStudent(this, {{ json_encode($student->user->name ?? 'Siswa') }})"
+                                            class="neo-btn bg-[#FF6B6B] hover:bg-red-600 text-white p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
+                                            title="Hapus Siswa" aria-label="Hapus Siswa">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                            Hapus
+                                        </span>
                                     </button>
                                 </form>
                             </div>
@@ -173,11 +302,102 @@
             </table>
         </div>
 
-        @if($students->hasPages())
-        <div class="p-4 border-t-2 border-black bg-slate-50">
-            {{ $students->links() }}
+        <!-- Table Footer / Pagination Info & Links -->
+        <div class="p-4 border-t-2 border-black bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="text-xs font-semibold text-slate-700">
+                Menampilkan <span class="font-mono font-bold text-black">{{ $students->firstItem() ?? 0 }}</span> - <span class="font-mono font-bold text-black">{{ $students->lastItem() ?? 0 }}</span> dari <span class="font-mono font-bold text-black">{{ $students->total() }}</span> siswa
+                @if(!empty($selectedClass))
+                    <span class="text-slate-500 font-normal">(Kelas {{ $selectedClass->name }} • Total Semua Kelas: {{ $totalStudentsCount }})</span>
+                @else
+                    <span class="text-slate-500 font-normal">(Total Semua Kelas: {{ $totalStudentsCount }})</span>
+                @endif
+            </div>
+
+            @if($students->hasPages())
+                <div>
+                    {{ $students->links() }}
+                </div>
+            @endif
         </div>
-        @endif
+    </div>
+</div>
+    <!-- Modal Upload Excel Siswa -->
+<div id="importStudentModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white neo-box-lg max-w-lg w-full p-6 space-y-5 relative">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
+                <span>📑</span> Import Data Siswa dari Excel
+            </h3>
+            <button onclick="closeModal('importStudentModal')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer">✕</button>
+        </div>
+
+        <div class="bg-[#E7F5FF] border-2 border-black p-3.5 text-xs text-blue-950 space-y-1.5 font-medium shadow-[2px_2px_0px_#000]">
+            <div class="font-bold flex items-center gap-1.5 font-heading">
+                <span>💡</span> Petunjuk Pengisian File:
+            </div>
+            <ul class="list-disc list-inside space-y-0.5 text-slate-700 pl-1">
+                <li>Gunakan template resmi 24 kolom standar (No, NIS, NISN, Nama, JK, Tgl Lahir, dsb).</li>
+                <li>Kolom <b>NAMA</b> dan <b>NIS</b> wajib terisi pada setiap baris data.</li>
+                <li>Jika kolom <b>Password</b> kosong, sistem akan otomatis menggunakan NIS sebagai kata sandi.</li>
+                <li>Format file yang didukung: <b>.xlsx, .xls, .csv</b> (Maksimal 5MB).</li>
+            </ul>
+            <div class="pt-1">
+                <a href="{{ route('admin.students.template') }}" class="inline-flex items-center gap-1.5 text-blue-700 font-bold underline hover:text-blue-900">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    Unduh file template siswa standar (.xlsx)
+                </a>
+            </div>
+        </div>
+
+        <form action="{{ route('admin.students.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1.5">
+                    Pilih Kelas Tujuan / Default <span class="text-slate-500 font-normal">(opsional jika di Excel sudah ada kolom Kelas)</span>
+                </label>
+                <select name="school_class_id" class="w-full px-3 py-2 neo-input text-xs bg-slate-50 font-bold">
+                    <option value="">-- Otomatis Dari Kolom Kelas di Excel --</option>
+                    @foreach($classes as $cls)
+                        <option value="{{ $cls->id }}" {{ $selectedClassId == $cls->id ? 'selected' : '' }}>
+                            {{ $cls->name }} ({{ $cls->level }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1.5">Pilih File Excel / CSV *</label>
+                <div class="border-2 border-dashed border-black rounded-lg p-5 bg-slate-50 text-center hover:bg-slate-100 transition-all cursor-pointer relative">
+                    <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onchange="document.getElementById('fileNameDisplayStudents').textContent = this.files[0] ? this.files[0].name : 'Belum ada file dipilih'">
+                    <div class="space-y-1.5 pointer-events-none">
+                        <div class="text-3xl">📊</div>
+                        <div class="text-xs font-bold text-black font-heading">Tarik & Lepas File ke Sini atau Klik untuk Memilih</div>
+                        <div id="fileNameDisplayStudents" class="text-[11px] font-mono text-slate-500 font-semibold truncate max-w-xs mx-auto">
+                            Format .xlsx, .xls, .csv (Maks 5MB)
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-[#FFF9DB] border-2 border-black p-3 flex items-start gap-2.5">
+                <input type="checkbox" name="upsert" id="student_upsert_check" value="1" checked class="mt-0.5 border-2 border-black text-black focus:ring-0 cursor-pointer">
+                <label for="student_upsert_check" class="text-xs font-semibold text-black cursor-pointer leading-tight">
+                    <span class="font-bold block">Perbarui data jika NIS sudah terdaftar (Upsert)</span>
+                    <span class="text-[11px] text-slate-600 block mt-0.5">Jika dicentang, siswa dengan NIS yang sama akan diperbarui biodatanya, bukan dilewati.</span>
+                </label>
+            </div>
+
+            <div class="pt-3 border-t-2 border-slate-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeModal('importStudentModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-5 py-2 text-xs font-heading flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]">
+                    <span>🚀</span> Upload & Proses Data Siswa
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -562,6 +782,71 @@
         }
 
         openModal('qrPreviewModal');
+    }
+
+    function confirmResetPassword(button, studentName, defaultPassword, label) {
+        const form = button.closest('form');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Reset Kata Sandi?',
+                html: `
+                    <div class="text-left text-sm space-y-3 mt-1">
+                        <p class="text-slate-700">Kata sandi akun siswa <strong class="text-black font-bold">${studentName}</strong> akan di-reset menggunakan <strong>${label}</strong>:</p>
+                        <div class="p-3 bg-[#FFF9DB] border-2 border-black font-mono font-black text-center text-black text-lg shadow-[2px_2px_0px_#000] tracking-wider">
+                            ${defaultPassword}
+                        </div>
+                        <p class="text-xs text-slate-500 italic text-center">Setelah di-reset, siswa dapat langsung login menggunakan kata sandi default di atas.</p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#5294FF',
+                cancelButtonColor: '#475569',
+                confirmButtonText: '🔑 Ya, Reset Sekarang',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        } else {
+            if (confirm(`Reset kata sandi siswa ${studentName} ke ${label} (${defaultPassword})?`)) {
+                form.submit();
+            }
+        }
+    }
+
+    function confirmDeleteStudent(button, studentName) {
+        const form = button.closest('form');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Hapus Data Siswa?',
+                html: `
+                    <div class="text-left text-sm space-y-2 mt-1">
+                        <p class="text-slate-700">Apakah Anda yakin ingin menghapus data siswa <strong class="text-black font-bold">${studentName}</strong>?</p>
+                        <p class="text-xs text-rose-700 font-bold bg-[#FFE3E3] border border-rose-300 p-2.5">
+                            ⚠ Perhatian: Tindakan ini akan menghapus akun login dan seluruh histori presensi siswa ini secara permanen.
+                        </p>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#FF6B6B',
+                cancelButtonColor: '#475569',
+                confirmButtonText: '🗑️ Ya, Hapus',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        } else {
+            if (confirm(`Apakah Anda yakin ingin menghapus data siswa ${studentName}?`)) {
+                form.submit();
+            }
+        }
     }
 </script>
 @endpush
