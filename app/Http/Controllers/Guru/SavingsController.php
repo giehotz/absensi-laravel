@@ -31,9 +31,9 @@ class SavingsController extends Controller
         $selectedClassId = (int) ($request->query('class_id') ?: ($classes->first()?->id ?? 0));
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 
-        // Filter & Sortir Siswa di Kelas Terpilih
+        // Filter & Sortir Siswa di Kelas Terpilih (Default: Penabung Aktif Saja)
         $studentSearch = trim((string) $request->query('student_search', ''));
-        $statusFilter = (string) $request->query('status_filter', 'all');
+        $statusFilter = (string) $request->query('status_filter', 'registered');
         $sort = (string) $request->query('sort', 'name_asc');
 
         $classStudents = collect();

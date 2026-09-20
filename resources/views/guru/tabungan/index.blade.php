@@ -202,8 +202,8 @@
                 <!-- Filter Status Penabung -->
                 <div class="sm:col-span-3">
                     <select name="status_filter" class="w-full neo-input py-1.5 text-xs bg-white font-medium">
-                        <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Siswa</option>
                         <option value="registered" {{ $statusFilter === 'registered' ? 'selected' : '' }}>Penabung Aktif Saja</option>
+                        <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Siswa</option>
                         <option value="unregistered" {{ $statusFilter === 'unregistered' ? 'selected' : '' }}>Belum Terdaftar</option>
                     </select>
                 </div>
@@ -223,11 +223,12 @@
                     <button type="submit" class="w-full neo-btn bg-[#FFD43B] text-black font-bold py-1.5 hover:bg-yellow-400" title="Terapkan">
                         Filter
                     </button>
-                    @if(!empty($studentSearch) || $statusFilter !== 'all' || $sort !== 'name_asc')
+                    @if(!empty($studentSearch) || $statusFilter !== 'registered' || $sort !== 'name_asc')
                         <a href="{{ route('guru.savings.index', ['class_id' => $selectedClassId]) }}" class="neo-btn bg-slate-200 hover:bg-slate-300 text-black px-2 py-1.5" title="Reset">
                             ↺
                         </a>
                     @endif
+
                 </div>
             </form>
         </div>
