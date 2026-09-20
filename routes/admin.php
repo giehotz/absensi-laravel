@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AcademicYearController;
 use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
+use App\Http\Controllers\Admin\SavingsController as AdminSavingsController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\ScheduleSlotController;
 use App\Http\Controllers\Admin\SchoolClassController;
@@ -81,6 +82,12 @@ Route::post('database-maintenance/optimize', [DatabaseMaintenanceController::cla
 // Presensi Manual Siswa (Admin)
 Route::get('attendances/manual', [ManualAttendanceController::class, 'admin'])->name('attendances.manual');
 Route::post('attendances/manual', [ManualAttendanceController::class, 'store'])->name('attendances.manual.store');
+
+// Manajemen & Monitoring Tabungan Siswa (Admin)
+Route::get('savings', [AdminSavingsController::class, 'index'])->name('savings.index');
+Route::get('savings/export', [AdminSavingsController::class, 'exportExcel'])->name('savings.export');
+Route::get('savings/receipt/{transaction}', [AdminSavingsController::class, 'receipt'])->name('savings.receipt');
+Route::get('savings/classes/{class}/students', [AdminSavingsController::class, 'classStudents'])->name('savings.class-students');
 
 // Manajemen API Client & Integrasi
 Route::get('api-clients', [ApiClientController::class, 'index'])->name('api-clients.index');

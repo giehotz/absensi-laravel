@@ -121,11 +121,23 @@ class SavingsService
         $todayDeposits = (float) (clone $txQuery)->where('type', 'deposit')->sum('amount');
         $todayWithdrawals = (float) (clone $txQuery)->where('type', 'withdrawal')->sum('amount');
 
+        $monthTxQuery = SavingsTransaction::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year);
+
+        if ($allowedClassIds !== null) {
+            $monthTxQuery->whereHas('savingsAccount.student', fn ($q) => $q->whereIn('school_class_id', $allowedClassIds));
+        }
+
+        $thisMonthDeposits = (float) (clone $monthTxQuery)->where('type', 'deposit')->sum('amount');
+        $thisMonthWithdrawals = (float) (clone $monthTxQuery)->where('type', 'withdrawal')->sum('amount');
+
         return [
             'total_balance' => $totalBalance,
             'total_accounts' => $totalAccounts,
             'today_deposits' => $todayDeposits,
             'today_withdrawals' => $todayWithdrawals,
+            'this_month_deposits' => $thisMonthDeposits,
+            'this_month_withdrawals' => $thisMonthWithdrawals,
         ];
     }
 

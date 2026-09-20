@@ -195,6 +195,27 @@
                     </div>
                 </div>
 
+                <!-- Group: Keuangan & Tabungan -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                        Keuangan & Tabungan
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Tabungan Siswa -->
+                        <a href="{{ route('admin.savings.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.savings.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.savings.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                                <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>Tabungan Siswa</span>
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Group: Konfigurasi -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
