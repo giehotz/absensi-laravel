@@ -16,7 +16,7 @@
                 </span>
             </div>
             <p class="text-xs text-slate-300 max-w-xl">
-                Layanan pencatatan setoran & penarikan tabungan santri/siswa, cetak kuitansi bukti transaksi, dan rekapitulasi buku tabungan.
+                Layanan pencatatan transaksi tabungan per rombel/kelas, pendaftaran penabung santri, cetak slip transaksi, dan rekapitulasi buku kas.
             </p>
         </div>
 
@@ -27,11 +27,11 @@
                 </svg>
                 <span>Buku Kas / Mutasi</span>
             </a>
-            <a href="{{ route('guru.savings.export') }}" class="neo-btn bg-[#20C997] text-white text-xs font-bold px-3.5 py-2 flex items-center gap-1.5 hover:bg-emerald-600">
+            <a href="{{ route('guru.savings.export', ['class_id' => $selectedClassId]) }}" class="neo-btn bg-[#20C997] text-white text-xs font-bold px-3.5 py-2 flex items-center gap-1.5 hover:bg-emerald-600">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
-                <span>Export Excel/CSV</span>
+                <span>Export Kelas Ini</span>
             </a>
         </div>
     </div>
@@ -41,8 +41,8 @@
             <div class="flex items-center gap-2.5">
                 <span class="text-2xl">🖨️</span>
                 <div>
-                    <div class="font-heading font-black text-sm text-emerald-950">Transaksi Berhasil Dicatat!</div>
-                    <div class="text-xs text-emerald-900">Ingin mencetak bukti transaksi / kuitansi untuk siswa?</div>
+                    <div class="font-heading font-black text-sm text-emerald-950">Transaksi Berhasil Diproses!</div>
+                    <div class="text-xs text-emerald-900">Kuitansi / bukti transaksi dapat langsung dicetak.</div>
                 </div>
             </div>
             <a href="{{ route('guru.savings.receipt', session('last_transaction_id')) }}" target="_blank" class="neo-btn bg-black text-white text-xs font-bold px-4 py-2 flex items-center gap-1.5 hover:bg-slate-800">
@@ -52,19 +52,19 @@
         </div>
     @endif
 
-    <!-- 4 Stats Cards -->
+    <!-- 4 Stats Cards (Global Kas) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Kas -->
         <div class="bg-[#E7F5FF] neo-box p-4 border-3 border-black">
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-black uppercase text-blue-950">Total Saldo Siswa</span>
+                <span class="text-[11px] font-black uppercase text-blue-950">Total Saldo Seluruh Siswa</span>
                 <span class="text-xl">🏦</span>
             </div>
             <div class="font-mono font-black text-2xl text-blue-950 mt-2">
                 Rp {{ number_format($stats['total_balance'], 0, ',', '.') }}
             </div>
             <div class="text-[10px] font-semibold text-blue-800 mt-1">
-                Dari {{ $stats['total_accounts'] }} Rekening Siswa Terdaftar
+                Dari {{ $stats['total_accounts'] }} Rekening Aktif
             </div>
         </div>
 
@@ -114,224 +114,234 @@
         </div>
     </div>
 
-    <!-- Main Grid: Form Transaksi Cepat & Detail Siswa -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Form Transaksi (Left: 7 Cols) -->
-        <div class="lg:col-span-7 bg-white neo-box p-5 sm:p-6 border-3 border-black space-y-5">
-            <div class="border-b-2 border-black pb-3 flex items-center justify-between">
-                <h3 class="font-heading font-black text-base text-black flex items-center gap-2">
-                    <span>⚡</span> Layani Transaksi Siswa
+    <!-- ========================================================================= -->
+    <!-- BAGIAN UTAMA: LAYANI TRANSAKSI TABUNGAN SISWA BERDASARKAN KELAS -->
+    <!-- ========================================================================= -->
+    <div class="bg-white neo-box p-5 sm:p-6 border-3 border-black space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-black pb-4">
+            <div>
+                <h3 class="font-heading font-black text-base sm:text-lg text-black flex items-center gap-2">
+                    <span>🏫</span> Layani Transaksi Siswa Per Rombel/Kelas
                 </h3>
-                <span class="text-[11px] font-bold text-slate-500">Pilih Siswa & Nominal</span>
+                <p class="text-xs text-slate-600">Pilih kelas di bawah untuk mengelola daftar penabung dan input setoran/penarikan.</p>
             </div>
 
-            <!-- Cari Siswa Cepat (Live Autocomplete) -->
-            <div class="space-y-1 relative">
-                <label class="block text-xs font-black uppercase tracking-wider text-black">
-                    1. Cari Siswa (Nama / NISN / NIS / Scan QR)
-                </label>
-                <div class="relative">
-                    <input type="text" id="studentSearchInput" 
-                        value="{{ $selectedStudent ? $selectedStudent->user?->name . ' (' . $selectedStudent->schoolClass?->name . ')' : '' }}"
-                        placeholder="Ketik minimal 2 karakter atau scan QR kartu siswa..." 
-                        autocomplete="off"
-                        class="w-full neo-input text-xs font-medium pl-9 pr-8 py-2.5 bg-slate-50 focus:bg-white">
-                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <button type="button" id="clearStudentBtn" class="absolute right-3 top-3 text-slate-400 hover:text-black hidden" title="Hapus pilihan">
-                        ✕
+            <!-- Tombol Aksi Massal Daftarkan Semua Siswa di Kelas Ini -->
+            @if($selectedClass && $classStats['total_students'] > $classStats['registered_students'])
+                <form action="{{ route('guru.savings.register-class-students') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin mengaktifkan buku tabungan untuk semua siswa di {{ $selectedClass->name }} yang belum terdaftar?')">
+                    @csrf
+                    <input type="hidden" name="class_id" value="{{ $selectedClass->id }}">
+                    <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-xs font-black px-3.5 py-2 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer" title="Daftarkan massal semua siswa di kelas ini yang belum punya akun">
+                        <span>👥</span>
+                        <span>+ Daftarkan Semua Siswa ({{ $classStats['total_students'] - $classStats['registered_students'] }} Belum Terdaftar)</span>
                     </button>
-                </div>
-
-                <!-- Dropdown Hasil Pencarian -->
-                <div id="studentSearchResults" class="absolute left-0 right-0 top-full mt-1 bg-white border-3 border-black shadow-[4px_4px_0px_0px_#000] z-50 max-h-60 overflow-y-auto hidden">
-                </div>
-            </div>
-
-            <!-- Tab Switcher Jenis Transaksi: Setor vs Tarik -->
-            <div class="grid grid-cols-2 gap-2 bg-slate-100 border-2 border-black p-1">
-                <button type="button" onclick="setTxType('deposit')" id="btnTxTypeDeposit" 
-                    class="py-2.5 text-xs font-black uppercase border-2 border-black bg-[#20C997] text-white shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5 cursor-pointer">
-                    <span>📥</span> Setor Tunai
-                </button>
-                <button type="button" onclick="setTxType('withdraw')" id="btnTxTypeWithdraw" 
-                    class="py-2.5 text-xs font-black uppercase border-2 border-transparent text-slate-700 hover:text-black flex items-center justify-center gap-1.5 cursor-pointer">
-                    <span>📤</span> Tarik Tunai
-                </button>
-            </div>
-
-            <!-- Form Setoran Tunai -->
-            <form id="formDeposit" action="{{ route('guru.savings.deposit') }}" method="POST" class="space-y-4">
-                @csrf
-                <input type="hidden" name="student_id" id="depositStudentId" value="{{ $selectedStudent?->id ?? '' }}">
-
-                <!-- Input Nominal -->
-                <div class="space-y-1.5">
-                    <label class="block text-xs font-black uppercase tracking-wider text-black">
-                        2. Nominal Setoran (Rp)
-                    </label>
-                    <div class="relative">
-                        <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
-                        <input type="number" name="amount" id="depositAmount" min="500" step="500" required
-                            placeholder="0"
-                            class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-emerald-50/40">
-                    </div>
-
-                    <!-- Quick Amount Buttons -->
-                    <div class="flex flex-wrap gap-1.5 pt-1">
-                        <button type="button" onclick="setDepositAmount(5000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">5.000</button>
-                        <button type="button" onclick="setDepositAmount(10000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">10.000</button>
-                        <button type="button" onclick="setDepositAmount(20000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">20.000</button>
-                        <button type="button" onclick="setDepositAmount(50000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">50.000</button>
-                        <button type="button" onclick="setDepositAmount(100000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">100.000</button>
-                    </div>
-                </div>
-
-                <!-- Keterangan -->
-                <div class="space-y-1">
-                    <label class="block text-xs font-black uppercase tracking-wider text-black">
-                        3. Keterangan / Catatan (Opsional)
-                    </label>
-                    <input type="text" name="description" placeholder="Contoh: Setoran tabungan mingguan" maxlength="255"
-                        class="w-full neo-input text-xs font-medium py-2 bg-white">
-                </div>
-
-                <button type="submit" id="submitDepositBtn" 
-                    class="w-full neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-sm py-3 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <span>Simpan Transaksi Setoran</span>
-                </button>
-            </form>
-
-            <!-- Form Penarikan Tunai -->
-            <form id="formWithdraw" action="{{ route('guru.savings.withdraw') }}" method="POST" class="space-y-4 hidden">
-                @csrf
-                <input type="hidden" name="student_id" id="withdrawStudentId" value="{{ $selectedStudent?->id ?? '' }}">
-
-                <!-- Input Nominal Penarikan -->
-                <div class="space-y-1.5">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-xs font-black uppercase tracking-wider text-black">
-                            2. Nominal Penarikan (Rp)
-                        </label>
-                        <span id="withdrawMaxBalanceInfo" class="text-[11px] font-mono font-bold text-slate-500">
-                            Saldo: {{ $selectedStudent?->savingsAccount?->formatted_balance ?? 'Rp 0' }}
-                        </span>
-                    </div>
-                    <div class="relative">
-                        <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
-                        <input type="number" name="amount" id="withdrawAmount" min="500" step="500" required
-                            placeholder="0"
-                            class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-rose-50/40">
-                    </div>
-
-                    <!-- Quick Amount Buttons -->
-                    <div class="flex flex-wrap gap-1.5 pt-1">
-                        <button type="button" onclick="setWithdrawAmount(10000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">10.000</button>
-                        <button type="button" onclick="setWithdrawAmount(20000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">20.000</button>
-                        <button type="button" onclick="setWithdrawAmount(50000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">50.000</button>
-                        <button type="button" onclick="setWithdrawAll()" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-[11px] font-mono font-black px-2 py-1">Tarik Semua</button>
-                    </div>
-                </div>
-
-                <!-- Keterangan -->
-                <div class="space-y-1">
-                    <label class="block text-xs font-black uppercase tracking-wider text-black">
-                        3. Keterangan / Keperluan Penarikan
-                    </label>
-                    <input type="text" name="description" placeholder="Contoh: Keperluan beli buku / uang saku lomba" maxlength="255"
-                        class="w-full neo-input text-xs font-medium py-2 bg-white">
-                </div>
-
-                <button type="submit" id="submitWithdrawBtn" 
-                    class="w-full neo-btn bg-[#FF6B6B] hover:bg-rose-600 text-white font-black text-sm py-3 flex items-center justify-center gap-2 shadow-[3px_3px_0px_0px_#000] cursor-pointer">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>Proses Penarikan Uang</span>
-                </button>
-            </form>
+                </form>
+            @endif
         </div>
 
-        <!-- Student Information Card (Right: 5 Cols) -->
-        <div class="lg:col-span-5 space-y-4">
-            <div id="studentInfoCard" class="bg-white neo-box p-5 border-3 border-black {{ $selectedStudent ? '' : 'hidden' }}">
-                <div class="border-b-2 border-black pb-3 flex items-center justify-between">
-                    <h3 class="font-heading font-black text-sm uppercase text-black">Buku Tabungan Siswa</h3>
-                    <span id="infoAccountStatus" class="neo-badge bg-[#20C997] text-white text-[10px]">AKTIF</span>
-                </div>
+        <!-- Pemilih Rombel / Kelas (Pills Horizontal Scrollable) -->
+        <div class="space-y-2">
+            <div class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                <span>Pilih Rombel / Kelas:</span>
+            </div>
+            <div class="flex items-center gap-2 overflow-x-auto pb-2">
+                @foreach($classes as $c)
+                    <a href="{{ route('guru.savings.index', ['class_id' => $c->id]) }}" 
+                       class="neo-btn px-4 py-2 text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2
+                       {{ $selectedClassId === $c->id 
+                            ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000]' 
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-800 shadow-[2px_2px_0px_0px_#000]' }}">
+                        <span>{{ $c->name }}</span>
+                        <span class="text-[10px] px-1.5 py-0.2 rounded border border-black {{ $selectedClassId === $c->id ? 'bg-black text-white font-mono' : 'bg-white text-slate-700 font-mono' }}">
+                            {{ $c->students_count }} Siswa
+                        </span>
+                    </a>
+                @endforeach
+            </div>
+        </div>
 
-                <div class="flex items-center gap-3.5 my-4">
-                    <div class="w-14 h-14 rounded-lg bg-slate-100 border-2 border-black overflow-hidden shrink-0 flex items-center justify-center shadow-[2px_2px_0px_0px_#000]">
-                        <img id="infoStudentPhoto" src="{{ $selectedStudent?->photo_url ?: '' }}" 
-                            alt="" class="w-full h-full object-cover {{ $selectedStudent?->photo_url ? '' : 'hidden' }}">
-                        <span id="infoStudentPlaceholder" class="text-2xl {{ $selectedStudent?->photo_url ? 'hidden' : '' }}">🎓</span>
-                    </div>
-                    <div class="min-w-0">
-                        <div id="infoStudentName" class="font-heading font-black text-base text-black truncate">
-                            {{ $selectedStudent?->user?->name ?? '-' }}
-                        </div>
-                        <div class="text-xs font-semibold text-slate-600">
-                            Kelas: <span id="infoStudentClass" class="text-black font-bold">{{ $selectedStudent?->schoolClass?->name ?? '-' }}</span>
-                        </div>
-                        <div class="text-[11px] font-mono text-slate-500">
-                            NIS: <span id="infoStudentNis">{{ $selectedStudent?->nis ?? '-' }}</span> • NISN: <span id="infoStudentNisn">{{ $selectedStudent?->nisn ?? '-' }}</span>
-                        </div>
-                    </div>
+        <!-- Ringkasan Kelas Terpilih -->
+        @if($selectedClass)
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-[#FFF4E6] border-2 border-black p-3.5 text-xs">
+                <div>
+                    <span class="text-slate-600 font-medium">Kelas Aktif:</span>
+                    <div class="font-heading font-black text-base text-black mt-0.5">{{ $selectedClass->name }}</div>
                 </div>
-
-                <!-- Saldo Card -->
-                <div class="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border-3 border-black p-4 text-white rounded-none shadow-[3px_3px_0px_0px_#000] space-y-1 mb-4">
-                    <div class="flex items-center justify-between text-[10px] text-slate-400 uppercase font-semibold">
-                        <span>No. Rekening</span>
-                        <span id="infoAccountNumber" class="font-mono text-[#FFD43B] font-bold">{{ $selectedStudent?->savingsAccount?->account_number ?? '-' }}</span>
-                    </div>
-                    <div class="text-xs text-slate-300 font-bold uppercase">Saldo Saat Ini</div>
-                    <div id="infoFormattedBalance" class="font-mono font-black text-2xl text-white">
-                        {{ $selectedStudent?->savingsAccount?->formatted_balance ?? 'Rp 0' }}
-                    </div>
-                </div>
-
-                <!-- Mutasi Terakhir Siswa Ini -->
-                <div class="space-y-2">
-                    <div class="text-xs font-black uppercase text-black">Mutasi Terakhir Siswa</div>
-                    <div id="infoStudentTxList" class="space-y-1.5 max-h-48 overflow-y-auto">
-                        @if($selectedStudent && $selectedStudent->savingsAccount && $selectedStudent->savingsAccount->transactions->isNotEmpty())
-                            @foreach($selectedStudent->savingsAccount->transactions->take(5) as $tx)
-                                <div class="bg-slate-50 border border-black p-2 flex items-center justify-between text-xs">
-                                    <div>
-                                        <div class="font-bold text-black">{{ $tx->created_at->format('d/m/Y H:i') }}</div>
-                                        <div class="text-[10px] text-slate-500 truncate max-w-[140px]">{{ $tx->description ?: '-' }}</div>
-                                    </div>
-                                    <div class="text-right">
-                                        <span class="font-mono font-black {{ $tx->isDeposit() ? 'text-emerald-600' : 'text-rose-600' }}">
-                                            {{ $tx->isDeposit() ? '+' : '-' }}{{ $tx->formatted_amount }}
-                                        </span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="text-xs text-slate-500 italic py-2 text-center">Belum ada mutasi transaksi untuk siswa ini.</div>
+                <div>
+                    <span class="text-slate-600 font-medium">Penabung Terdaftar:</span>
+                    <div class="font-mono font-bold text-sm text-black mt-0.5">
+                        <strong class="text-emerald-700 font-black">{{ $classStats['registered_students'] }}</strong> dari {{ $classStats['total_students'] }} Siswa
+                        @if($classStats['total_students'] > 0)
+                            <span class="text-[10px] text-slate-500">({{ round(($classStats['registered_students'] / $classStats['total_students']) * 100) }}%)</span>
                         @endif
                     </div>
                 </div>
+                <div>
+                    <span class="text-slate-600 font-medium">Total Saldo Terkumpul di Kelas:</span>
+                    <div class="font-mono font-black text-base text-emerald-800 mt-0.5">
+                        Rp {{ number_format($classStats['total_class_balance'], 0, ',', '.') }}
+                    </div>
+                </div>
             </div>
+        @endif
 
-            <!-- Placeholder saat siswa belum dipilih -->
-            <div id="studentInfoPlaceholder" class="bg-slate-50 border-3 border-dashed border-slate-300 p-8 text-center text-slate-500 space-y-2 {{ $selectedStudent ? 'hidden' : '' }}">
-                <div class="text-4xl">🔍</div>
-                <div class="font-heading font-black text-sm text-black">Pilih Siswa Terlebih Dahulu</div>
-                <p class="text-xs text-slate-600 max-w-xs mx-auto">
-                    Ketik nama, NISN, atau scan QR kartu pelajar siswa di form sebelah kiri untuk melihat informasi rekening tabungan dan melayani transaksi.
-                </p>
-            </div>
+        <!-- Filter & Sortir Siswa Kelas -->
+        <div class="bg-slate-50 border-2 border-black p-3 space-y-3">
+            <form action="{{ route('guru.savings.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
+                <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
+
+                <!-- Search Siswa di Kelas Ini -->
+                <div class="sm:col-span-5 relative">
+                    <input type="text" name="student_search" value="{{ $studentSearch }}" placeholder="Cari nama / NISN di kelas ini..." 
+                        class="w-full neo-input py-1.5 pl-8 text-xs bg-white">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
+
+                <!-- Filter Status Penabung -->
+                <div class="sm:col-span-3">
+                    <select name="status_filter" class="w-full neo-input py-1.5 text-xs bg-white font-medium">
+                        <option value="all" {{ $statusFilter === 'all' ? 'selected' : '' }}>Semua Siswa</option>
+                        <option value="registered" {{ $statusFilter === 'registered' ? 'selected' : '' }}>Penabung Aktif Saja</option>
+                        <option value="unregistered" {{ $statusFilter === 'unregistered' ? 'selected' : '' }}>Belum Terdaftar</option>
+                    </select>
+                </div>
+
+                <!-- Sortir -->
+                <div class="sm:col-span-3">
+                    <select name="sort" class="w-full neo-input py-1.5 text-xs bg-white font-medium">
+                        <option value="name_asc" {{ $sort === 'name_asc' ? 'selected' : '' }}>Nama Siswa (A - Z)</option>
+                        <option value="name_desc" {{ $sort === 'name_desc' ? 'selected' : '' }}>Nama Siswa (Z - A)</option>
+                        <option value="balance_desc" {{ $sort === 'balance_desc' ? 'selected' : '' }}>Saldo Tertinggi</option>
+                        <option value="balance_asc" {{ $sort === 'balance_asc' ? 'selected' : '' }}>Saldo Terendah</option>
+                    </select>
+                </div>
+
+                <!-- Tombol Submit & Reset Filter -->
+                <div class="sm:col-span-1 flex items-center gap-1">
+                    <button type="submit" class="w-full neo-btn bg-[#FFD43B] text-black font-bold py-1.5 hover:bg-yellow-400" title="Terapkan">
+                        Filter
+                    </button>
+                    @if(!empty($studentSearch) || $statusFilter !== 'all' || $sort !== 'name_asc')
+                        <a href="{{ route('guru.savings.index', ['class_id' => $selectedClassId]) }}" class="neo-btn bg-slate-200 hover:bg-slate-300 text-black px-2 py-1.5" title="Reset">
+                            ↺
+                        </a>
+                    @endif
+                </div>
+            </form>
+        </div>
+
+        <!-- TABEL DAFTAR SISWA (No, Nama Siswa, NISN, Jumlah Saldo, Ditarik, Aksi) -->
+        <div class="overflow-x-auto border-2 border-black">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-[#FFD43B] text-black uppercase font-black border-b-2 border-black">
+                    <tr>
+                        <th class="p-3 border-r border-black text-center w-12">No</th>
+                        <th class="p-3 border-r border-black">Nama Siswa</th>
+                        <th class="p-3 border-r border-black">NISN</th>
+                        <th class="p-3 border-r border-black text-center">Status</th>
+                        <th class="p-3 border-r border-black text-right">Jumlah Saldo</th>
+                        <th class="p-3 border-r border-black text-right">Total Ditarik</th>
+                        <th class="p-3 text-center w-36">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-2 divide-black font-medium">
+                    @forelse($classStudents as $idx => $student)
+                        @php
+                            $account = $student->savingsAccount;
+                            $withdrawn = $account ? ($withdrawnTotals[$account->id] ?? 0) : 0;
+                            $studentName = $student->user?->name ?? '-';
+                            $studentData = [
+                                'id' => $student->id,
+                                'name' => $studentName,
+                                'nis' => $student->nis,
+                                'nisn' => $student->nisn ?: '-',
+                                'class_name' => $selectedClass?->name ?? '-',
+                                'account_number' => $account?->account_number ?? '-',
+                                'balance' => (float) ($account?->balance ?? 0),
+                                'formatted_balance' => $account ? $account->formatted_balance : 'Rp 0',
+                                'photo_url' => $student->photo_url,
+                            ];
+                        @endphp
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="p-3 text-center font-bold border-r border-black">
+                                {{ $idx + 1 }}
+                            </td>
+                            <td class="p-3 border-r border-black">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-md bg-slate-200 border border-black overflow-hidden shrink-0 flex items-center justify-center font-bold text-xs">
+                                        @if($student->photo_url)
+                                            <img src="{{ $student->photo_url }}" alt="" class="w-full h-full object-cover">
+                                        @else
+                                            <span>🎓</span>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <div class="font-heading font-bold text-black text-sm">{{ $studentName }}</div>
+                                        <div class="text-[10px] text-slate-500 font-mono">NIS: {{ $student->nis }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="p-3 border-r border-black font-mono font-bold text-slate-800">
+                                {{ $student->nisn ?: '-' }}
+                            </td>
+                            <td class="p-3 border-r border-black text-center">
+                                @if($account)
+                                    <span class="neo-badge bg-[#D3F9D8] text-emerald-950 text-[10px] font-black px-2 py-0.5">
+                                        ● AKTIF
+                                    </span>
+                                @else
+                                    <span class="neo-badge bg-[#FFF3BF] text-amber-950 text-[10px] font-bold px-2 py-0.5">
+                                        BELUM TERDAFTAR
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="p-3 border-r border-black text-right font-mono font-black text-sm {{ $account && $account->balance > 0 ? 'text-black' : 'text-slate-400' }}">
+                                {{ $account ? $account->formatted_balance : 'Rp 0' }}
+                            </td>
+                            <td class="p-3 border-r border-black text-right font-mono font-bold text-xs {{ $withdrawn > 0 ? 'text-rose-700' : 'text-slate-400' }}">
+                                Rp {{ number_format($withdrawn, 0, ',', '.') }}
+                            </td>
+                            <td class="p-3 text-center">
+                                @if($account)
+                                    <button type="button" onclick="openInputModal({{ json_encode($studentData) }})" 
+                                        class="w-full neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-[11px] py-1 px-2.5 flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer"
+                                        title="Input Setor atau Tarik Tabungan untuk Siswa Ini">
+                                        <span>⚡</span>
+                                        <span>Input Tabungan</span>
+                                    </button>
+                                @else
+                                    <form action="{{ route('guru.savings.register-student') }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="student_id" value="{{ $student->id }}">
+                                        <button type="submit" 
+                                            class="w-full neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black font-bold text-[11px] py-1 px-2.5 flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer"
+                                            title="Buka Rekening & Aktifkan Buku Tabungan Siswa">
+                                            <span>+</span>
+                                            <span>Daftarkan</span>
+                                        </button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="p-8 text-center text-slate-500 font-semibold space-y-2">
+                                <div class="text-3xl">📭</div>
+                                <div class="font-bold text-slate-800">Tidak ada data siswa yang cocok di kelas ini.</div>
+                                <p class="text-xs text-slate-500">Silakan pilih kelas lain atau reset filter pencarian di atas.</p>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Tabel 10 Transaksi Terkini Semua Siswa -->
+    <!-- ========================================================================= -->
+    <!-- 10 TRANSAKSI TERAKHIR (GLOBAL MUTASI KAS SEKOLAH) -->
+    <!-- ========================================================================= -->
     <div class="bg-white neo-box p-5 border-3 border-black space-y-4">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b-2 border-black pb-3">
             <div>
@@ -398,7 +408,7 @@
                     @empty
                         <tr>
                             <td colspan="8" class="p-6 text-center text-slate-500 italic">
-                                Belum ada transaksi tabungan yang tercatat. Gunakan form di atas untuk memulai transaksi perdana.
+                                Belum ada transaksi tabungan yang tercatat. Gunakan tombol "Input Tabungan" pada tabel di atas untuk memulai transaksi.
                             </td>
                         </tr>
                     @endforelse
@@ -408,15 +418,195 @@
     </div>
 </div>
 
-<!-- JavaScript Interactivity: Autocomplete & Live Calculations -->
-<script>
-    let currentRawBalance = {{ (float) ($selectedStudent?->savingsAccount?->balance ?? 0) }};
+<!-- ========================================================================= -->
+<!-- MODAL POP-UP: INPUT TABUNGAN SISWA (SETOR / TARIK) -->
+<!-- ========================================================================= -->
+<div id="modalInputTabungan" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white border-4 border-black max-w-lg w-full p-5 sm:p-6 neo-box space-y-5 relative">
+        <!-- Close Button -->
+        <button type="button" onclick="closeInputModal()" class="absolute right-4 top-4 text-black hover:text-rose-600 font-black text-xl p-1 cursor-pointer">
+            ✕
+        </button>
 
-    function setTxType(type) {
-        const btnDeposit = document.getElementById('btnTxTypeDeposit');
-        const btnWithdraw = document.getElementById('btnTxTypeWithdraw');
-        const formDeposit = document.getElementById('formDeposit');
-        const formWithdraw = document.getElementById('formWithdraw');
+        <!-- Modal Header -->
+        <div class="border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
+                <span>⚡</span> Input Transaksi Tabungan
+            </h3>
+            <p class="text-xs text-slate-600">Layanan setor atau tarik tunai untuk siswa terpilih</p>
+        </div>
+
+        <!-- Student Mini Card -->
+        <div class="bg-slate-100 border-2 border-black p-3.5 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-lg bg-white border-2 border-black overflow-hidden shrink-0 flex items-center justify-center font-bold text-base shadow-[1px_1px_0px_0px_#000]">
+                    <img id="modalStudentPhoto" src="" alt="" class="w-full h-full object-cover hidden">
+                    <span id="modalStudentPlaceholder">🎓</span>
+                </div>
+                <div class="min-w-0">
+                    <div id="modalStudentName" class="font-heading font-black text-sm text-black truncate">Nama Siswa</div>
+                    <div class="text-[11px] text-slate-600">
+                        <span id="modalStudentClass">Kelas</span> • Rek: <span id="modalStudentAccount" class="font-mono font-bold text-black">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="shrink-0 text-right">
+                <div class="text-[10px] uppercase font-bold text-slate-500">Saldo Saat Ini</div>
+                <div id="modalStudentBalance" class="font-mono font-black text-sm text-emerald-800">Rp 0</div>
+            </div>
+        </div>
+
+        <!-- Switcher Setor vs Tarik -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-200 border-2 border-black p-1">
+            <button type="button" onclick="setModalTxType('deposit')" id="modalBtnDeposit"
+                class="py-2 text-xs font-black uppercase border-2 border-black bg-[#20C997] text-white shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>📥</span> Setor Tunai
+            </button>
+            <button type="button" onclick="setModalTxType('withdraw')" id="modalBtnWithdraw"
+                class="py-2 text-xs font-black uppercase border-2 border-transparent text-slate-700 hover:text-black flex items-center justify-center gap-1.5 cursor-pointer">
+                <span>📤</span> Tarik Tunai
+            </button>
+        </div>
+
+        <!-- Form Setoran -->
+        <form id="modalFormDeposit" action="{{ route('guru.savings.deposit') }}" method="POST" class="space-y-4">
+            @csrf
+            <input type="hidden" name="student_id" id="modalDepositStudentId" value="">
+
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">
+                    Nominal Setoran (Rp)
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                    <input type="number" name="amount" id="modalDepositAmount" min="500" step="500" required
+                        placeholder="0"
+                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-emerald-50/40">
+                </div>
+                <!-- Quick Amount Buttons -->
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                    <button type="button" onclick="setModalDepositAmount(5000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">5.000</button>
+                    <button type="button" onclick="setModalDepositAmount(10000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">10.000</button>
+                    <button type="button" onclick="setModalDepositAmount(20000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">20.000</button>
+                    <button type="button" onclick="setModalDepositAmount(50000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">50.000</button>
+                    <button type="button" onclick="setModalDepositAmount(100000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">100.000</button>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">
+                    Catatan / Keterangan (Opsional)
+                </label>
+                <input type="text" name="description" placeholder="Contoh: Setoran tabungan mingguan" maxlength="255"
+                    class="w-full neo-input text-xs font-medium py-2 bg-white">
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <button type="button" onclick="closeInputModal()" class="w-1/3 neo-btn bg-slate-200 hover:bg-slate-300 text-black font-bold text-xs py-2.5 cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="w-2/3 neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-xs py-2.5 flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    <span>Simpan Setoran</span>
+                    <span>✓</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Form Penarikan -->
+        <form id="modalFormWithdraw" action="{{ route('guru.savings.withdraw') }}" method="POST" class="space-y-4 hidden">
+            @csrf
+            <input type="hidden" name="student_id" id="modalWithdrawStudentId" value="">
+
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-black uppercase tracking-wider text-black">
+                        Nominal Penarikan (Rp)
+                    </label>
+                    <span id="modalMaxWithdrawInfo" class="text-[11px] font-mono font-bold text-slate-500">Maks: Rp 0</span>
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                    <input type="number" name="amount" id="modalWithdrawAmount" min="500" step="500" required
+                        placeholder="0"
+                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-rose-50/40">
+                </div>
+                <!-- Quick Amount Buttons -->
+                <div class="flex flex-wrap gap-1.5 pt-1">
+                    <button type="button" onclick="setModalWithdrawAmount(10000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">10.000</button>
+                    <button type="button" onclick="setModalWithdrawAmount(20000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">20.000</button>
+                    <button type="button" onclick="setModalWithdrawAmount(50000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[11px] font-mono font-bold px-2 py-1">50.000</button>
+                    <button type="button" onclick="setModalWithdrawAll()" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-[11px] font-mono font-black px-2 py-1">Tarik Semua</button>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">
+                    Keperluan Penarikan
+                </label>
+                <input type="text" name="description" placeholder="Contoh: Beli buku / uang saku lomba" maxlength="255"
+                    class="w-full neo-input text-xs font-medium py-2 bg-white">
+            </div>
+
+            <div class="flex items-center gap-2 pt-2">
+                <button type="button" onclick="closeInputModal()" class="w-1/3 neo-btn bg-slate-200 hover:bg-slate-300 text-black font-bold text-xs py-2.5 cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="w-2/3 neo-btn bg-[#FF6B6B] hover:bg-rose-600 text-white font-black text-xs py-2.5 flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    <span>Proses Penarikan</span>
+                    <span>✓</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- JavaScript Interactivity -->
+<script>
+    let activeModalStudentBalance = 0;
+
+    function openInputModal(student) {
+        activeModalStudentBalance = student.balance;
+
+        document.getElementById('modalDepositStudentId').value = student.id;
+        document.getElementById('modalWithdrawStudentId').value = student.id;
+
+        document.getElementById('modalStudentName').innerText = student.name;
+        document.getElementById('modalStudentClass').innerText = student.class_name;
+        document.getElementById('modalStudentAccount').innerText = student.account_number;
+        document.getElementById('modalStudentBalance').innerText = student.formatted_balance;
+        document.getElementById('modalMaxWithdrawInfo').innerText = `Maks: ${student.formatted_balance}`;
+
+        const photoEl = document.getElementById('modalStudentPhoto');
+        const placeholderEl = document.getElementById('modalStudentPlaceholder');
+        if (student.photo_url) {
+            photoEl.src = student.photo_url;
+            photoEl.classList.remove('hidden');
+            placeholderEl.classList.add('hidden');
+        } else {
+            photoEl.classList.add('hidden');
+            placeholderEl.classList.remove('hidden');
+        }
+
+        // Reset inputs
+        document.getElementById('modalDepositAmount').value = '';
+        document.getElementById('modalWithdrawAmount').value = '';
+
+        setModalTxType('deposit');
+
+        document.getElementById('modalInputTabungan').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeInputModal() {
+        document.getElementById('modalInputTabungan').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function setModalTxType(type) {
+        const btnDeposit = document.getElementById('modalBtnDeposit');
+        const btnWithdraw = document.getElementById('modalBtnWithdraw');
+        const formDeposit = document.getElementById('modalFormDeposit');
+        const formWithdraw = document.getElementById('modalFormWithdraw');
 
         if (type === 'deposit') {
             btnDeposit.classList.add('bg-[#20C997]', 'text-white', 'shadow-[2px_2px_0px_0px_#000]');
@@ -437,128 +627,27 @@
         }
     }
 
-    function setDepositAmount(val) {
-        document.getElementById('depositAmount').value = val;
+    function setModalDepositAmount(val) {
+        document.getElementById('modalDepositAmount').value = val;
     }
 
-    function setWithdrawAmount(val) {
-        document.getElementById('withdrawAmount').value = val;
+    function setModalWithdrawAmount(val) {
+        document.getElementById('modalWithdrawAmount').value = val;
     }
 
-    function setWithdrawAll() {
-        if (currentRawBalance > 0) {
-            document.getElementById('withdrawAmount').value = Math.floor(currentRawBalance);
+    function setModalWithdrawAll() {
+        if (activeModalStudentBalance > 0) {
+            document.getElementById('modalWithdrawAmount').value = Math.floor(activeModalStudentBalance);
         } else {
-            alert('Saldo siswa adalah Rp 0, tidak dapat melakukan penarikan.');
+            alert('Saldo siswa Rp 0, tidak dapat melakukan penarikan.');
         }
     }
 
-    // Autocomplete Search
-    const searchInput = document.getElementById('studentSearchInput');
-    const searchResults = document.getElementById('studentSearchResults');
-    const clearBtn = document.getElementById('clearStudentBtn');
-    let searchTimeout = null;
-
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            const query = this.value.trim();
-
-            if (query.length > 0) {
-                clearBtn.classList.remove('hidden');
-            } else {
-                clearBtn.classList.add('hidden');
-            }
-
-            if (query.length < 2) {
-                searchResults.classList.add('hidden');
-                searchResults.innerHTML = '';
-                return;
-            }
-
-            searchTimeout = setTimeout(() => {
-                fetch(`{{ route('guru.savings.search') }}?q=${encodeURIComponent(query)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        searchResults.innerHTML = '';
-                        if (data.length === 0) {
-                            searchResults.innerHTML = `<div class="p-3 text-xs text-slate-500 italic text-center">Siswa tidak ditemukan</div>`;
-                        } else {
-                            data.forEach(item => {
-                                const row = document.createElement('div');
-                                row.className = 'p-2.5 border-b border-slate-200 hover:bg-[#FFF4E6] cursor-pointer flex items-center justify-between text-xs transition-colors';
-                                row.innerHTML = `
-                                    <div>
-                                        <div class="font-bold text-black">${item.name}</div>
-                                        <div class="text-[11px] text-slate-500">Kelas: ${item.class_name} • NISN: ${item.nisn || item.nis}</div>
-                                    </div>
-                                    <div class="text-right">
-                                        <div class="font-mono font-bold text-emerald-700">${item.formatted_balance}</div>
-                                        <div class="text-[10px] text-slate-400 font-mono">${item.account_number}</div>
-                                    </div>
-                                `;
-                                row.addEventListener('click', () => selectStudent(item));
-                                searchResults.appendChild(row);
-                            });
-                        }
-                        searchResults.classList.remove('hidden');
-                    })
-                    .catch(() => {
-                        searchResults.classList.add('hidden');
-                    });
-            }, 250);
-        });
-
-        clearBtn.addEventListener('click', function() {
-            searchInput.value = '';
-            searchResults.classList.add('hidden');
-            clearBtn.classList.add('hidden');
-            document.getElementById('depositStudentId').value = '';
-            document.getElementById('withdrawStudentId').value = '';
-            document.getElementById('studentInfoCard').classList.add('hidden');
-            document.getElementById('studentInfoPlaceholder').classList.remove('hidden');
-            currentRawBalance = 0;
-        });
-
-        // Close search results on click outside
-        document.addEventListener('click', function(e) {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-                searchResults.classList.add('hidden');
-            }
-        });
-    }
-
-    function selectStudent(student) {
-        document.getElementById('depositStudentId').value = student.id;
-        document.getElementById('withdrawStudentId').value = student.id;
-        searchInput.value = `${student.name} (${student.class_name})`;
-        searchResults.classList.add('hidden');
-        clearBtn.classList.remove('hidden');
-
-        currentRawBalance = student.balance;
-
-        // Populate info card
-        document.getElementById('infoStudentName').innerText = student.name;
-        document.getElementById('infoStudentClass').innerText = student.class_name;
-        document.getElementById('infoStudentNis').innerText = student.nis || '-';
-        document.getElementById('infoStudentNisn').innerText = student.nisn || '-';
-        document.getElementById('infoAccountNumber').innerText = student.account_number;
-        document.getElementById('infoFormattedBalance').innerText = student.formatted_balance;
-        document.getElementById('withdrawMaxBalanceInfo').innerText = `Saldo: ${student.formatted_balance}`;
-
-        const photoEl = document.getElementById('infoStudentPhoto');
-        const placeholderEl = document.getElementById('infoStudentPlaceholder');
-        if (student.photo_url) {
-            photoEl.src = student.photo_url;
-            photoEl.classList.remove('hidden');
-            placeholderEl.classList.add('hidden');
-        } else {
-            photoEl.classList.add('hidden');
-            placeholderEl.classList.remove('hidden');
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeInputModal();
         }
-
-        document.getElementById('studentInfoPlaceholder').classList.add('hidden');
-        document.getElementById('studentInfoCard').classList.remove('hidden');
-    }
+    });
 </script>
 @endsection

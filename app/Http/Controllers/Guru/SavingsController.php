@@ -27,7 +27,70 @@ class SavingsController extends Controller
     public function index(Request $request): View
     {
         $stats = $this->savingsService->getSummaryStats();
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+        $selectedClassId = (int) ($request->query('class_id') ?: ($classes->first()?->id ?? 0));
+        $selectedClass = $classes->firstWhere('id', $selectedClassId);
+
+        // Filter & Sortir Siswa di Kelas Terpilih
+        $studentSearch = trim((string) $request->query('student_search', ''));
+        $statusFilter = (string) $request->query('status_filter', 'all');
+        $sort = (string) $request->query('sort', 'name_asc');
+
+        $classStudents = collect();
+        $withdrawnTotals = collect();
+        $classStats = [
+            'total_students' => 0,
+            'registered_students' => 0,
+            'total_class_balance' => 0,
+        ];
+
+        if ($selectedClassId > 0) {
+            $studentsQuery = Student::with(['user', 'schoolClass', 'savingsAccount'])
+                ->where('students.school_class_id', $selectedClassId)
+                ->leftJoin('users', 'students.user_id', '=', 'users.id')
+                ->leftJoin('savings_accounts', 'students.id', '=', 'savings_accounts.student_id')
+                ->select('students.*');
+
+            if ($studentSearch !== '') {
+                $studentsQuery->where(function ($q) use ($studentSearch) {
+                    $q->where('users.name', 'like', "%{$studentSearch}%")
+                        ->orWhere('students.nis', 'like', "%{$studentSearch}%")
+                        ->orWhere('students.nisn', 'like', "%{$studentSearch}%");
+                });
+            }
+
+            if ($statusFilter === 'registered') {
+                $studentsQuery->whereNotNull('savings_accounts.id');
+            } elseif ($statusFilter === 'unregistered') {
+                $studentsQuery->whereNull('savings_accounts.id');
+            }
+
+            match ($sort) {
+                'name_desc' => $studentsQuery->orderBy('users.name', 'desc'),
+                'balance_desc' => $studentsQuery->orderByRaw('COALESCE(savings_accounts.balance, 0) DESC'),
+                'balance_asc' => $studentsQuery->orderByRaw('COALESCE(savings_accounts.balance, 0) ASC'),
+                default => $studentsQuery->orderBy('users.name', 'asc'),
+            };
+
+            $classStudents = $studentsQuery->get();
+
+            // Total penarikan per akun tabungan yang ada
+            $accountIds = $classStudents->pluck('savingsAccount.id')->filter()->values();
+            if ($accountIds->isNotEmpty()) {
+                $withdrawnTotals = SavingsTransaction::where('type', 'withdrawal')
+                    ->whereIn('savings_account_id', $accountIds)
+                    ->groupBy('savings_account_id')
+                    ->selectRaw('savings_account_id, SUM(amount) as total_withdrawn')
+                    ->pluck('total_withdrawn', 'savings_account_id');
+            }
+
+            $allClassStudents = Student::with('savingsAccount')->where('school_class_id', $selectedClassId)->get();
+            $classStats = [
+                'total_students' => $allClassStudents->count(),
+                'registered_students' => $allClassStudents->filter(fn ($s) => $s->savingsAccount !== null)->count(),
+                'total_class_balance' => (float) $allClassStudents->sum(fn ($s) => (float) ($s->savingsAccount?->balance ?? 0)),
+            ];
+        }
 
         $selectedStudent = null;
         if ($request->filled('student_id')) {
@@ -46,7 +109,57 @@ class SavingsController extends Controller
             ->limit(10)
             ->get();
 
-        return view('guru.tabungan.index', compact('stats', 'classes', 'selectedStudent', 'recentTransactions'));
+        return view('guru.tabungan.index', compact(
+            'stats',
+            'classes',
+            'selectedClass',
+            'selectedClassId',
+            'classStudents',
+            'withdrawnTotals',
+            'classStats',
+            'studentSearch',
+            'statusFilter',
+            'sort',
+            'selectedStudent',
+            'recentTransactions'
+        ));
+    }
+
+    /**
+     * Daftarkan satu siswa sebagai penabung (buat rekening tabungan manual).
+     */
+    public function registerStudent(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'student_id' => ['required', 'exists:students,id'],
+        ]);
+
+        $student = Student::with('user')->findOrFail($validated['student_id']);
+        $account = $this->savingsService->getOrCreateAccount($student);
+
+        return back()->with('success', "Buku tabungan untuk siswa {$student->user?->name} ({$account->account_number}) berhasil diaktifkan!");
+    }
+
+    /**
+     * Daftarkan seluruh siswa dalam satu rombel/kelas sebagai penabung aktif secara massal.
+     */
+    public function registerClassStudents(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'class_id' => ['required', 'exists:school_classes,id'],
+        ]);
+
+        $students = Student::where('school_class_id', $validated['class_id'])->get();
+        $count = 0;
+
+        foreach ($students as $student) {
+            $this->savingsService->getOrCreateAccount($student);
+            $count++;
+        }
+
+        $class = SchoolClass::find($validated['class_id']);
+
+        return back()->with('success', "Berhasil mendaftarkan {$count} siswa di kelas {$class?->name} sebagai penabung aktif!");
     }
 
     /**

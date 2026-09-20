@@ -13,6 +13,8 @@ Route::middleware(['auth', EnsureIsSavingsOfficer::class])
         Route::get('/search', [SavingsController::class, 'search'])->name('search');
         Route::post('/deposit', [SavingsController::class, 'deposit'])->name('deposit');
         Route::post('/withdraw', [SavingsController::class, 'withdraw'])->name('withdraw');
+        Route::post('/register-student', [SavingsController::class, 'registerStudent'])->name('register-student');
+        Route::post('/register-class-students', [SavingsController::class, 'registerClassStudents'])->name('register-class-students');
         Route::get('/transactions', [SavingsController::class, 'transactions'])->name('transactions');
         Route::get('/receipt/{transaction}', [SavingsController::class, 'receipt'])->name('receipt');
         Route::get('/export', [SavingsController::class, 'exportExcel'])->name('export');
