@@ -101,6 +101,8 @@ class LeaveRequestController extends Controller
             ->get()
             ->sortBy(fn ($s) => $s->user->name ?? '');
 
+        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
+
         return view('guru.leave-requests.index', compact(
             'classes',
             'leaveRequests',
@@ -112,7 +114,8 @@ class LeaveRequestController extends Controller
             'endDate',
             'search',
             'students',
-            'teacher'
+            'teacher',
+            'homeroomClassIds'
         ));
     }
 
@@ -391,7 +394,7 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Validasi hak akses guru terhadap kelas siswa yang bersangkutan.
+     * Validasi hak akses guru terhadap persetujuan izin (Khusus Wali Kelas dari siswa terkait).
      */
     private function authorizeTeacherForStudent(LeaveRequest $leaveRequest): void
     {
@@ -402,10 +405,10 @@ class LeaveRequestController extends Controller
             abort(403, 'Profil guru tidak ditemukan.');
         }
 
-        $allowedClassIds = $this->getAllowedClassIds($teacher);
+        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
 
-        if (! $allowedClassIds->contains($leaveRequest->student->school_class_id)) {
-            abort(403, 'Anda tidak memiliki wewenang memproses permohonan izin untuk siswa di kelas ini.');
+        if (! $homeroomClassIds->contains($leaveRequest->student->school_class_id)) {
+            abort(403, 'Wewenang persetujuan izin siswa khusus untuk Wali Kelas yang bersangkutan.');
         }
     }
 }

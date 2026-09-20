@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
+use App\Models\SlotTemplate;
 use App\Models\Subject;
 use App\Models\Teacher;
 use Illuminate\Http\RedirectResponse;
@@ -52,10 +53,61 @@ class ScheduleController extends Controller
             ];
         }
 
-        $teachers = Teacher::with('user')->get()->sortBy(fn ($t) => $t->user->name ?? '');
+        $teachers = Teacher::with(['user', 'assignments'])->get()->sortBy(fn ($t) => $t->user->name ?? '');
         $subjects = Subject::orderBy('name')->get();
 
-        // Preset Slot Jam Tatap Muka (Referensi Simpatika)
+        $teacherAssignmentsMap = $teachers->mapWithKeys(function ($t) {
+            return [
+                $t->id => [
+                    'has_restrictions' => $t->assignments->isNotEmpty(),
+                    'allowed_subjects' => $t->assignments->pluck('subject_id')->unique()->values()->all(),
+                    'allowed_classes' => $t->assignments->pluck('school_class_id')->unique()->values()->all(),
+                ],
+            ];
+        });
+
+        // Ambil Template Slot Jam KBM & Non-KBM resmi dari database
+        $slotTemplates = SlotTemplate::where('academic_year_id', $academicYear?->id)
+            ->orderBy('day_of_week')
+            ->orderBy('jam_ke')
+            ->get();
+
+        $defaultPresets = SlotTemplate::getDefaultMadrasahSlots();
+        $allSlotsByDay = [];
+        $nonKbmSlotsByDay = [];
+        $kbmSlotsByDay = [];
+
+        foreach ($daysMap as $dayNum => $dayName) {
+            $daySlots = $slotTemplates->where('day_of_week', $dayNum)->values();
+
+            // Jika belum disetting di database, gunakan acuan template standar madrasah
+            if ($daySlots->isEmpty() && isset($defaultPresets[$dayNum])) {
+                $daySlots = collect($defaultPresets[$dayNum])->map(function ($s) use ($dayNum) {
+                    return new SlotTemplate([
+                        'day_of_week' => $dayNum,
+                        'jam_ke' => $s['jam_ke'],
+                        'k_jadwal' => $s['k_jadwal'],
+                        'name' => $s['name'],
+                        'start_time' => $s['start'].':00',
+                        'end_time' => $s['end'].':00',
+                    ]);
+                });
+            }
+
+            $allSlotsByDay[$dayNum] = $daySlots;
+
+            $nonKbmSlotsByDay[$dayNum] = $daySlots->where('k_jadwal', '!=', SlotTemplate::K_KBM)->values();
+
+            $kbmSlotsByDay[$dayNum] = $daySlots->where('k_jadwal', SlotTemplate::K_KBM)
+                ->values()
+                ->map(fn ($s) => [
+                    'label' => ($s->name ?: 'Jam ke-'.$s->jam_ke).' ('.$s->getShortStartTime().' - '.$s->getShortEndTime().')',
+                    'start' => $s->getShortStartTime(),
+                    'end' => $s->getShortEndTime(),
+                ])->all();
+        }
+
+        // Preset Slot Jam Tatap Muka (Referensi Simpatika Fallback)
         $presets = [
             'reguler_40' => [
                 'name' => 'Model Reguler (40 Menit/Jam)',
@@ -95,7 +147,11 @@ class ScheduleController extends Controller
             'daysMap',
             'teachers',
             'subjects',
-            'presets'
+            'presets',
+            'teacherAssignmentsMap',
+            'nonKbmSlotsByDay',
+            'kbmSlotsByDay',
+            'allSlotsByDay'
         ));
     }
 
@@ -112,6 +168,22 @@ class ScheduleController extends Controller
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
         ]);
+
+        $teacher = Teacher::with(['assignments.subject', 'assignments.schoolClass', 'user'])->find($validated['teacher_id']);
+        if ($teacher && $teacher->hasTeachingRestrictions()) {
+            if (! $teacher->canTeach((int) $validated['subject_id'], (int) $validated['school_class_id'])) {
+                $allowedSubjects = $teacher->assignments->pluck('subject.name')->unique()->filter()->join(', ');
+                $allowedClasses = $teacher->assignments->pluck('schoolClass.name')->unique()->filter()->join(', ');
+                $teacherName = $teacher->user?->name ?? 'Guru ini';
+
+                $assignmentError = "Guru {$teacherName} memiliki penugasan khusus. Hanya diizinkan mengajar [{$allowedSubjects}] pada rombel [{$allowedClasses}].";
+
+                return back()
+                    ->withInput()
+                    ->with('conflict_error', $assignmentError)
+                    ->withErrors(['teacher_id' => $assignmentError]);
+            }
+        }
 
         $conflict = $this->checkScheduleConflict(
             schoolClassId: (int) $validated['school_class_id'],
@@ -155,6 +227,22 @@ class ScheduleController extends Controller
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
         ]);
+
+        $teacher = Teacher::with(['assignments.subject', 'assignments.schoolClass', 'user'])->find($validated['teacher_id']);
+        if ($teacher && $teacher->hasTeachingRestrictions()) {
+            if (! $teacher->canTeach((int) $validated['subject_id'], (int) $validated['school_class_id'])) {
+                $allowedSubjects = $teacher->assignments->pluck('subject.name')->unique()->filter()->join(', ');
+                $allowedClasses = $teacher->assignments->pluck('schoolClass.name')->unique()->filter()->join(', ');
+                $teacherName = $teacher->user?->name ?? 'Guru ini';
+
+                $assignmentError = "Guru {$teacherName} memiliki penugasan khusus. Hanya diizinkan mengajar [{$allowedSubjects}] pada rombel [{$allowedClasses}].";
+
+                return back()
+                    ->withInput()
+                    ->with('conflict_error', $assignmentError)
+                    ->withErrors(['teacher_id' => $assignmentError]);
+            }
+        }
 
         $conflict = $this->checkScheduleConflict(
             schoolClassId: (int) $validated['school_class_id'],
@@ -261,6 +349,25 @@ class ScheduleController extends Controller
             $endStr = substr($classConflict->end_time, 0, 5);
 
             return "BENTROK JADWAL KELAS: Kelas {$className} sudah terisi pelajaran {$conflictSubject} bersama {$conflictTeacher} pada hari {$dayName} pukul {$startStr} - {$endStr}. Satu kelas tidak dapat menerima dua sesi tatap muka pada jam yang sama.";
+        }
+
+        // 3. Validasi Bentrok Kegiatan Non-KBM (Upacara, Istirahat, Pembiasaan, Senam, Religi)
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $nonKbmConflict = SlotTemplate::where('academic_year_id', $academicYear?->id)
+            ->where('day_of_week', $dayOfWeek)
+            ->where('k_jadwal', '!=', SlotTemplate::K_KBM)
+            ->where(function ($q) use ($startTime, $endTime) {
+                $q->where('start_time', '<', $endTime)
+                    ->where('end_time', '>', $startTime);
+            })
+            ->first();
+
+        if ($nonKbmConflict) {
+            $kategoriName = $nonKbmConflict->name ?: $nonKbmConflict->getCategoryLabel();
+            $startStr = $nonKbmConflict->getShortStartTime();
+            $endStr = $nonKbmConflict->getShortEndTime();
+
+            return "BENTROK KEGIATAN MADRASAH: Waktu {$startStr} - {$endStr} pada hari {$dayName} dialokasikan untuk [{$kategoriName}]. Pelajaran tidak dapat dijadwalkan pada jam kegiatan bersama.";
         }
 
         return null;

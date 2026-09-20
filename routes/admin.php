@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
 use App\Http\Controllers\Admin\ScheduleController;
+use App\Http\Controllers\Admin\ScheduleSlotController;
 use App\Http\Controllers\Admin\SchoolClassController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StudentCardController;
@@ -21,6 +22,8 @@ Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard
 // Master Data Guru
 Route::get('teachers/template', [TeacherController::class, 'downloadTemplate'])->name('teachers.template');
 Route::post('teachers/import', [TeacherController::class, 'importExcel'])->name('teachers.import');
+Route::get('teachers/{teacher}/assignments', [TeacherController::class, 'getAssignments'])->name('teachers.assignments');
+Route::post('teachers/{teacher}/assignments', [TeacherController::class, 'updateAssignments'])->name('teachers.assignments.update');
 Route::resource('teachers', TeacherController::class)->except(['create', 'edit', 'show']);
 
 // Master Data Kelas
@@ -44,6 +47,11 @@ Route::post('students/{student}/reset-password', [StudentController::class, 'res
 Route::resource('students', StudentController::class)->except(['create', 'edit', 'show']);
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);
+
+// Template Slot Jam KBM (Integrasi Schedules)
+Route::get('schedules/slots', [ScheduleSlotController::class, 'index'])->name('schedules.slots.index');
+Route::post('schedules/slots', [ScheduleSlotController::class, 'store'])->name('schedules.slots.store');
+Route::post('schedules/slots/reset-default', [ScheduleSlotController::class, 'resetDefault'])->name('schedules.slots.reset-default');
 
 // Jadwal Pelajaran (Admin)
 Route::resource('schedules', ScheduleController::class)->except(['create', 'edit', 'show']);

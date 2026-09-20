@@ -34,13 +34,58 @@ class AttendanceReportController extends Controller
             ['nip' => 'GURU-DEMO', 'phone' => '081234567800']
         );
 
+        // Minggu berjalan saat ini (Senin s/d Sabtu)
+        $thisWeekMonday = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $thisWeekSaturday = $thisWeekMonday->copy()->addDays(5);
+
         $startDate = $request->filled('start_date')
             ? $request->input('start_date')
-            : Carbon::now()->startOfMonth()->toDateString();
+            : $thisWeekMonday->toDateString();
 
         $endDate = $request->filled('end_date')
             ? $request->input('end_date')
-            : Carbon::now()->toDateString();
+            : $thisWeekSaturday->toDateString();
+
+        // Siklus pekan aktif (Senin - Sabtu) untuk navigasi antar minggu
+        $activeCarbon = Carbon::parse($startDate);
+        $currentWeekMonday = $activeCarbon->copy()->startOfWeek(Carbon::MONDAY);
+        $currentWeekSaturday = $currentWeekMonday->copy()->addDays(5);
+
+        $prevWeekMonday = $currentWeekMonday->copy()->subWeek();
+        $prevWeekSaturday = $prevWeekMonday->copy()->addDays(5);
+
+        $nextWeekMonday = $currentWeekMonday->copy()->addWeek();
+        $nextWeekSaturday = $nextWeekMonday->copy()->addDays(5);
+
+        $isThisWeek = ($startDate === $thisWeekMonday->toDateString() && $endDate === $thisWeekSaturday->toDateString());
+
+        if ($currentWeekMonday->format('Y') === $currentWeekSaturday->format('Y')) {
+            if ($currentWeekMonday->format('m') === $currentWeekSaturday->format('m')) {
+                $weekPeriodLabel = 'Senin, '.$currentWeekMonday->translatedFormat('j').' — Sabtu, '.$currentWeekSaturday->translatedFormat('j F Y');
+            } else {
+                $weekPeriodLabel = 'Senin, '.$currentWeekMonday->translatedFormat('j M').' — Sabtu, '.$currentWeekSaturday->translatedFormat('j M Y');
+            }
+        } else {
+            $weekPeriodLabel = 'Senin, '.$currentWeekMonday->translatedFormat('j M Y').' — Sabtu, '.$currentWeekSaturday->translatedFormat('j M Y');
+        }
+
+        // Query parameters untuk melestarikan filter kelas, status, search, & tab
+        $queryParams = $request->except(['start_date', 'end_date', 'student_page', 'log_page']);
+
+        $prevWeekUrl = route('guru.reports.attendance', array_merge($queryParams, [
+            'start_date' => $prevWeekMonday->toDateString(),
+            'end_date' => $prevWeekSaturday->toDateString(),
+        ]));
+
+        $nextWeekUrl = route('guru.reports.attendance', array_merge($queryParams, [
+            'start_date' => $nextWeekMonday->toDateString(),
+            'end_date' => $nextWeekSaturday->toDateString(),
+        ]));
+
+        $thisWeekUrl = route('guru.reports.attendance', array_merge($queryParams, [
+            'start_date' => $thisWeekMonday->toDateString(),
+            'end_date' => $thisWeekSaturday->toDateString(),
+        ]));
 
         $schoolClassId = $request->input('school_class_id');
         $status = $request->input('status');
@@ -118,8 +163,8 @@ class AttendanceReportController extends Controller
 
         foreach ($period as $date) {
             $dateStr = $date->toDateString();
-            $dailyLabels[] = (string) $date->format('j');
-            $dailyFullDates[] = 'Tanggal '.$date->format('j').' '.$date->translatedFormat('F');
+            $dailyLabels[] = $date->translatedFormat('D, j M');
+            $dailyFullDates[] = $date->translatedFormat('l, j F Y');
 
             $statusCounts = $dailyStats->get($dateStr, collect())->pluck('count', 'status')->all();
 
@@ -200,6 +245,11 @@ class AttendanceReportController extends Controller
             'donutChartData' => $donutChartData,
             'barChartData' => $barChartData,
             'reportMonthName' => $reportMonthName,
+            'weekPeriodLabel' => $weekPeriodLabel,
+            'prevWeekUrl' => $prevWeekUrl,
+            'nextWeekUrl' => $nextWeekUrl,
+            'thisWeekUrl' => $thisWeekUrl,
+            'isThisWeek' => $isThisWeek,
             'students' => $students,
             'attendanceLogs' => $attendanceLogs,
         ]);
@@ -213,13 +263,16 @@ class AttendanceReportController extends Controller
         $user = Auth::user();
         $teacher = $user->teacher;
 
+        $thisWeekMonday = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $thisWeekSaturday = $thisWeekMonday->copy()->addDays(5);
+
         $startDate = $request->filled('start_date')
             ? $request->input('start_date')
-            : Carbon::now()->startOfMonth()->toDateString();
+            : $thisWeekMonday->toDateString();
 
         $endDate = $request->filled('end_date')
             ? $request->input('end_date')
-            : Carbon::now()->toDateString();
+            : $thisWeekSaturday->toDateString();
 
         $schoolClassId = $request->input('school_class_id');
         $status = $request->input('status');
@@ -238,6 +291,8 @@ class AttendanceReportController extends Controller
             ? SchoolClass::find($schoolClassId)
             : null;
 
+        $targetClass = $selectedClass ?? ($targetClassIds->count() === 1 ? SchoolClass::find($targetClassIds->first()) : null);
+
         $spreadsheet = new Spreadsheet;
 
         // SHEET 1: REKAPITULASI PER SISWA
@@ -247,7 +302,7 @@ class AttendanceReportController extends Controller
         $sheet1->setCellValue('A1', 'LAPORAN REKAPITULASI KEHADIRAN SISWA');
         $sheet1->setCellValue('A2', 'Guru Pengampu: '.($user->name ?? '-').' (NIP: '.($teacher->nip ?? '-').')');
         $sheet1->setCellValue('A3', 'Periode: '.Carbon::parse($startDate)->translatedFormat('d F Y').' s/d '.Carbon::parse($endDate)->translatedFormat('d F Y'));
-        $sheet1->setCellValue('A4', 'Kelas: '.($selectedClass ? $selectedClass->name : 'Semua Kelas Binaan/Ajar'));
+        $sheet1->setCellValue('A4', 'Kelas: '.($targetClass ? $targetClass->name : 'Semua Kelas Binaan/Ajar'));
 
         $sheet1->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet1->getStyle('A2:A4')->getFont()->setSize(10);
@@ -435,7 +490,11 @@ class AttendanceReportController extends Controller
 
         $spreadsheet->setActiveSheetIndex(0);
 
-        $filename = 'Rekap_Kehadiran_Guru_'.Carbon::now()->format('Ymd_His').'.xlsx';
+        $classSlug = $targetClass
+            ? str_replace([' ', '/', '\\'], ['_', '-', '-'], $targetClass->name)
+            : 'Semua_Kelas';
+
+        $filename = 'Rekap_Kehadiran_'.$classSlug.'_'.$startDate.'_sd_'.$endDate.'.xlsx';
 
         return response()->stream(
             function () use ($spreadsheet) {

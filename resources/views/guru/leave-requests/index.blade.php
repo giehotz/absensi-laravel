@@ -293,24 +293,28 @@
                             </td>
                             <td class="p-3 text-center">
                                 @if($lr->status === 'pending')
-                                    <div class="flex items-center justify-center gap-1.5">
-                                        <form action="{{ route('guru.leave-requests.approve', $lr->id) }}" method="POST"
-                                              onsubmit="return confirmAction(event, 'Setujui Pengajuan?', 'Kehadiran siswa akan otomatis dicatat sebagai {{ strtoupper($lr->type) }} pada rentang tanggal tersebut.')">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="neo-btn bg-[#20C997] text-white text-[11px] font-bold px-2.5 py-1.5 hover:bg-emerald-500 cursor-pointer">
-                                                ✓ Setujui
-                                            </button>
-                                        </form>
-                                        <form action="{{ route('guru.leave-requests.reject', $lr->id) }}" method="POST"
-                                              onsubmit="return confirmAction(event, 'Tolak Pengajuan?', 'Pengajuan ini akan ditandai ditolak.')">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="neo-btn bg-[#FF6B6B] text-white text-[11px] font-bold px-2.5 py-1.5 hover:bg-rose-600 cursor-pointer">
-                                                ✕ Tolak
-                                            </button>
-                                        </form>
-                                    </div>
+                                    @if(isset($homeroomClassIds) && $homeroomClassIds->contains($lr->student->school_class_id))
+                                        <div class="flex items-center justify-center gap-1.5">
+                                            <form action="{{ route('guru.leave-requests.approve', $lr->id) }}" method="POST"
+                                                  onsubmit="return confirmAction(event, 'Setujui Pengajuan?', 'Kehadiran siswa akan otomatis dicatat sebagai {{ strtoupper($lr->type) }} pada rentang tanggal tersebut.')">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="neo-btn bg-[#20C997] text-white text-[11px] font-bold px-2.5 py-1.5 hover:bg-emerald-500 cursor-pointer">
+                                                    ✓ Setujui
+                                                </button>
+                                            </form>
+                                            <form action="{{ route('guru.leave-requests.reject', $lr->id) }}" method="POST"
+                                                  onsubmit="return confirmAction(event, 'Tolak Pengajuan?', 'Pengajuan ini akan ditandai ditolak.')">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="neo-btn bg-[#FF6B6B] text-white text-[11px] font-bold px-2.5 py-1.5 hover:bg-rose-600 cursor-pointer">
+                                                    ✕ Tolak
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <span class="text-[11px] text-slate-500 font-semibold italic bg-slate-100 px-2 py-1 border border-slate-300">Menunggu Wali Kelas</span>
+                                    @endif
                                 @else
                                     <span class="text-xs text-slate-400 italic font-semibold">Telah Diproses</span>
                                 @endif

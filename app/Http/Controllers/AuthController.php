@@ -44,9 +44,11 @@ class AuthController extends Controller
         // 1. Cari via Email
         $user = User::where('email', $identifier)->first();
 
-        // 2. Jika tidak ketemu, cari via NIP Guru
+        // 2. Jika tidak ketemu, cari via NUPTK atau NIP Guru
         if (! $user) {
-            $teacherUserId = Teacher::where('nip', $identifier)->value('user_id');
+            $teacherUserId = Teacher::where('nuptk', $identifier)
+                ->orWhere('nip', $identifier)
+                ->value('user_id');
             if ($teacherUserId) {
                 $user = User::find($teacherUserId);
             }

@@ -41,8 +41,36 @@
     </div>
 
     <!-- Filter Card -->
-    <div class="bg-white border-2 border-black p-5 rounded-lg shadow-[4px_4px_0px_0px_#000] print:hidden">
-        <form method="GET" action="{{ route('guru.reports.attendance') }}" class="space-y-4">
+    <div class="bg-white border-2 border-black p-5 rounded-lg shadow-[4px_4px_0px_0px_#000] print:hidden space-y-4">
+        <!-- Quick Weekly Navigator Banner -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#E7F5FF] border-2 border-black p-3.5 rounded-lg">
+            <div class="flex items-center gap-2.5">
+                <span class="text-xl">📅</span>
+                <div>
+                    <div class="text-[10px] font-black uppercase text-blue-900 tracking-wider">Rekapitulasi Mingguan (Senin — Sabtu)</div>
+                    <div class="font-heading font-black text-sm text-black">{{ $weekPeriodLabel }}</div>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ $prevWeekUrl }}" 
+                   class="neo-btn bg-white hover:bg-slate-100 text-black px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] cursor-pointer" 
+                   title="Merekap data minggu sebelumnya">
+                    <span>←</span> <span>Minggu Sebelumnya</span>
+                </a>
+                <a href="{{ $thisWeekUrl }}" 
+                   class="neo-btn {{ $isThisWeek ? 'bg-[#5294FF] text-white shadow-[2px_2px_0px_0px_#000]' : 'bg-white hover:bg-slate-100 text-black shadow-[2px_2px_0px_0px_#000]' }} px-3 py-1.5 text-xs font-bold cursor-pointer" 
+                   title="Kembali ke minggu berjalan saat ini">
+                    Minggu Ini
+                </a>
+                <a href="{{ $nextWeekUrl }}" 
+                   class="neo-btn bg-white hover:bg-slate-100 text-black px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] cursor-pointer" 
+                   title="Merekap data minggu selanjutnya">
+                    <span>Minggu Selanjutnya</span> <span>→</span>
+                </a>
+            </div>
+        </div>
+
+        <form method="GET" action="{{ route('guru.reports.attendance') }}" class="space-y-4 pt-1">
             <input type="hidden" name="tab" value="{{ $activeTab }}">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -251,15 +279,31 @@
         <!-- Chart 2: Bar Chart (Tren Harian) -->
         <div class="lg:col-span-7 bg-white border-2 border-black p-5 rounded-lg shadow-[4px_4px_0px_0px_#000] flex flex-col justify-between">
             <div>
-                <div class="flex items-center justify-between mb-1">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
                     <h3 class="font-heading font-black text-base text-black flex items-center gap-2">
                         <span class="w-3 h-3 bg-[#5294FF] border border-black inline-block"></span>
-                        Tren Kehadiran Harian ({{ $reportMonthName }})
+                        Tren Kehadiran Harian ({{ $weekPeriodLabel }})
                     </h3>
-                    <span class="neo-badge bg-[#E7F5FF] text-blue-900 text-[10px]">Timeline</span>
+                    <div class="flex items-center gap-1.5">
+                        <a href="{{ $prevWeekUrl }}" 
+                           class="neo-btn bg-white hover:bg-slate-100 text-black px-2.5 py-1 text-xs font-bold flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] cursor-pointer" 
+                           title="Minggu Sebelumnya">
+                            <span>←</span> <span class="hidden sm:inline">Sebelumnya</span>
+                        </a>
+                        <a href="{{ $thisWeekUrl }}" 
+                           class="neo-btn {{ $isThisWeek ? 'bg-[#5294FF] text-white shadow-[2px_2px_0px_0px_#000]' : 'bg-white hover:bg-slate-100 text-black shadow-[2px_2px_0px_0px_#000]' }} px-2.5 py-1 text-xs font-bold cursor-pointer" 
+                           title="Minggu Ini">
+                            Minggu Ini
+                        </a>
+                        <a href="{{ $nextWeekUrl }}" 
+                           class="neo-btn bg-white hover:bg-slate-100 text-black px-2.5 py-1 text-xs font-bold flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] cursor-pointer" 
+                           title="Minggu Selanjutnya">
+                            <span class="hidden sm:inline">Selanjutnya</span> <span>→</span>
+                        </a>
+                    </div>
                 </div>
                 <p class="text-xs text-slate-500 mb-4">
-                    Fluktuasi kehadiran harian siswa dalam rentang tanggal yang dipilih.
+                    Fluktuasi kehadiran harian siswa dari hari Senin sampai Sabtu pada rentang tanggal aktif.
                 </p>
 
                 <div class="relative w-full h-[260px]">

@@ -5,6 +5,18 @@
 
 @section('content')
 <div class="space-y-6">
+    <!-- Navigation Tabs: Plot Jadwal vs Template Slot Jam -->
+    <div class="flex border-b-2 border-black gap-2">
+        <a href="{{ route('admin.schedules.index') }}" 
+           class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm">
+            📅 Plot Jadwal Kelas
+        </a>
+        <a href="{{ route('admin.schedules.slots.index') }}" 
+           class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
+            ⚙️ Template Slot Jam KBM (EMIS GTK)
+        </a>
+    </div>
+
     <!-- Header Title Card -->
     <div class="bg-[#FFF3BF] neo-box-lg p-6 sm:p-8 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="space-y-1.5 z-10">
@@ -26,9 +38,9 @@
         </div>
 
         <div class="z-10 flex flex-wrap gap-2">
-            <button type="button" onclick="openTemplateModal()" class="neo-btn bg-white text-black text-xs font-bold px-4 py-2.5 flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer">
-                <span>📋</span> Template Jam Simpatika
-            </button>
+            <a href="{{ route('admin.schedules.slots.index') }}" class="neo-btn bg-white text-black text-xs font-bold px-4 py-2.5 flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer">
+                <span>⚙️</span> Atur Template Jam (EMIS)
+            </a>
             <button type="button" onclick="openCreateScheduleModal()" class="neo-btn bg-[#20C997] text-black text-xs font-black px-4 py-2.5 flex items-center gap-1.5 hover:bg-emerald-400 cursor-pointer shadow-sm">
                 <span>➕</span> Tambah Jadwal Baru
             </button>
@@ -82,9 +94,9 @@
                                 {{ $dayData['name'] }}
                             </h3>
                         </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-[10px] font-mono font-bold bg-[#FFF9DB] border border-black px-2 py-0.5">
-                                {{ count($dayData['items']) }} Sesi
+                        <div class="flex items-center gap-1 flex-wrap justify-end">
+                            <span class="text-[10px] font-mono font-bold bg-[#D3F9D8] text-emerald-950 border border-black px-1.5 py-0.5" title="Sesi Terisi">
+                                {{ count($dayData['items']) }} Terisi
                             </span>
                             <button type="button" onclick="openCreateScheduleModal({{ $dayNum }})" 
                                     class="text-xs font-black bg-[#20C997] hover:bg-emerald-400 border border-black px-1.5 py-0.5 cursor-pointer" 
@@ -94,59 +106,185 @@
                         </div>
                     </div>
 
-                    <!-- Daftar Sesi Tatap Muka -->
-                    <div class="space-y-3 flex-1">
-                        @forelse($dayData['items'] as $sch)
-                            <div class="p-3 bg-slate-50 border-2 border-black rounded-sm space-y-2 hover:bg-amber-50/50 transition-colors relative group">
-                                <div class="flex items-center justify-between gap-2">
-                                    @php
-                                        $startCarbon = \Carbon\Carbon::parse($sch->start_time);
-                                        $endCarbon = \Carbon\Carbon::parse($sch->end_time);
-                                        $diffMinutes = $startCarbon->diffInMinutes($endCarbon);
-                                        $jp = max(1, (int) round($diffMinutes / 40));
-                                    @endphp
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-[10px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 border border-black rounded-xs">
-                                            {{ $jp }} JP
+                    <!-- Daftar Sesi Tatap Muka, Slot Belum Terisi, & Kegiatan Non-KBM -->
+                    <div class="space-y-2.5 flex-1">
+                        @php
+                            $daySlots = $allSlotsByDay[$dayNum] ?? collect();
+                            $daySchedules = $dayData['items'];
+                            $renderedScheduleIds = [];
+                            $timelineItems = collect();
+
+                            // 1. Petakan setiap slot template
+                            foreach ($daySlots as $slot) {
+                                $slotStart = substr((string) $slot->start_time, 0, 5);
+                                $slotEnd = substr((string) $slot->end_time, 0, 5);
+
+                                if ($slot->k_jadwal != 0) {
+                                    // Non-KBM Slot (Upacara, Istirahat, dll.)
+                                    $timelineItems->push([
+                                        'type' => 'non_kbm',
+                                        'start' => $slotStart,
+                                        'end' => $slotEnd,
+                                        'slot' => $slot,
+                                    ]);
+                                } else {
+                                    // KBM Slot: Cari jadwal kelas yang beririsan
+                                    $matchedSchedule = $daySchedules->first(function ($sch) use ($slotStart, $slotEnd) {
+                                        $schStart = substr((string) $sch->start_time, 0, 5);
+                                        $schEnd = substr((string) $sch->end_time, 0, 5);
+                                        return ($schStart < $slotEnd) && ($schEnd > $slotStart);
+                                    });
+
+                                    if ($matchedSchedule) {
+                                        if (!in_array($matchedSchedule->id, $renderedScheduleIds)) {
+                                            $renderedScheduleIds[] = $matchedSchedule->id;
+                                            $timelineItems->push([
+                                                'type' => 'schedule',
+                                                'start' => substr((string) $matchedSchedule->start_time, 0, 5),
+                                                'end' => substr((string) $matchedSchedule->end_time, 0, 5),
+                                                'schedule' => $matchedSchedule,
+                                                'slot' => $slot,
+                                            ]);
+                                        }
+                                    } else {
+                                        // SLOT KBM BELUM TERISI (KOSONG)
+                                        $timelineItems->push([
+                                            'type' => 'empty_slot',
+                                            'start' => $slotStart,
+                                            'end' => $slotEnd,
+                                            'slot' => $slot,
+                                        ]);
+                                    }
+                                }
+                            }
+
+                            // 2. Sertakan jadwal di luar template jika ada
+                            foreach ($daySchedules as $sch) {
+                                if (!in_array($sch->id, $renderedScheduleIds)) {
+                                    $timelineItems->push([
+                                        'type' => 'schedule',
+                                        'start' => substr((string) $sch->start_time, 0, 5),
+                                        'end' => substr((string) $sch->end_time, 0, 5),
+                                        'schedule' => $sch,
+                                        'slot' => null,
+                                    ]);
+                                }
+                            }
+
+                            $timelineItems = $timelineItems->sortBy('start')->values();
+                        @endphp
+
+                        @forelse($timelineItems as $item)
+                            @if($item['type'] === 'non_kbm')
+                                @php
+                                    $nSlot = $item['slot'];
+                                    $colorConfig = \App\Models\SlotTemplate::KEGIATAN_COLORS[$nSlot->k_jadwal] ?? [
+                                        'bg' => 'bg-slate-100',
+                                        'text' => 'text-slate-900',
+                                        'badge_bg' => 'bg-slate-300',
+                                        'badge_text' => 'text-black',
+                                        'name' => 'Kegiatan',
+                                    ];
+                                @endphp
+                                <div class="p-2.5 border-2 border-black rounded-sm space-y-1 {{ $colorConfig['bg'] }} shadow-[1.5px_1.5px_0px_0px_#000]">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black {{ $colorConfig['badge_bg'] }} {{ $colorConfig['badge_text'] }}">
+                                            {{ $colorConfig['name'] }}
                                         </span>
-                                        <span class="text-[11px] font-mono font-black bg-black text-white px-2 py-0.5 rounded-sm">
-                                            {{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }}
+                                        <span class="text-[10px] font-mono font-black {{ $colorConfig['text'] }}">
+                                            {{ $nSlot->getShortStartTime() }} - {{ $nSlot->getShortEndTime() }}
                                         </span>
                                     </div>
-                                    <div class="flex items-center gap-1">
-                                        <button type="button" onclick='openEditScheduleModal(@json($sch))' 
-                                                class="text-[11px] font-bold bg-white border border-black px-1.5 py-0.5 hover:bg-slate-200 cursor-pointer" title="Edit Jadwal">
-                                            ✏️
-                                        </button>
-                                        <form action="{{ route('admin.schedules.destroy', $sch->id) }}" method="POST" class="inline" onsubmit="return confirmDeleteSchedule(event)">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-[11px] font-bold bg-[#FF6B6B] text-white border border-black px-1.5 py-0.5 hover:bg-rose-600 cursor-pointer" title="Hapus">
-                                                ✕
+                                    <div class="text-xs font-black {{ $colorConfig['text'] }} truncate">
+                                        {{ $nSlot->name ?: $nSlot->getCategoryLabel() }}
+                                    </div>
+                                    <div class="text-[9px] font-semibold text-slate-600 flex items-center gap-1">
+                                        <span>🔒</span> Kegiatan Bersama (Terkunci)
+                                    </div>
+                                </div>
+                            @elseif($item['type'] === 'empty_slot')
+                                @php
+                                    $eSlot = $item['slot'];
+                                    $slotLabel = $eSlot->name ?: ('Jam ke-' . $eSlot->jam_ke);
+                                @endphp
+                                <div onclick="openCreateScheduleModal({{ $dayNum }}, '{{ $item['start'] }}', '{{ $item['end'] }}')"
+                                     class="p-2.5 border-2 border-dashed border-black/60 bg-[#FFFDF5] hover:bg-[#FFF9DB] rounded-sm transition-all group cursor-pointer shadow-[1px_1px_0px_0px_#000]">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <div class="flex items-center gap-1.5">
+                                            <span class="font-mono text-[10px] font-bold bg-slate-200 px-1.5 py-0.2 rounded text-slate-800 border border-slate-400">
+                                                J-{{ $eSlot->jam_ke }}
+                                            </span>
+                                            <span class="text-[11px] font-bold text-slate-800 group-hover:text-black">
+                                                {{ $slotLabel }}
+                                            </span>
+                                        </div>
+                                        <span class="text-[10px] font-mono font-bold text-slate-600">
+                                            {{ $item['start'] }} - {{ $item['end'] }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mt-2 pt-1.5 border-t border-black/10 flex items-center justify-between">
+                                        <span class="text-[9px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+                                            Belum Terisi
+                                        </span>
+                                        <span class="text-[10px] font-black text-black bg-[#20C997] group-hover:bg-[#12b886] px-2 py-0.5 rounded border border-black flex items-center gap-1 shadow-[1px_1px_0px_0px_#000]">
+                                            <span>+</span> Isi Jadwal
+                                        </span>
+                                    </div>
+                                </div>
+                            @else
+                                @php
+                                    $sch = $item['schedule'];
+                                    $startCarbon = \Carbon\Carbon::parse($sch->start_time);
+                                    $endCarbon = \Carbon\Carbon::parse($sch->end_time);
+                                    $diffMinutes = $startCarbon->diffInMinutes($endCarbon);
+                                    $jp = max(1, (int) round($diffMinutes / 40));
+                                @endphp
+                                <div class="p-3 bg-white border-2 border-black rounded-sm space-y-2 hover:bg-amber-50/50 transition-colors relative group shadow-[1.5px_1.5px_0px_0px_#000]">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="text-[10px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 border border-black rounded-xs">
+                                                {{ $jp }} JP
+                                            </span>
+                                            <span class="text-[11px] font-mono font-black bg-black text-white px-2 py-0.5 rounded-sm">
+                                                {{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }}
+                                            </span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" onclick='openEditScheduleModal(@json($sch))' 
+                                                    class="text-[11px] font-bold bg-white border border-black px-1.5 py-0.5 hover:bg-slate-200 cursor-pointer" title="Edit Jadwal">
+                                                ✏️
                                             </button>
-                                        </form>
+                                            <form action="{{ route('admin.schedules.destroy', $sch->id) }}" method="POST" class="inline" onsubmit="return confirmDeleteSchedule(event)">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-[11px] font-bold bg-[#FF6B6B] text-white border border-black px-1.5 py-0.5 hover:bg-rose-600 cursor-pointer" title="Hapus">
+                                                    ✕
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <div class="text-xs font-black text-black">
-                                        {{ $sch->subject->name ?? 'Mata Pelajaran' }}
+                                    <div>
+                                        <div class="text-xs font-black text-black">
+                                            {{ $sch->subject->name ?? 'Mata Pelajaran' }}
+                                        </div>
+                                        <div class="text-[10px] font-mono text-slate-500 font-semibold">
+                                            Kode: {{ $sch->subject->code ?? '-' }}
+                                        </div>
                                     </div>
-                                    <div class="text-[10px] font-mono text-slate-500 font-semibold">
-                                        Kode: {{ $sch->subject->code ?? '-' }}
-                                    </div>
-                                </div>
 
-                                <div class="pt-1.5 border-t border-black/10 flex items-center justify-between text-[11px] font-medium text-slate-700">
-                                    <div class="flex items-center gap-1.5 truncate">
-                                        <span>👨‍🏫</span>
-                                        <span class="truncate font-semibold text-black">{{ $sch->teacher->user->name ?? 'Guru' }}</span>
+                                    <div class="pt-1.5 border-t border-black/10 flex items-center justify-between text-[11px] font-medium text-slate-700">
+                                        <div class="flex items-center gap-1.5 truncate">
+                                            <span>👨‍🏫</span>
+                                            <span class="truncate font-semibold text-black">{{ $sch->teacher->user->name ?? 'Guru' }}</span>
+                                        </div>
+                                        <span class="text-[10px] font-mono text-slate-500">
+                                            {{ $sch->teacher->nip ?? '-' }}
+                                        </span>
                                     </div>
-                                    <span class="text-[10px] font-mono text-slate-500">
-                                        {{ $sch->teacher->nip ?? '-' }}
-                                    </span>
                                 </div>
-                            </div>
+                            @endif
                         @empty
                             <div class="py-6 px-3 bg-slate-50/50 border border-dashed border-slate-300 rounded text-center text-slate-400 text-xs">
                                 <span>☕ Belum ada jadwal</span>
@@ -196,7 +334,7 @@
                 <!-- Pilih Hari -->
                 <div>
                     <label class="block text-xs font-black uppercase text-black mb-1">Hari Belajar *</label>
-                    <select name="day_of_week" id="form_day_of_week" required
+                    <select name="day_of_week" id="form_day_of_week" required onchange="refreshSlotOptions()"
                             class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden">
                         <option value="">-- Pilih Hari --</option>
                         @foreach($daysMap as $dNum => $dName)
@@ -313,7 +451,7 @@
                 <!-- Guru Pengampu -->
                 <div>
                     <label class="block text-xs font-black uppercase text-black mb-1">Guru Pengampu *</label>
-                    <select name="teacher_id" id="form_teacher_id" required
+                    <select name="teacher_id" id="form_teacher_id" required onchange="onTeacherChange()"
                             class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden">
                         <option value="">-- Pilih Guru Pengampu --</option>
                         @foreach($teachers as $t)
@@ -323,6 +461,9 @@
                         @endforeach
                     </select>
                 </div>
+
+                <!-- Hint Penugasan Khusus Guru -->
+                <div id="teacher_assignment_hint" class="hidden"></div>
 
                 <div class="p-3 bg-[#FFF3BF] border-2 border-black rounded-sm text-[11px] font-semibold text-slate-800">
                     🛡️ <b>Deteksi Bentrok Otomatis:</b> Sistem akan memvalidasi jadwal agar tidak bertabrakan dengan jadwal guru di kelas lain atau jadwal kelas lain di jam yang sama.
@@ -437,7 +578,29 @@
 
 @push('scripts')
 <script>
-    const slotList = @json($presets['reguler_40']['slots']);
+    const kbmSlotsByDay = @json($kbmSlotsByDay ?? []);
+    const fallbackSlots = @json($presets['reguler_40']['slots'] ?? []);
+    let currentActiveSlots = fallbackSlots;
+
+    function refreshSlotOptions() {
+        const day = document.getElementById('form_day_of_week').value;
+        currentActiveSlots = (day && kbmSlotsByDay[day] && kbmSlotsByDay[day].length > 0)
+            ? kbmSlotsByDay[day]
+            : fallbackSlots;
+
+        const fromSelect = document.getElementById('quick_slot_from');
+        const toSelect = document.getElementById('quick_slot_to');
+
+        if (fromSelect && toSelect) {
+            fromSelect.innerHTML = '<option value="">-- Jam Awal --</option>';
+            toSelect.innerHTML = '<option value="">-- Jam Akhir --</option>';
+
+            currentActiveSlots.forEach((s, idx) => {
+                fromSelect.innerHTML += `<option value="${idx}" data-start="${s.start}" data-end="${s.end}">${s.label}</option>`;
+                toSelect.innerHTML += `<option value="${idx}" data-start="${s.start}" data-end="${s.end}">${s.label}</option>`;
+            });
+        }
+    }
 
     function applyRangeSlotTime() {
         const fromVal = document.getElementById('quick_slot_from').value;
@@ -459,16 +622,18 @@
             document.getElementById('quick_slot_to').value = toIdx;
         }
 
-        const startSlot = slotList[fromIdx];
-        const endSlot = slotList[toIdx];
+        const startSlot = currentActiveSlots[fromIdx] || fallbackSlots[fromIdx];
+        const endSlot = currentActiveSlots[toIdx] || fallbackSlots[toIdx];
 
-        document.getElementById('form_start_time').value = startSlot.start;
-        document.getElementById('form_end_time').value = endSlot.end;
+        if (startSlot && endSlot) {
+            document.getElementById('form_start_time').value = startSlot.start;
+            document.getElementById('form_end_time').value = endSlot.end;
 
-        const totalJp = (toIdx - fromIdx + 1);
-        infoBox.classList.remove('hidden');
-        infoText.textContent = `✅ Terpilih: ${startSlot.label} s.d ${endSlot.label} (${startSlot.start} - ${endSlot.end})`;
-        infoBadge.textContent = `${totalJp} Jam Pelajaran (JP)`;
+            const totalJp = (toIdx - fromIdx + 1);
+            infoBox.classList.remove('hidden');
+            infoText.textContent = `✅ Terpilih: ${startSlot.label} s.d ${endSlot.label} (${startSlot.start} - ${endSlot.end})`;
+            infoBadge.textContent = `${totalJp} Jam Pelajaran (JP)`;
+        }
     }
 
     function applyPresetBlock(fromIdx, toIdx) {
@@ -477,15 +642,13 @@
         applyRangeSlotTime();
     }
 
-    function openCreateScheduleModal(dayOfWeek = null) {
+    function openCreateScheduleModal(dayOfWeek = null, startTime = null, endTime = null) {
         document.getElementById('modalTitle').innerHTML = '<span>📅</span> Tambah Jadwal Pelajaran';
         document.getElementById('scheduleForm').action = "{{ route('admin.schedules.store') }}";
         document.getElementById('methodContainer').innerHTML = '';
         
         document.getElementById('form_subject_id').value = '';
         document.getElementById('form_teacher_id').value = '';
-        document.getElementById('form_start_time').value = '';
-        document.getElementById('form_end_time').value = '';
         document.getElementById('quick_slot_from').value = '';
         document.getElementById('quick_slot_to').value = '';
         document.getElementById('jpCalcInfo').classList.add('hidden');
@@ -495,6 +658,25 @@
         } else {
             document.getElementById('form_day_of_week').value = '';
         }
+
+        refreshSlotOptions();
+
+        if (startTime && endTime) {
+            document.getElementById('form_start_time').value = startTime;
+            document.getElementById('form_end_time').value = endTime;
+
+            const matchedIdx = currentActiveSlots.findIndex(s => s.start === startTime);
+            if (matchedIdx !== -1) {
+                document.getElementById('quick_slot_from').value = matchedIdx;
+                document.getElementById('quick_slot_to').value = matchedIdx;
+                applyRangeSlotTime();
+            }
+        } else {
+            document.getElementById('form_start_time').value = '';
+            document.getElementById('form_end_time').value = '';
+        }
+
+        onTeacherChange();
 
         document.getElementById('scheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -506,8 +688,11 @@
         document.getElementById('methodContainer').innerHTML = '@method("PUT")';
 
         document.getElementById('form_day_of_week').value = sch.day_of_week;
-        document.getElementById('form_subject_id').value = sch.subject_id;
+        refreshSlotOptions();
+
         document.getElementById('form_teacher_id').value = sch.teacher_id;
+        onTeacherChange();
+        document.getElementById('form_subject_id').value = sch.subject_id;
         document.getElementById('form_start_time').value = sch.start_time.substring(0, 5);
         document.getElementById('form_end_time').value = sch.end_time.substring(0, 5);
 
@@ -533,6 +718,63 @@
     function closeTemplateModal() {
         document.getElementById('templateModal').classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
+    }
+
+    // Mapping Penugasan Mengajar Guru
+    const teacherAssignmentsMap = @json($teacherAssignmentsMap ?? []);
+    const currentClassId = {{ (int) ($selectedClassId ?? 0) }};
+
+    function onTeacherChange() {
+        const teacherId = document.getElementById('form_teacher_id').value;
+        const hintEl = document.getElementById('teacher_assignment_hint');
+        const subjectSelect = document.getElementById('form_subject_id');
+
+        if (!teacherId || !teacherAssignmentsMap[teacherId] || !teacherAssignmentsMap[teacherId].has_restrictions) {
+            if (hintEl) hintEl.classList.add('hidden');
+            Array.from(subjectSelect.options).forEach(opt => {
+                opt.disabled = false;
+                if (opt.hasAttribute('data-original-text')) {
+                    opt.textContent = opt.getAttribute('data-original-text');
+                }
+            });
+            return;
+        }
+
+        const restriction = teacherAssignmentsMap[teacherId];
+        const allowedSubjects = restriction.allowed_subjects || [];
+        const allowedClasses = restriction.allowed_classes || [];
+
+        const isClassAllowed = allowedClasses.includes(currentClassId);
+
+        if (hintEl) {
+            hintEl.classList.remove('hidden');
+            if (!isClassAllowed) {
+                hintEl.innerHTML = `⚠️ <b>Perhatian:</b> Guru ini memiliki penugasan khusus dan tidak terdaftar mengajar di rombel kelas ini.`;
+                hintEl.className = 'p-2.5 bg-[#FFE3E3] border-2 border-black rounded-sm text-[11px] font-bold text-rose-950 mb-1';
+            } else {
+                hintEl.innerHTML = `🎯 <b>Penugasan Khusus:</b> Guru ini memiliki penugasan mata pelajaran khusus. Pilihan mapel telah disaring otomatis.`;
+                hintEl.className = 'p-2.5 bg-[#F3D9FA] border-2 border-black rounded-sm text-[11px] font-bold text-purple-950 mb-1';
+            }
+        }
+
+        Array.from(subjectSelect.options).forEach(opt => {
+            if (!opt.value) return;
+            if (!opt.hasAttribute('data-original-text')) {
+                opt.setAttribute('data-original-text', opt.textContent);
+            }
+            const subId = parseInt(opt.value);
+            if (allowedSubjects.includes(subId)) {
+                opt.disabled = false;
+                opt.textContent = '✓ ' + opt.getAttribute('data-original-text');
+            } else {
+                opt.disabled = true;
+                opt.textContent = '✕ ' + opt.getAttribute('data-original-text') + ' (Bukan Mapel Guru Ini)';
+            }
+        });
+
+        if (subjectSelect.value && !allowedSubjects.includes(parseInt(subjectSelect.value))) {
+            subjectSelect.value = '';
+        }
     }
 
     document.addEventListener('keydown', (e) => {

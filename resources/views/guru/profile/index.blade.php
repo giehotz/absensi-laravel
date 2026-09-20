@@ -98,20 +98,40 @@
                 </div>
 
                 <!-- Kontak Ringkas -->
-                <div class="space-y-2.5 pt-2 border-t-2 border-black/10 text-xs">
-                    <div class="flex items-center justify-between py-1">
-                        <span class="font-bold text-slate-500">Email Akun:</span>
-                        <span class="font-mono font-semibold text-black">{{ $user->email }}</span>
+                <div class="space-y-2 pt-2 border-t-2 border-black/10 text-xs">
+                    <div class="flex items-center justify-between py-0.5">
+                        <span class="font-bold text-slate-500">NUPTK:</span>
+                        <span class="font-mono font-bold text-black">{{ $teacher->nuptk ?? '-' }}</span>
                     </div>
-                    <div class="flex items-center justify-between py-1">
+                    <div class="flex items-center justify-between py-0.5">
+                        <span class="font-bold text-slate-500">NIP:</span>
+                        <span class="font-mono font-bold text-black">{{ $teacher->nip ?? '-' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-0.5">
+                        <span class="font-bold text-slate-500">Jenis Kelamin:</span>
+                        <span class="font-bold text-black">{{ $teacher->gender === 'L' ? 'Laki-laki' : ($teacher->gender === 'P' ? 'Perempuan' : '-') }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-0.5">
+                        <span class="font-bold text-slate-500">Tempat, Tgl Lahir:</span>
+                        <span class="font-semibold text-black">{{ $teacher->birth_place ?: '-' }}, {{ $teacher->birth_date ? $teacher->birth_date->format('d-m-Y') : '-' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-0.5">
+                        <span class="font-bold text-slate-500">Pendidikan Terakhir:</span>
+                        <span class="neo-badge bg-slate-100 text-black text-[10px]">{{ $teacher->last_education ?: '-' }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-0.5">
+                        <span class="font-bold text-slate-500">Email Akun:</span>
+                        @if($user->email)
+                            <span class="font-mono font-bold text-black">{{ $user->email }}</span>
+                        @else
+                            <span class="neo-badge bg-[#FFF9DB] text-amber-950 text-[10px]">Belum Diisi</span>
+                        @endif
+                    </div>
+                    <div class="flex items-center justify-between py-0.5">
                         <span class="font-bold text-slate-500">No. WhatsApp/HP:</span>
                         <span class="font-mono font-semibold text-black">{{ $teacher->phone ?? '-' }}</span>
                     </div>
-                    <div class="flex items-center justify-between py-1">
-                        <span class="font-bold text-slate-500">Status Akun:</span>
-                        <span class="neo-badge bg-[#20C997] text-black text-[10px]">Aktif</span>
-                    </div>
-                    <div class="flex items-center justify-between py-1">
+                    <div class="flex items-center justify-between py-0.5">
                         <span class="font-bold text-slate-500">Total Jadwal Mengajar:</span>
                         <span class="font-mono font-black text-black">{{ $schedules->count() }} Pertemuan/Minggu</span>
                     </div>
@@ -223,14 +243,23 @@
 
                     <!-- Alamat Email -->
                     <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">
-                            Alamat Email (Login) *
+                        <label class="block text-xs font-black uppercase text-black mb-1 flex items-center justify-between">
+                            <span>Alamat Email Pribadi (Mandiri) *</span>
+                            @if(empty($user->email))
+                                <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-[10px]">Wajib Dilengkapi</span>
+                            @endif
                         </label>
+                        @if(empty($user->email))
+                            <div class="bg-[#FFF9DB] border-2 border-black p-2.5 mb-2 text-xs font-bold text-amber-950 flex items-center gap-2">
+                                <span>⚠️</span>
+                                <span>Email Anda belum terdaftar. Silakan lengkapi email aktif Anda di bawah ini untuk pemulihan akun.</span>
+                            </div>
+                        @endif
                         <input type="email" name="email" value="{{ old('email', $user->email) }}" required
-                               placeholder="email@sekolah.sch.id"
+                               placeholder="nama.anda@gmail.com"
                                class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-mono font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
                         <p class="text-[10px] text-slate-500 mt-1">
-                            Email ini digunakan sebagai username login ke sistem portal presensi.
+                            Email ini dapat Anda gunakan sebagai alternatif login ke sistem presensi.
                         </p>
                         @error('email')
                             <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
