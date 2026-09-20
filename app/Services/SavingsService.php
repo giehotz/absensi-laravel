@@ -103,20 +103,23 @@ class SavingsService
     }
 
     /**
-     * Ringkasan statistik keuangan tabungan.
+     * Ringkasan statistik keuangan tabungan (opsional dibatasi pada rombel tertentu).
      */
-    public function getSummaryStats(): array
+    public function getSummaryStats(?array $allowedClassIds = null): array
     {
-        $totalBalance = (float) SavingsAccount::sum('balance');
-        $totalAccounts = SavingsAccount::count();
+        $accountsQuery = SavingsAccount::query();
+        $txQuery = SavingsTransaction::whereDate('created_at', today());
 
-        $todayDeposits = (float) SavingsTransaction::where('type', 'deposit')
-            ->whereDate('created_at', today())
-            ->sum('amount');
+        if ($allowedClassIds !== null) {
+            $accountsQuery->whereHas('student', fn ($q) => $q->whereIn('school_class_id', $allowedClassIds));
+            $txQuery->whereHas('savingsAccount.student', fn ($q) => $q->whereIn('school_class_id', $allowedClassIds));
+        }
 
-        $todayWithdrawals = (float) SavingsTransaction::where('type', 'withdrawal')
-            ->whereDate('created_at', today())
-            ->sum('amount');
+        $totalBalance = (float) (clone $accountsQuery)->sum('balance');
+        $totalAccounts = (clone $accountsQuery)->count();
+
+        $todayDeposits = (float) (clone $txQuery)->where('type', 'deposit')->sum('amount');
+        $todayWithdrawals = (float) (clone $txQuery)->where('type', 'withdrawal')->sum('amount');
 
         return [
             'total_balance' => $totalBalance,

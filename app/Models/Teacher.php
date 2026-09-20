@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Teacher extends Model
@@ -22,6 +23,7 @@ class Teacher extends Model
         'phone',
         'photo',
         'is_savings_officer',
+        'savings_scope',
     ];
 
     protected function casts(): array
@@ -102,5 +104,28 @@ class Teacher extends Model
     public function isHomeroom(): bool
     {
         return $this->homeroomClasses()->exists();
+    }
+
+    public function managedSavingsClasses(): BelongsToMany
+    {
+        return $this->belongsToMany(SchoolClass::class, 'teacher_savings_classes');
+    }
+
+    public function managesAllSavingsClasses(): bool
+    {
+        return (bool) $this->is_savings_officer && ($this->savings_scope === 'all' || ! $this->managedSavingsClasses()->exists());
+    }
+
+    public function getAllowedSavingsClassIds(): array
+    {
+        if (! $this->is_savings_officer) {
+            return [];
+        }
+
+        if ($this->savings_scope === 'all') {
+            return SchoolClass::pluck('id')->all();
+        }
+
+        return $this->managedSavingsClasses()->pluck('school_classes.id')->all();
     }
 }

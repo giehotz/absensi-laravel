@@ -31,7 +31,7 @@ class TeacherController extends Controller
         $search = trim((string) $request->query('search', ''));
         $sort = (string) $request->query('sort', 'name_asc');
 
-        $query = Teacher::with(['user', 'homeroomClasses', 'assignments.subject', 'assignments.schoolClass'])
+        $query = Teacher::with(['user', 'homeroomClasses', 'assignments.subject', 'assignments.schoolClass', 'managedSavingsClasses'])
             ->select('teachers.*')
             ->leftJoin('users', 'teachers.user_id', '=', 'users.id');
 
@@ -504,17 +504,58 @@ class TeacherController extends Controller
     }
 
     /**
-     * Tunjuk atau lepas jabatan Guru sebagai Pengelola Tabungan Siswa.
+     * Tunjuk atau lepas jabatan Guru sebagai Pengelola Tabungan Siswa (Quick toggle).
      */
     public function toggleSavingsOfficer(Teacher $teacher): RedirectResponse
     {
         $newState = ! (bool) $teacher->is_savings_officer;
-        $teacher->update(['is_savings_officer' => $newState]);
+        $teacher->update([
+            'is_savings_officer' => $newState,
+            'savings_scope' => $newState ? ($teacher->savings_scope ?: 'all') : 'all',
+        ]);
 
         $teacherName = $teacher->user?->name ?? 'Guru';
         $message = $newState
             ? "Guru {$teacherName} berhasil ditunjuk sebagai Pengelola Tabungan Siswa."
             : "Status Pengelola Tabungan Siswa untuk {$teacherName} berhasil dinonaktifkan.";
+
+        return back()->with('success', $message);
+    }
+
+    /**
+     * Simpan wewenang & penugasan kelas pengelola tabungan siswa.
+     */
+    public function updateSavingsAssignment(Request $request, Teacher $teacher): RedirectResponse
+    {
+        $validated = $request->validate([
+            'is_savings_officer' => ['required', 'boolean'],
+            'savings_scope' => ['required_if:is_savings_officer,1', 'in:all,restricted'],
+            'class_ids' => ['nullable', 'array'],
+            'class_ids.*' => ['exists:school_classes,id'],
+        ], [
+            'savings_scope.required_if' => 'Pilih cakupan wewenang kelas (Semua Kelas atau Pilihan Kelas).',
+        ]);
+
+        $isOfficer = (bool) $validated['is_savings_officer'];
+        $scope = $isOfficer ? ($validated['savings_scope'] ?? 'all') : 'all';
+
+        DB::transaction(function () use ($teacher, $isOfficer, $scope, $validated) {
+            $teacher->update([
+                'is_savings_officer' => $isOfficer,
+                'savings_scope' => $scope,
+            ]);
+
+            if ($isOfficer && $scope === 'restricted') {
+                $teacher->managedSavingsClasses()->sync($validated['class_ids'] ?? []);
+            } else {
+                $teacher->managedSavingsClasses()->sync([]);
+            }
+        });
+
+        $teacherName = $teacher->user?->name ?? 'Guru';
+        $message = $isOfficer
+            ? "Wewenang Pengelola Tabungan untuk {$teacherName} berhasil disimpan."
+            : "Status Pengelola Tabungan untuk {$teacherName} berhasil dinonaktifkan.";
 
         return back()->with('success', $message);
     }

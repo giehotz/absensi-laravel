@@ -142,20 +142,30 @@
             <div class="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <span>Pilih Rombel / Kelas:</span>
             </div>
-            <div class="flex items-center gap-2 overflow-x-auto pb-2">
-                @foreach($classes as $c)
-                    <a href="{{ route('guru.savings.index', ['class_id' => $c->id]) }}" 
-                       class="neo-btn px-4 py-2 text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2
-                       {{ $selectedClassId === $c->id 
-                            ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000]' 
-                            : 'bg-slate-100 hover:bg-slate-200 text-slate-800 shadow-[2px_2px_0px_0px_#000]' }}">
-                        <span>{{ $c->name }}</span>
-                        <span class="text-[10px] px-1.5 py-0.2 rounded border border-black {{ $selectedClassId === $c->id ? 'bg-black text-white font-mono' : 'bg-white text-slate-700 font-mono' }}">
-                            {{ $c->students_count }} Siswa
-                        </span>
-                    </a>
-                @endforeach
-            </div>
+            @if($classes->isEmpty())
+                <div class="p-6 bg-[#FFF9DB] border-2 border-black text-center space-y-2">
+                    <div class="text-3xl">⚠️</div>
+                    <div class="font-heading font-black text-sm text-black">Belum Ada Rombel / Kelas yang Ditugaskan</div>
+                    <p class="text-xs text-slate-600 max-w-md mx-auto">
+                        Akun Anda memiliki hak akses Pengelola Tabungan, namun Administrator belum memilih rombel/kelas yang ditugaskan kepada Anda. Silakan hubungi Administrator untuk memplot wewenang kelas Anda.
+                    </p>
+                </div>
+            @else
+                <div class="flex items-center gap-2 overflow-x-auto pb-2">
+                    @foreach($classes as $c)
+                        <a href="{{ route('guru.savings.index', ['class_id' => $c->id]) }}" 
+                           class="neo-btn px-4 py-2 text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2
+                           {{ $selectedClassId === $c->id 
+                                ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000]' 
+                                : 'bg-slate-100 hover:bg-slate-200 text-slate-800 shadow-[2px_2px_0px_0px_#000]' }}">
+                            <span>{{ $c->name }}</span>
+                            <span class="text-[10px] px-1.5 py-0.2 rounded border border-black {{ $selectedClassId === $c->id ? 'bg-black text-white font-mono' : 'bg-white text-slate-700 font-mono' }}">
+                                {{ $c->students_count }} Siswa
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <!-- Ringkasan Kelas Terpilih -->

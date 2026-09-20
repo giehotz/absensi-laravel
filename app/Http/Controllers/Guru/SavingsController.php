@@ -26,9 +26,17 @@ class SavingsController extends Controller
      */
     public function index(Request $request): View
     {
-        $stats = $this->savingsService->getSummaryStats();
-        $classes = SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
-        $selectedClassId = (int) ($request->query('class_id') ?: ($classes->first()?->id ?? 0));
+        $classes = $this->getAllowedClasses();
+        $allowedClassIds = $this->getAllowedClassIds();
+        $stats = $this->savingsService->getSummaryStats($allowedClassIds);
+
+        $requestedClassId = (int) $request->query('class_id');
+        if ($requestedClassId > 0 && $classes->contains('id', $requestedClassId)) {
+            $selectedClassId = $requestedClassId;
+        } else {
+            $selectedClassId = (int) ($classes->first()?->id ?? 0);
+        }
+
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 
         // Filter & Sortir Siswa di Kelas Terpilih (Default: Penabung Aktif Saja)
@@ -109,16 +117,26 @@ class SavingsController extends Controller
                 ->find($request->query('student_id'));
 
             if ($selectedStudent) {
-                // Pastikan akun tabungan sudah diinisialisasi
-                $this->savingsService->getOrCreateAccount($selectedStudent);
-                $selectedStudent->load('savingsAccount.transactions.handler');
+                // Pastikan akun tabungan hanya diakses jika siswa berada di kelas yang diizinkan
+                if ($allowedClassIds !== null && ! in_array($selectedStudent->school_class_id, $allowedClassIds, true)) {
+                    $selectedStudent = null;
+                } else {
+                    $this->savingsService->getOrCreateAccount($selectedStudent);
+                    $selectedStudent->load('savingsAccount.transactions.handler');
+                }
             }
         }
 
-        $recentTransactions = SavingsTransaction::with(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler'])
-            ->orderByDesc('id')
-            ->limit(10)
-            ->get();
+        $recentTransactionsQuery = SavingsTransaction::with(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler'])
+            ->orderByDesc('id');
+
+        if ($allowedClassIds !== null) {
+            $recentTransactionsQuery->whereHas('savingsAccount.student', function ($sq) use ($allowedClassIds) {
+                $sq->whereIn('school_class_id', $allowedClassIds);
+            });
+        }
+
+        $recentTransactions = $recentTransactionsQuery->limit(10)->get();
 
         return view('guru.tabungan.index', compact(
             'stats',
@@ -147,6 +165,8 @@ class SavingsController extends Controller
         ]);
 
         $student = Student::with('user')->findOrFail($validated['student_id']);
+        $this->authorizeStudent($student);
+
         $account = $this->savingsService->getOrCreateAccount($student);
 
         return back()->with('success', "Buku tabungan untuk siswa {$student->user?->name} ({$account->account_number}) berhasil diaktifkan!");
@@ -165,9 +185,14 @@ class SavingsController extends Controller
             'student_ids.min' => 'Pilih minimal 1 siswa yang ingin didaftarkan.',
         ]);
 
-        $students = Student::with('user')->whereIn('id', $validated['student_ids'])->get();
-        $count = 0;
+        $allowedClassIds = $this->getAllowedClassIds();
+        $query = Student::with('user')->whereIn('id', $validated['student_ids']);
+        if ($allowedClassIds !== null) {
+            $query->whereIn('school_class_id', $allowedClassIds);
+        }
+        $students = $query->get();
 
+        $count = 0;
         foreach ($students as $student) {
             $this->savingsService->getOrCreateAccount($student);
             $count++;
@@ -184,6 +209,11 @@ class SavingsController extends Controller
         $validated = $request->validate([
             'class_id' => ['required', 'exists:school_classes,id'],
         ]);
+
+        $allowedClassIds = $this->getAllowedClassIds();
+        if ($allowedClassIds !== null && ! in_array((int) $validated['class_id'], $allowedClassIds, true)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola tabungan di kelas ini.');
+        }
 
         $students = Student::where('school_class_id', $validated['class_id'])->get();
         $count = 0;
@@ -208,6 +238,7 @@ class SavingsController extends Controller
         ]);
 
         $student = Student::with(['user', 'savingsAccount.transactions'])->findOrFail($validated['student_id']);
+        $this->authorizeStudent($student);
 
         if (! $student->savingsAccount) {
             return back()->with('error', 'Siswa belum terdaftar sebagai penabung.');
@@ -234,6 +265,7 @@ class SavingsController extends Controller
         ]);
 
         $student = Student::with(['user', 'savingsAccount'])->findOrFail($validated['student_id']);
+        $this->authorizeStudent($student);
 
         if (! $student->savingsAccount) {
             return back()->with('error', 'Siswa tidak memiliki akun tabungan.');
@@ -264,6 +296,7 @@ class SavingsController extends Controller
         ]);
 
         $student = Student::with(['user', 'savingsAccount'])->findOrFail($validated['student_id']);
+        $this->authorizeStudent($student);
 
         if (! $student->savingsAccount) {
             return back()->with('error', 'Siswa tidak memiliki akun tabungan.');
@@ -285,7 +318,9 @@ class SavingsController extends Controller
             return response()->json([]);
         }
 
-        $students = Student::with(['user', 'schoolClass', 'savingsAccount'])
+        $allowedClassIds = $this->getAllowedClassIds();
+
+        $studentsQuery = Student::with(['user', 'schoolClass', 'savingsAccount'])
             ->where(function ($query) use ($q) {
                 $query->where('nis', 'like', "%{$q}%")
                     ->orWhere('nisn', 'like', "%{$q}%")
@@ -293,8 +328,13 @@ class SavingsController extends Controller
                     ->orWhereHas('user', function ($uq) use ($q) {
                         $uq->where('name', 'like', "%{$q}%");
                     });
-            })
-            ->limit(15)
+            });
+
+        if ($allowedClassIds !== null) {
+            $studentsQuery->whereIn('school_class_id', $allowedClassIds);
+        }
+
+        $students = $studentsQuery->limit(15)
             ->get()
             ->map(function ($student) {
                 $account = $student->savingsAccount ?? $this->savingsService->getOrCreateAccount($student);
@@ -332,6 +372,8 @@ class SavingsController extends Controller
         ]);
 
         $student = Student::findOrFail($validated['student_id']);
+        $this->authorizeStudent($student);
+
         $account = $this->savingsService->getOrCreateAccount($student);
 
         try {
@@ -367,6 +409,8 @@ class SavingsController extends Controller
         ]);
 
         $student = Student::findOrFail($validated['student_id']);
+        $this->authorizeStudent($student);
+
         $account = $this->savingsService->getOrCreateAccount($student);
 
         try {
@@ -396,8 +440,16 @@ class SavingsController extends Controller
         $startDate = $request->query('start_date', '');
         $endDate = $request->query('end_date', '');
 
+        $allowedClassIds = $this->getAllowedClassIds();
+
         $query = SavingsTransaction::with(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler'])
             ->orderByDesc('id');
+
+        if ($allowedClassIds !== null) {
+            $query->whereHas('savingsAccount.student', function ($sq) use ($allowedClassIds) {
+                $sq->whereIn('school_class_id', $allowedClassIds);
+            });
+        }
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -420,9 +472,11 @@ class SavingsController extends Controller
         }
 
         if (! empty($classId)) {
-            $query->whereHas('savingsAccount.student', function ($sq) use ($classId) {
-                $sq->where('school_class_id', $classId);
-            });
+            if ($allowedClassIds === null || in_array((int) $classId, $allowedClassIds, true)) {
+                $query->whereHas('savingsAccount.student', function ($sq) use ($classId) {
+                    $sq->where('school_class_id', $classId);
+                });
+            }
         }
 
         if (! empty($startDate)) {
@@ -434,7 +488,7 @@ class SavingsController extends Controller
         }
 
         $transactions = $query->paginate(20)->withQueryString();
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = $this->getAllowedClasses();
 
         return view('guru.tabungan.transactions', compact(
             'transactions',
@@ -454,6 +508,10 @@ class SavingsController extends Controller
     {
         $transaction->load(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler']);
 
+        if ($transaction->savingsAccount?->student) {
+            $this->authorizeStudent($transaction->savingsAccount->student);
+        }
+
         return view('guru.tabungan.receipt', compact('transaction'));
     }
 
@@ -467,17 +525,27 @@ class SavingsController extends Controller
         $classId = $request->query('class_id', '');
         $type = $request->query('type', 'all');
 
+        $allowedClassIds = $this->getAllowedClassIds();
+
         $query = SavingsTransaction::with(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler'])
             ->orderByDesc('id');
+
+        if ($allowedClassIds !== null) {
+            $query->whereHas('savingsAccount.student', function ($sq) use ($allowedClassIds) {
+                $sq->whereIn('school_class_id', $allowedClassIds);
+            });
+        }
 
         if (in_array($type, ['deposit', 'withdrawal'])) {
             $query->where('type', $type);
         }
 
         if (! empty($classId)) {
-            $query->whereHas('savingsAccount.student', function ($sq) use ($classId) {
-                $sq->where('school_class_id', $classId);
-            });
+            if ($allowedClassIds === null || in_array((int) $classId, $allowedClassIds, true)) {
+                $query->whereHas('savingsAccount.student', function ($sq) use ($classId) {
+                    $sq->where('school_class_id', $classId);
+                });
+            }
         }
 
         if (! empty($startDate)) {
@@ -543,5 +611,67 @@ class SavingsController extends Controller
 
             fclose($output);
         }, 200, $headers);
+    }
+
+    /**
+     * Dapatkan daftar rombel/kelas yang diizinkan untuk dikelola user saat ini.
+     * Admin: seluruh kelas.
+     * Guru Pengelola: jika scope 'all' -> seluruh kelas, jika 'restricted' -> hanya kelas di managedSavingsClasses.
+     */
+    protected function getAllowedClasses()
+    {
+        $user = Auth::user();
+
+        if ($user && $user->isAdmin()) {
+            return SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+        }
+
+        $teacher = $user?->teacher;
+
+        if ($teacher && $teacher->managesAllSavingsClasses()) {
+            return SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+        }
+
+        if ($teacher) {
+            return $teacher->managedSavingsClasses()->withCount('students')->orderBy('level')->orderBy('name')->get();
+        }
+
+        return collect();
+    }
+
+    /**
+     * Dapatkan array ID kelas yang diizinkan, atau null jika tidak dibatasi (Semua Kelas / Admin).
+     */
+    protected function getAllowedClassIds(): ?array
+    {
+        $user = Auth::user();
+
+        if ($user && $user->isAdmin()) {
+            return null;
+        }
+
+        $teacher = $user?->teacher;
+
+        if ($teacher && $teacher->managesAllSavingsClasses()) {
+            return null;
+        }
+
+        if ($teacher) {
+            return $teacher->managedSavingsClasses()->pluck('school_classes.id')->all();
+        }
+
+        return [];
+    }
+
+    /**
+     * Validasi otorisasi siswa terhadap rombel/kelas yang diizinkan.
+     */
+    protected function authorizeStudent(Student $student): void
+    {
+        $allowedIds = $this->getAllowedClassIds();
+
+        if ($allowedIds !== null && ! in_array($student->school_class_id, $allowedIds, true)) {
+            abort(403, 'Anda tidak memiliki wewenang untuk mengelola data tabungan siswa dari kelas ini.');
+        }
     }
 }

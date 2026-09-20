@@ -226,10 +226,21 @@
 
                             @if($teacher->is_savings_officer)
                                 <div class="pt-1">
-                                    <span class="neo-badge bg-[#FFD43B] text-amber-950 text-[10px] font-black px-2 py-0.5 inline-flex items-center gap-1 border border-black shadow-[1px_1px_0px_0px_#000]">
-                                        <span>💰</span>
-                                        <span>Pengelola Tabungan</span>
-                                    </span>
+                                    @if($teacher->savings_scope === 'all')
+                                        <span class="neo-badge bg-[#20C997] text-white text-[10px] font-black px-2 py-0.5 inline-flex items-center gap-1 border border-black shadow-[1px_1px_0px_0px_#000]" title="Mengelola tabungan seluruh rombel/kelas">
+                                            <span>💰</span>
+                                            <span>Pengelola: Semua Kelas</span>
+                                        </span>
+                                    @else
+                                        @php
+                                            $managedCount = $teacher->managedSavingsClasses->count();
+                                            $managedNames = $teacher->managedSavingsClasses->pluck('name')->implode(', ');
+                                        @endphp
+                                        <span class="neo-badge bg-[#FFD43B] text-amber-950 text-[10px] font-black px-2 py-0.5 inline-flex items-center gap-1 border border-black shadow-[1px_1px_0px_0px_#000]" title="Mengelola kelas: {{ $managedNames }}">
+                                            <span>💰</span>
+                                            <span>Pengelola: {{ $managedCount > 0 ? ($managedCount <= 2 ? $managedNames : $managedCount . ' Kelas') : 'Belum Ada Kelas' }}</span>
+                                        </span>
+                                    @endif
                                 </div>
                             @endif
                         </td>
@@ -242,15 +253,19 @@
                                     <span>Atur Mengajar</span>
                                 </button>
 
-                                <form action="{{ route('admin.teachers.toggle-savings-officer', $teacher) }}" method="POST" class="w-full">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" 
-                                        class="w-full neo-btn {{ $teacher->is_savings_officer ? 'bg-[#20C997] hover:bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-[#FFD43B] text-black' }} px-1.5 py-1 text-[10px] cursor-pointer flex items-center justify-center gap-1 font-bold whitespace-nowrap shadow-[1.5px_1.5px_0px_0px_#000]" 
-                                        title="{{ $teacher->is_savings_officer ? 'Lepas Jabatan Pengelola Tabungan' : 'Tunjuk Sebagai Pengelola Tabungan Siswa' }}">
-                                        <span>{{ $teacher->is_savings_officer ? '✓ Pengelola Tabungan' : '+ Tunjuk Pengelola' }}</span>
-                                    </button>
-                                </form>
+                                <button type="button" 
+                                    onclick="openSavingsModal({{ json_encode([
+                                        'id' => $teacher->id,
+                                        'name' => $teacher->user->name ?? 'Guru',
+                                        'is_savings_officer' => (bool) $teacher->is_savings_officer,
+                                        'savings_scope' => $teacher->savings_scope ?? 'all',
+                                        'managed_class_ids' => $teacher->managedSavingsClasses->pluck('id')->all(),
+                                        'action_url' => route('admin.teachers.savings-assignment', $teacher),
+                                    ]) }})"
+                                    class="w-full neo-btn {{ $teacher->is_savings_officer ? 'bg-[#20C997] hover:bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-[#FFD43B] text-black' }} px-1.5 py-1 text-[10px] cursor-pointer flex items-center justify-center gap-1 font-bold whitespace-nowrap shadow-[1.5px_1.5px_0px_0px_#000]" 
+                                    title="{{ $teacher->is_savings_officer ? 'Atur Wewenang Rombel Pengelola Tabungan' : 'Tunjuk Sebagai Pengelola Tabungan Siswa' }}">
+                                    <span>{{ $teacher->is_savings_officer ? '⚙ Atur Pengelola' : '+ Tunjuk Pengelola' }}</span>
+                                </button>
 
 
                                 <div class="flex items-center gap-1 w-full">
@@ -643,6 +658,105 @@
         </form>
     </div>
 </div>
+
+<!-- Modal Atur Pengelola Tabungan Siswa -->
+<div id="savingsOfficerModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white neo-box max-w-xl w-full p-6 my-8 max-h-[90vh] flex flex-col border-3 border-black shadow-[6px_6px_0px_0px_#000]">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
+            <div>
+                <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
+                    <span class="w-3 h-3 bg-[#FFD43B] border border-black inline-block"></span>
+                    Atur Pengelola Tabungan Siswa
+                </h3>
+                <p id="savings_modal_subtitle" class="text-xs text-slate-600 mt-0.5 font-medium">
+                    Atur status pengelola dan rombel/kelas yang dikelola.
+                </p>
+            </div>
+            <button type="button" onclick="closeModal('savingsOfficerModal')" class="text-black font-black hover:text-rose-600 text-lg">✕</button>
+        </div>
+
+        <form id="savingsOfficerForm" method="POST" class="flex-1 flex flex-col min-h-0 space-y-4">
+            @csrf
+            @method('PATCH')
+
+            <!-- Status Pengelola Tabungan -->
+            <div class="border-2 border-black p-3 bg-slate-50 space-y-2">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">Status Penugasan Pengelola:</label>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label class="flex items-start gap-2.5 p-2.5 bg-white border border-black cursor-pointer hover:bg-emerald-50">
+                        <input type="radio" name="is_savings_officer" value="1" id="savings_officer_active" onchange="toggleSavingsOfficerStatus()" class="mt-0.5 text-emerald-600 focus:ring-0">
+                        <div>
+                            <span class="block text-xs font-black text-emerald-900">Aktif (Ditugaskan)</span>
+                            <span class="block text-[11px] text-slate-500 font-medium">Guru berwenang melayani transaksi tabungan siswa.</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-2.5 p-2.5 bg-white border border-black cursor-pointer hover:bg-rose-50">
+                        <input type="radio" name="is_savings_officer" value="0" id="savings_officer_inactive" onchange="toggleSavingsOfficerStatus()" class="mt-0.5 text-rose-600 focus:ring-0">
+                        <div>
+                            <span class="block text-xs font-black text-rose-900">Nonaktif</span>
+                            <span class="block text-[11px] text-slate-500 font-medium">Bukan / lepas jabatan pengelola tabungan siswa.</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Cakupan Wewenang Rombel / Kelas (Hanya muncul jika Aktif) -->
+            <div id="savings_scope_section" class="border-2 border-black p-3 bg-slate-50 space-y-3">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">Cakupan Rombel / Kelas yang Dikelola:</label>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label class="flex items-start gap-2.5 p-2.5 bg-white border border-black cursor-pointer hover:bg-blue-50">
+                        <input type="radio" name="savings_scope" value="all" id="savings_scope_all" onchange="toggleSavingsScope()" class="mt-0.5 text-blue-600 focus:ring-0">
+                        <div>
+                            <span class="block text-xs font-black text-black">Semua Kelas (Bebas)</span>
+                            <span class="block text-[11px] text-slate-500 font-medium">Bisa melayani seluruh rombel dan siswa tanpa batasan.</span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start gap-2.5 p-2.5 bg-white border border-black cursor-pointer hover:bg-amber-50">
+                        <input type="radio" name="savings_scope" value="restricted" id="savings_scope_restricted" onchange="toggleSavingsScope()" class="mt-0.5 text-amber-600 focus:ring-0">
+                        <div>
+                            <span class="block text-xs font-black text-black">Pilihan Kelas Tertentu</span>
+                            <span class="block text-[11px] text-slate-500 font-medium">Hanya mengelola rombel yang diceklis di bawah ini.</span>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Checklist Kelas Tertentu -->
+                <div id="savings_classes_checklist_container" class="space-y-2 pt-2 border-t border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <label class="text-[11px] font-bold text-slate-700">Pilih Kelas yang Dikelola:</label>
+                        <div class="flex items-center gap-2 text-[10px]">
+                            <button type="button" onclick="toggleAllSavingsClasses(true)" class="text-blue-700 hover:underline font-bold">Pilih Semua</button>
+                            <span>|</span>
+                            <button type="button" onclick="toggleAllSavingsClasses(false)" class="text-slate-600 hover:underline">Batalkan Semua</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 bg-white border border-black">
+                        @foreach($classes as $c)
+                            <label class="flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 hover:border-black cursor-pointer text-xs">
+                                <input type="checkbox" name="class_ids[]" value="{{ $c->id }}" class="savings-class-checkbox text-amber-600 focus:ring-0 rounded-xs">
+                                <span class="font-bold text-black">{{ $c->name }}</span>
+                                <span class="text-[10px] text-slate-500 font-mono">({{ $c->students_count ?? $c->students()->count() }})</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-3 border-t-2 border-slate-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeModal('savingsOfficerModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs">
+                    Batal
+                </button>
+                <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black px-5 py-2 text-xs font-heading font-black">
+                    Simpan Pengaturan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -822,6 +936,58 @@
                 console.error('Error loading assignments:', err);
                 document.getElementById('assignment_homeroom_text').textContent = 'Gagal memuat status';
             });
+    }
+
+    function openSavingsModal(data) {
+        document.getElementById('savingsOfficerForm').action = data.action_url;
+        document.getElementById('savings_modal_subtitle').textContent = `Pengaturan wewenang tabungan siswa untuk ${data.name}`;
+
+        if (data.is_savings_officer) {
+            document.getElementById('savings_officer_active').checked = true;
+        } else {
+            document.getElementById('savings_officer_inactive').checked = true;
+        }
+
+        if (data.savings_scope === 'restricted') {
+            document.getElementById('savings_scope_restricted').checked = true;
+        } else {
+            document.getElementById('savings_scope_all').checked = true;
+        }
+
+        const managedIds = data.managed_class_ids || [];
+        document.querySelectorAll('.savings-class-checkbox').forEach(cb => {
+            cb.checked = managedIds.includes(parseInt(cb.value));
+        });
+
+        toggleSavingsOfficerStatus();
+        openModal('savingsOfficerModal');
+    }
+
+    function toggleSavingsOfficerStatus() {
+        const isActive = document.getElementById('savings_officer_active').checked;
+        const scopeSection = document.getElementById('savings_scope_section');
+        if (isActive) {
+            scopeSection.classList.remove('hidden');
+            toggleSavingsScope();
+        } else {
+            scopeSection.classList.add('hidden');
+        }
+    }
+
+    function toggleSavingsScope() {
+        const isRestricted = document.getElementById('savings_scope_restricted').checked;
+        const checklistContainer = document.getElementById('savings_classes_checklist_container');
+        if (isRestricted) {
+            checklistContainer.classList.remove('hidden');
+        } else {
+            checklistContainer.classList.add('hidden');
+        }
+    }
+
+    function toggleAllSavingsClasses(check) {
+        document.querySelectorAll('.savings-class-checkbox').forEach(cb => {
+            cb.checked = check;
+        });
     }
 </script>
 @endpush

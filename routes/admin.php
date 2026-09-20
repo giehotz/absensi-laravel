@@ -23,7 +23,8 @@ Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard
 Route::get('teachers/template', [TeacherController::class, 'downloadTemplate'])->name('teachers.template');
 Route::post('teachers/import', [TeacherController::class, 'importExcel'])->name('teachers.import');
 Route::get('teachers/{teacher}/assignments', [TeacherController::class, 'getAssignments'])->name('teachers.assignments');
-Route::post('teachers/{teacher}/assignments', [TeacherController::class, 'updateAssignments'])->name('teachers.assignments.update');
+Route::match(['post', 'patch'], 'teachers/{teacher}/assignments', [TeacherController::class, 'updateAssignments'])->name('teachers.assignments.update');
+Route::match(['post', 'patch'], 'teachers/{teacher}/savings-assignment', [TeacherController::class, 'updateSavingsAssignment'])->name('teachers.savings-assignment');
 Route::patch('teachers/{teacher}/toggle-savings-officer', [TeacherController::class, 'toggleSavingsOfficer'])->name('teachers.toggle-savings-officer');
 Route::resource('teachers', TeacherController::class)->except(['create', 'edit', 'show']);
 
