@@ -125,4 +125,69 @@ class SavingsService
             'today_withdrawals' => $todayWithdrawals,
         ];
     }
+
+    /**
+     * Batalkan pendaftaran siswa sebagai penabung (hanya jika transaksi masih 0 dan saldo Rp 0).
+     */
+    public function cancelRegistration(SavingsAccount $account): bool
+    {
+        if ($account->transactions()->exists() || (float) $account->balance > 0) {
+            throw new InvalidArgumentException('Pendaftaran tidak dapat dibatalkan karena siswa sudah memiliki riwayat transaksi atau saldo. Silakan gunakan fitur Tutup Buku.');
+        }
+
+        return (bool) $account->delete();
+    }
+
+    /**
+     * Tutup buku / berhenti menabung:
+     * Otomatis mencairkan seluruh sisa saldo (jika ada) dan mengubah status akun menjadi 'inactive'.
+     */
+    public function closeAccount(SavingsAccount|int $account, ?string $reason, User $officer): ?SavingsTransaction
+    {
+        $accountId = $account instanceof SavingsAccount ? $account->id : $account;
+
+        return DB::transaction(function () use ($accountId, $reason, $officer) {
+            /** @var SavingsAccount $lockedAccount */
+            $lockedAccount = SavingsAccount::where('id', $accountId)->lockForUpdate()->firstOrFail();
+
+            $currentBalance = (float) $lockedAccount->balance;
+            $finalTransaction = null;
+
+            // Jika masih ada saldo, lakukan penarikan akhir penutupan buku
+            if ($currentBalance > 0) {
+                $code = 'TRX-W-'.now()->format('Ymd').'-'.strtoupper(Str::random(5));
+                $desc = 'Pencairan saldo akhir - Penutupan buku tabungan'.($reason ? " ({$reason})" : '');
+
+                $finalTransaction = SavingsTransaction::create([
+                    'savings_account_id' => $lockedAccount->id,
+                    'transaction_code' => $code,
+                    'type' => 'withdrawal',
+                    'amount' => $currentBalance,
+                    'balance_before' => $currentBalance,
+                    'balance_after' => 0,
+                    'description' => $desc,
+                    'handled_by' => $officer->id,
+                ]);
+
+                $lockedAccount->balance = 0;
+            }
+
+            $lockedAccount->status = 'inactive';
+            $lockedAccount->save();
+
+            return $finalTransaction;
+        });
+    }
+
+    /**
+     * Buka kembali rekening tabungan yang sebelumnya ditutup.
+     */
+    public function reopenAccount(SavingsAccount|int $account): bool
+    {
+        $accountId = $account instanceof SavingsAccount ? $account->id : $account;
+        $acc = SavingsAccount::findOrFail($accountId);
+        $acc->update(['status' => 'active']);
+
+        return true;
+    }
 }

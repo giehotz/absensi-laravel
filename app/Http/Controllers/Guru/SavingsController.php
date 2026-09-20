@@ -74,6 +74,15 @@ class SavingsController extends Controller
 
             $classStudents = $studentsQuery->get();
 
+            // Siswa yang belum terdaftar di kelas ini (untuk checklist popup modal)
+            $unregisteredStudents = Student::where('students.school_class_id', $selectedClassId)
+                ->whereDoesntHave('savingsAccount')
+                ->with('user')
+                ->join('users', 'students.user_id', '=', 'users.id')
+                ->orderBy('users.name')
+                ->select('students.*')
+                ->get();
+
             // Total penarikan per akun tabungan yang ada
             $accountIds = $classStudents->pluck('savingsAccount.id')->filter()->values();
             if ($accountIds->isNotEmpty()) {
@@ -90,6 +99,8 @@ class SavingsController extends Controller
                 'registered_students' => $allClassStudents->filter(fn ($s) => $s->savingsAccount !== null)->count(),
                 'total_class_balance' => (float) $allClassStudents->sum(fn ($s) => (float) ($s->savingsAccount?->balance ?? 0)),
             ];
+        } else {
+            $unregisteredStudents = collect();
         }
 
         $selectedStudent = null;
@@ -115,6 +126,7 @@ class SavingsController extends Controller
             'selectedClass',
             'selectedClassId',
             'classStudents',
+            'unregisteredStudents',
             'withdrawnTotals',
             'classStats',
             'studentSearch',
@@ -141,6 +153,30 @@ class SavingsController extends Controller
     }
 
     /**
+     * Daftarkan siswa terpilih secara selektif via modal checklist.
+     */
+    public function registerSelectedStudents(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['exists:students,id'],
+        ], [
+            'student_ids.required' => 'Pilih minimal 1 siswa yang ingin didaftarkan.',
+            'student_ids.min' => 'Pilih minimal 1 siswa yang ingin didaftarkan.',
+        ]);
+
+        $students = Student::with('user')->whereIn('id', $validated['student_ids'])->get();
+        $count = 0;
+
+        foreach ($students as $student) {
+            $this->savingsService->getOrCreateAccount($student);
+            $count++;
+        }
+
+        return back()->with('success', "Berhasil mendaftarkan {$count} siswa terpilih sebagai penabung aktif!");
+    }
+
+    /**
      * Daftarkan seluruh siswa dalam satu rombel/kelas sebagai penabung aktif secara massal.
      */
     public function registerClassStudents(Request $request): RedirectResponse
@@ -160,6 +196,82 @@ class SavingsController extends Controller
         $class = SchoolClass::find($validated['class_id']);
 
         return back()->with('success', "Berhasil mendaftarkan {$count} siswa di kelas {$class?->name} sebagai penabung aktif!");
+    }
+
+    /**
+     * Batalkan pendaftaran penabung (hanya bisa jika riwayat transaksi masih 0 dan saldo Rp 0).
+     */
+    public function cancelRegistration(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'student_id' => ['required', 'exists:students,id'],
+        ]);
+
+        $student = Student::with(['user', 'savingsAccount.transactions'])->findOrFail($validated['student_id']);
+
+        if (! $student->savingsAccount) {
+            return back()->with('error', 'Siswa belum terdaftar sebagai penabung.');
+        }
+
+        try {
+            $this->savingsService->cancelRegistration($student->savingsAccount);
+
+            return back()->with('success', "Pendaftaran penabung untuk siswa {$student->user?->name} berhasil dibatalkan. Status siswa kembali menjadi Belum Terdaftar.");
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Tutup buku tabungan / berhenti menabung:
+     * Otomatis mencairkan sisa saldo (jika ada) dan mengubah status akun menjadi 'inactive'.
+     */
+    public function closeAccount(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'student_id' => ['required', 'exists:students,id'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $student = Student::with(['user', 'savingsAccount'])->findOrFail($validated['student_id']);
+
+        if (! $student->savingsAccount) {
+            return back()->with('error', 'Siswa tidak memiliki akun tabungan.');
+        }
+
+        try {
+            $finalTx = $this->savingsService->closeAccount($student->savingsAccount, $validated['reason'] ?? null, Auth::user());
+
+            if ($finalTx) {
+                return back()
+                    ->with('success', "Buku tabungan {$student->user?->name} berhasil ditutup. Sisa saldo {$finalTx->formatted_amount} telah dicairkan.")
+                    ->with('last_transaction_id', $finalTx->id);
+            }
+
+            return back()->with('success', "Buku tabungan {$student->user?->name} berhasil ditutup (Status: Tutup Buku).");
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Buka kembali rekening tabungan yang ditutup.
+     */
+    public function reopenAccount(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'student_id' => ['required', 'exists:students,id'],
+        ]);
+
+        $student = Student::with(['user', 'savingsAccount'])->findOrFail($validated['student_id']);
+
+        if (! $student->savingsAccount) {
+            return back()->with('error', 'Siswa tidak memiliki akun tabungan.');
+        }
+
+        $this->savingsService->reopenAccount($student->savingsAccount);
+
+        return back()->with('success', "Rekening tabungan {$student->user?->name} berhasil dibuka kembali (Aktif).");
     }
 
     /**

@@ -39,4 +39,19 @@ class SavingsAccount extends Model
     {
         return 'Rp '.number_format((float) $this->balance, 0, ',', '.');
     }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    public function isClosed(): bool
+    {
+        return $this->status === 'inactive';
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return $this->isActive() ? 'Aktif' : 'Tutup Buku';
+    }
 }

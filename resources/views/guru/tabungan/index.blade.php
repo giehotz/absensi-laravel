@@ -126,16 +126,14 @@
                 <p class="text-xs text-slate-600">Pilih kelas di bawah untuk mengelola daftar penabung dan input setoran/penarikan.</p>
             </div>
 
-            <!-- Tombol Aksi Massal Daftarkan Semua Siswa di Kelas Ini -->
-            @if($selectedClass && $classStats['total_students'] > $classStats['registered_students'])
-                <form action="{{ route('guru.savings.register-class-students') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin mengaktifkan buku tabungan untuk semua siswa di {{ $selectedClass->name }} yang belum terdaftar?')">
-                    @csrf
-                    <input type="hidden" name="class_id" value="{{ $selectedClass->id }}">
-                    <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-xs font-black px-3.5 py-2 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer" title="Daftarkan massal semua siswa di kelas ini yang belum punya akun">
-                        <span>👥</span>
-                        <span>+ Daftarkan Semua Siswa ({{ $classStats['total_students'] - $classStats['registered_students'] }} Belum Terdaftar)</span>
-                    </button>
-                </form>
+            <!-- Tombol Popup Checklist Pendaftaran Siswa -->
+            @if($selectedClass && $unregisteredStudents->isNotEmpty())
+                <button type="button" onclick="openRegisterChecklistModal()" 
+                    class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-xs font-black px-3.5 py-2 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer" 
+                    title="Pilih dan daftarkan siswa sebagai penabung">
+                    <span>👥</span>
+                    <span>+ Daftarkan Siswa ({{ $unregisteredStudents->count() }} Belum Terdaftar)</span>
+                </button>
             @endif
         </div>
 
@@ -199,7 +197,7 @@
                     </svg>
                 </div>
 
-                <!-- Filter Status Penabung -->
+                <!-- Filter Status Penabung (Default: Penabung Aktif Saja) -->
                 <div class="sm:col-span-3">
                     <select name="status_filter" class="w-full neo-input py-1.5 text-xs bg-white font-medium">
                         <option value="registered" {{ $statusFilter === 'registered' ? 'selected' : '' }}>Penabung Aktif Saja</option>
@@ -228,12 +226,11 @@
                             ↺
                         </a>
                     @endif
-
                 </div>
             </form>
         </div>
 
-        <!-- TABEL DAFTAR SISWA (No, Nama Siswa, NISN, Jumlah Saldo, Ditarik, Aksi) -->
+        <!-- TABEL DAFTAR SISWA (No, Nama Siswa, NISN, Status, Jumlah Saldo, Ditarik, Aksi) -->
         <div class="overflow-x-auto border-2 border-black">
             <table class="w-full text-left text-xs">
                 <thead class="bg-[#FFD43B] text-black uppercase font-black border-b-2 border-black">
@@ -244,7 +241,7 @@
                         <th class="p-3 border-r border-black text-center">Status</th>
                         <th class="p-3 border-r border-black text-right">Jumlah Saldo</th>
                         <th class="p-3 border-r border-black text-right">Total Ditarik</th>
-                        <th class="p-3 text-center w-36">Aksi</th>
+                        <th class="p-3 text-center w-40">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y-2 divide-black font-medium">
@@ -253,6 +250,7 @@
                             $account = $student->savingsAccount;
                             $withdrawn = $account ? ($withdrawnTotals[$account->id] ?? 0) : 0;
                             $studentName = $student->user?->name ?? '-';
+                            $txCount = $account ? ($account->transactions_count ?? $account->transactions()->count()) : 0;
                             $studentData = [
                                 'id' => $student->id,
                                 'name' => $studentName,
@@ -263,6 +261,8 @@
                                 'balance' => (float) ($account?->balance ?? 0),
                                 'formatted_balance' => $account ? $account->formatted_balance : 'Rp 0',
                                 'photo_url' => $student->photo_url,
+                                'status' => $account?->status ?? 'unregistered',
+                                'transactions_count' => $txCount,
                             ];
                         @endphp
                         <tr class="hover:bg-slate-50 transition-colors">
@@ -288,13 +288,17 @@
                                 {{ $student->nisn ?: '-' }}
                             </td>
                             <td class="p-3 border-r border-black text-center">
-                                @if($account)
+                                @if(!$account)
+                                    <span class="neo-badge bg-[#FFF3BF] text-amber-950 text-[10px] font-bold px-2 py-0.5">
+                                        BELUM TERDAFTAR
+                                    </span>
+                                @elseif($account->isActive())
                                     <span class="neo-badge bg-[#D3F9D8] text-emerald-950 text-[10px] font-black px-2 py-0.5">
                                         ● AKTIF
                                     </span>
                                 @else
-                                    <span class="neo-badge bg-[#FFF3BF] text-amber-950 text-[10px] font-bold px-2 py-0.5">
-                                        BELUM TERDAFTAR
+                                    <span class="neo-badge bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5">
+                                        TUTUP BUKU
                                     </span>
                                 @endif
                             </td>
@@ -305,14 +309,8 @@
                                 Rp {{ number_format($withdrawn, 0, ',', '.') }}
                             </td>
                             <td class="p-3 text-center">
-                                @if($account)
-                                    <button type="button" onclick="openInputModal({{ json_encode($studentData) }})" 
-                                        class="w-full neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-[11px] py-1 px-2.5 flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer"
-                                        title="Input Setor atau Tarik Tabungan untuk Siswa Ini">
-                                        <span>⚡</span>
-                                        <span>Input Tabungan</span>
-                                    </button>
-                                @else
+                                @if(!$account)
+                                    <!-- Siswa Belum Terdaftar -->
                                     <form action="{{ route('guru.savings.register-student') }}" method="POST">
                                         @csrf
                                         <input type="hidden" name="student_id" value="{{ $student->id }}">
@@ -321,6 +319,53 @@
                                             title="Buka Rekening & Aktifkan Buku Tabungan Siswa">
                                             <span>+</span>
                                             <span>Daftarkan</span>
+                                        </button>
+                                    </form>
+                                @elseif($account->isActive())
+                                    <!-- Rekening Aktif: Tombol Input & Dropdown Menu Opsi -->
+                                    <div class="flex items-center gap-1">
+                                        <button type="button" onclick="openInputModal({{ json_encode($studentData) }})" 
+                                            class="flex-1 neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-[11px] py-1 px-2 flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer"
+                                            title="Input Setor atau Tarik Tabungan untuk Siswa Ini">
+                                            <span>⚡</span>
+                                            <span>Input</span>
+                                        </button>
+
+                                        <!-- Dropdown Menu Opsi (Titik Tiga) -->
+                                        <div class="relative group">
+                                            <button type="button" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black px-1.5 py-1 text-xs font-black shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer" title="Menu Opsi Rekening">
+                                                ⋮
+                                            </button>
+                                            <div class="absolute right-0 top-full mt-1 w-48 bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] z-40 hidden group-hover:block py-1 text-left">
+                                                <!-- Opsi: Tutup Buku Tabungan -->
+                                                <button type="button" onclick="openCloseAccountModal({{ json_encode($studentData) }})" 
+                                                    class="w-full px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 font-bold flex items-center gap-1.5 cursor-pointer text-left">
+                                                    <span>🛑</span>
+                                                    <span>Tutup Buku Tabungan</span>
+                                                </button>
+
+                                                <!-- Opsi: Batalkan Pendaftaran (Hanya jika transaksi masih 0 dan saldo 0) -->
+                                                @if($txCount === 0 && (float)$account->balance == 0)
+                                                    <form action="{{ route('guru.savings.cancel-registration') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pendaftaran siswa {{ addslashes($studentName) }}? Rekening tabungan akan dihapus.')">
+                                                        @csrf
+                                                        <input type="hidden" name="student_id" value="{{ $student->id }}">
+                                                        <button type="submit" class="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-amber-50 font-bold flex items-center gap-1.5 cursor-pointer text-left">
+                                                            <span>↺</span>
+                                                            <span>Batalkan Pendaftaran</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                @else
+                                    <!-- Rekening Ditutup: Tombol Buka Kembali -->
+                                    <form action="{{ route('guru.savings.reopen-account') }}" method="POST" onsubmit="return confirm('Aktifkan kembali rekening buku tabungan untuk siswa {{ addslashes($studentName) }}?')">
+                                        @csrf
+                                        <input type="hidden" name="student_id" value="{{ $student->id }}">
+                                        <button type="submit" class="w-full neo-btn bg-slate-100 hover:bg-[#20C997] hover:text-white text-slate-800 font-bold text-[11px] py-1 px-2 flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer" title="Buka Kembali Rekening">
+                                            <span>↻</span>
+                                            <span>Buka Kembali</span>
                                         </button>
                                     </form>
                                 @endif
@@ -420,7 +465,70 @@
 </div>
 
 <!-- ========================================================================= -->
-<!-- MODAL POP-UP: INPUT TABUNGAN SISWA (SETOR / TARIK) -->
+<!-- MODAL 1: CHECKLIST PENDAFTARAN SISWA SELEKTIF -->
+<!-- ========================================================================= -->
+<div id="modalRegisterChecklist" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white border-4 border-black max-w-lg w-full p-5 sm:p-6 neo-box space-y-4 relative">
+        <button type="button" onclick="closeRegisterChecklistModal()" class="absolute right-4 top-4 text-black hover:text-rose-600 font-black text-xl p-1 cursor-pointer">
+            ✕
+        </button>
+
+        <div class="border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-base sm:text-lg text-black flex items-center gap-2">
+                <span>👥</span> Daftarkan Siswa Sebagai Penabung
+            </h3>
+            <p class="text-xs text-slate-600">Pilih siswa di kelas <strong>{{ $selectedClass?->name }}</strong> yang ingin dibuatkan buku tabungan.</p>
+        </div>
+
+        <form action="{{ route('guru.savings.register-selected-students') }}" method="POST" class="space-y-4">
+            @csrf
+
+            <!-- Select All Control -->
+            <div class="bg-slate-100 border-2 border-black p-3 flex items-center justify-between">
+                <label class="flex items-center gap-2 text-xs font-black text-black cursor-pointer">
+                    <input type="checkbox" id="selectAllStudents" onchange="toggleSelectAll(this)" class="w-4 h-4 accent-black rounded-none">
+                    <span>PILIH SEMUA SISWA ({{ $unregisteredStudents->count() }})</span>
+                </label>
+                <span id="selectedCountBadge" class="text-[11px] font-mono font-bold bg-[#FFD43B] text-black px-2 py-0.5 border border-black rounded">
+                    0 Dipilih
+                </span>
+            </div>
+
+            <!-- List of Unregistered Students -->
+            <div class="max-h-64 overflow-y-auto space-y-1.5 border-2 border-black p-2 bg-slate-50">
+                @forelse($unregisteredStudents as $uStudent)
+                    <label class="flex items-center justify-between p-2 bg-white border border-slate-300 hover:border-black hover:bg-[#FFF4E6] cursor-pointer text-xs transition-colors">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <input type="checkbox" name="student_ids[]" value="{{ $uStudent->id }}" onchange="updateSelectedCount()" class="student-checkbox w-4 h-4 accent-black rounded-none">
+                            <div class="min-w-0">
+                                <div class="font-bold text-black truncate">{{ $uStudent->user?->name }}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">NISN: {{ $uStudent->nisn ?: $uStudent->nis }}</div>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400">Belum Ada Buku</span>
+                    </label>
+                @empty
+                    <div class="text-center py-6 text-xs text-slate-500 italic">
+                        Semua siswa di kelas ini sudah terdaftar sebagai penabung.
+                    </div>
+                @endforelse
+            </div>
+
+            <div class="flex items-center gap-2 pt-2 border-t-2 border-black">
+                <button type="button" onclick="closeRegisterChecklistModal()" class="w-1/3 neo-btn bg-slate-200 hover:bg-slate-300 text-black font-bold text-xs py-2.5 cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" id="submitRegisterSelectedBtn" class="w-2/3 neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-xs py-2.5 flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer" disabled>
+                    <span>Daftarkan Siswa Terpilih</span>
+                    <span>✓</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL 2: INPUT TABUNGAN SISWA (SETOR / TARIK) -->
 <!-- ========================================================================= -->
 <div id="modalInputTabungan" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 hidden">
     <div class="bg-white border-4 border-black max-w-lg w-full p-5 sm:p-6 neo-box space-y-5 relative">
@@ -561,10 +669,108 @@
     </div>
 </div>
 
+<!-- ========================================================================= -->
+<!-- MODAL 3: TUTUP BUKU TABUNGAN -->
+<!-- ========================================================================= -->
+<div id="modalCloseAccount" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white border-4 border-black max-w-md w-full p-5 sm:p-6 neo-box space-y-4 relative">
+        <button type="button" onclick="closeCloseAccountModal()" class="absolute right-4 top-4 text-black hover:text-rose-600 font-black text-xl p-1 cursor-pointer">
+            ✕
+        </button>
+
+        <div class="border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-base sm:text-lg text-rose-700 flex items-center gap-2">
+                <span>🛑</span> Tutup Buku Tabungan
+            </h3>
+            <p class="text-xs text-slate-600">Konfirmasi penghentian tabungan santri/siswa</p>
+        </div>
+
+        <form action="{{ route('guru.savings.close-account') }}" method="POST" class="space-y-4">
+            @csrf
+            <input type="hidden" name="student_id" id="closeAccountStudentId" value="">
+
+            <div class="bg-rose-50 border-2 border-rose-600 p-3.5 space-y-2 text-xs">
+                <div class="font-bold text-rose-950">Informasi Rekening:</div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">Nama Siswa:</span>
+                    <strong id="closeAccountStudentName" class="text-black">-</strong>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">No. Rekening:</span>
+                    <span id="closeAccountAccountNumber" class="font-mono font-bold text-black">-</span>
+                </div>
+                <div class="flex items-center justify-between border-t border-rose-200 pt-1.5">
+                    <span class="text-rose-950 font-bold">Sisa Saldo Dicairkan:</span>
+                    <span id="closeAccountBalance" class="font-mono font-black text-sm text-rose-700">Rp 0</span>
+                </div>
+            </div>
+
+            <div class="space-y-1">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">
+                    Alasan Penutupan Buku (Opsional)
+                </label>
+                <input type="text" name="reason" placeholder="Contoh: Lulus sekolah / Pindah sekolah / Penghentian mandiri" maxlength="255"
+                    class="w-full neo-input text-xs font-medium py-2 bg-white">
+            </div>
+
+            <div class="p-2.5 bg-yellow-50 border border-yellow-400 text-[11px] text-yellow-950">
+                ⚠ Seluruh sisa saldo di atas akan otomatis dicairkan kepada siswa, dicatat sebagai penarikan penutupan buku, dan status rekening dinonaktifkan.
+            </div>
+
+            <div class="flex items-center gap-2 pt-2 border-t-2 border-black">
+                <button type="button" onclick="closeCloseAccountModal()" class="w-1/3 neo-btn bg-slate-200 hover:bg-slate-300 text-black font-bold text-xs py-2.5 cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="w-2/3 neo-btn bg-[#FF6B6B] hover:bg-rose-600 text-white font-black text-xs py-2.5 flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    <span>Proses Tutup Buku</span>
+                    <span>✓</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- JavaScript Interactivity -->
 <script>
     let activeModalStudentBalance = 0;
 
+    // --- Modal Checklist Pendaftaran Massal ---
+    function openRegisterChecklistModal() {
+        document.getElementById('modalRegisterChecklist').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeRegisterChecklistModal() {
+        document.getElementById('modalRegisterChecklist').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
+    function toggleSelectAll(selectAllCheckbox) {
+        const checkboxes = document.querySelectorAll('.student-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = selectAllCheckbox.checked;
+        });
+        updateSelectedCount();
+    }
+
+    function updateSelectedCount() {
+        const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+        const count = checkedBoxes.length;
+        const submitBtn = document.getElementById('submitRegisterSelectedBtn');
+        const countBadge = document.getElementById('selectedCountBadge');
+
+        countBadge.innerText = `${count} Dipilih`;
+
+        if (count > 0) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    // --- Modal Input Tabungan ---
     function openInputModal(student) {
         activeModalStudentBalance = student.balance;
 
@@ -644,10 +850,28 @@
         }
     }
 
+    // --- Modal Tutup Buku ---
+    function openCloseAccountModal(student) {
+        document.getElementById('closeAccountStudentId').value = student.id;
+        document.getElementById('closeAccountStudentName').innerText = student.name;
+        document.getElementById('closeAccountAccountNumber').innerText = student.account_number;
+        document.getElementById('closeAccountBalance').innerText = student.formatted_balance;
+
+        document.getElementById('modalCloseAccount').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeCloseAccountModal() {
+        document.getElementById('modalCloseAccount').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+
     // Close modal on Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeInputModal();
+            closeRegisterChecklistModal();
+            closeCloseAccountModal();
         }
     });
 </script>

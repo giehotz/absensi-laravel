@@ -14,7 +14,12 @@ Route::middleware(['auth', EnsureIsSavingsOfficer::class])
         Route::post('/deposit', [SavingsController::class, 'deposit'])->name('deposit');
         Route::post('/withdraw', [SavingsController::class, 'withdraw'])->name('withdraw');
         Route::post('/register-student', [SavingsController::class, 'registerStudent'])->name('register-student');
+        Route::post('/register-selected-students', [SavingsController::class, 'registerSelectedStudents'])->name('register-selected-students');
         Route::post('/register-class-students', [SavingsController::class, 'registerClassStudents'])->name('register-class-students');
+        Route::post('/cancel-registration', [SavingsController::class, 'cancelRegistration'])->name('cancel-registration');
+        Route::post('/close-account', [SavingsController::class, 'closeAccount'])->name('close-account');
+        Route::post('/reopen-account', [SavingsController::class, 'reopenAccount'])->name('reopen-account');
+
         Route::get('/transactions', [SavingsController::class, 'transactions'])->name('transactions');
         Route::get('/receipt/{transaction}', [SavingsController::class, 'receipt'])->name('receipt');
         Route::get('/export', [SavingsController::class, 'exportExcel'])->name('export');
