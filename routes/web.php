@@ -32,3 +32,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
 Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(base_path('routes/guru.php'));
 Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(base_path('routes/siswa.php'));
 Route::middleware(['auth', 'role:orangtua'])->prefix('orangtua')->name('orangtua.')->group(base_path('routes/orangtua.php'));
+
+// Modul Terisolasi: Pengelolaan Tabungan Siswa
+require base_path('routes/tabungan.php');

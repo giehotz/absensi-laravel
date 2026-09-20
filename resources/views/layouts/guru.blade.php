@@ -157,8 +157,24 @@
                             </div>
                             <span class="text-[10px] font-black bg-[#FFE3E3] text-rose-950 px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Izin</span>
                         </a>
+
+                        @if(Auth::user()->isSavingsOfficer())
+                        <!-- Tabungan Siswa (Bendahara Tabungan) -->
+                        <a href="{{ route('guru.savings.index') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.savings.*') 
+                                ? 'bg-[#20C997] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm">💰</span>
+                                <span>Tabungan Siswa</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.savings.*') ? 'bg-black text-emerald-300' : 'bg-[#D3F9D8] text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Kas</span>
+                        </a>
+                        @endif
                     </div>
                 </div>
+
 
                 <!-- Group: Laporan & Akun -->
                 <div>

@@ -21,7 +21,11 @@
 
     <!-- Tab 5: Riwayat Presensi & Catatan Guru -->
     @include('siswa._tab-riwayat')
+
+    <!-- Tab 6: Buku Tabungan Digital -->
+    @include('siswa._tab-tabungan')
 </div>
+
 
 <!-- Fixed Bottom Navigation Bar -->
 @include('siswa._bottom-nav')

@@ -21,12 +21,14 @@ class Teacher extends Model
         'last_education',
         'phone',
         'photo',
+        'is_savings_officer',
     ];
 
     protected function casts(): array
     {
         return [
             'birth_date' => 'date',
+            'is_savings_officer' => 'boolean',
         ];
     }
 

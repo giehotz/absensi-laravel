@@ -67,5 +67,19 @@
                 Riwayat
             </span>
         </button>
+
+        <!-- 6. Tabungan -->
+        <button type="button" onclick="switchTab('tabungan')" id="navBtn-tabungan" 
+            class="nav-tab-btn group relative p-2.5 sm:p-3 rounded-lg transition-all text-slate-600 hover:text-black border-2 border-transparent hover:scale-105 cursor-pointer"
+            title="Tabungan Siswa" aria-label="Tabungan Siswa">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <!-- Floating Tooltip -->
+            <span class="absolute -top-9 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-none pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                Tabungan
+            </span>
+        </button>
     </div>
 </nav>
+

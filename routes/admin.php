@@ -24,6 +24,7 @@ Route::get('teachers/template', [TeacherController::class, 'downloadTemplate'])-
 Route::post('teachers/import', [TeacherController::class, 'importExcel'])->name('teachers.import');
 Route::get('teachers/{teacher}/assignments', [TeacherController::class, 'getAssignments'])->name('teachers.assignments');
 Route::post('teachers/{teacher}/assignments', [TeacherController::class, 'updateAssignments'])->name('teachers.assignments.update');
+Route::patch('teachers/{teacher}/toggle-savings-officer', [TeacherController::class, 'toggleSavingsOfficer'])->name('teachers.toggle-savings-officer');
 Route::resource('teachers', TeacherController::class)->except(['create', 'edit', 'show']);
 
 // Master Data Kelas

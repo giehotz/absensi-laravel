@@ -502,4 +502,20 @@ class TeacherController extends Controller
         return redirect()->route('admin.teachers.index')
             ->with('success', 'Pengaturan penugasan mengajar untuk guru '.$teacher->user?->name.' berhasil disimpan.');
     }
+
+    /**
+     * Tunjuk atau lepas jabatan Guru sebagai Pengelola Tabungan Siswa.
+     */
+    public function toggleSavingsOfficer(Teacher $teacher): RedirectResponse
+    {
+        $newState = ! (bool) $teacher->is_savings_officer;
+        $teacher->update(['is_savings_officer' => $newState]);
+
+        $teacherName = $teacher->user?->name ?? 'Guru';
+        $message = $newState
+            ? "Guru {$teacherName} berhasil ditunjuk sebagai Pengelola Tabungan Siswa."
+            : "Status Pengelola Tabungan Siswa untuk {$teacherName} berhasil dinonaktifkan.";
+
+        return back()->with('success', $message);
+    }
 }

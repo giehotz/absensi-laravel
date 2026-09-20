@@ -65,4 +65,9 @@ class User extends Authenticatable
     {
         return $this->role === 'orangtua';
     }
+
+    public function isSavingsOfficer(): bool
+    {
+        return $this->isAdmin() || ($this->isGuru() && (bool) ($this->teacher?->is_savings_officer));
+    }
 }

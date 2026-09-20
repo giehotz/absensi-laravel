@@ -11,6 +11,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\StudentNote;
 use App\Services\QrCodeService;
+use App\Services\SavingsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -125,6 +126,11 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
+        // 8. Tabungan Siswa (Rekening & Mutasi Transaksi)
+        $savingsService = app(SavingsService::class);
+        $savingsAccount = $savingsService->getOrCreateAccount($student);
+        $savingsTransactions = $savingsAccount->transactions()->with('handler')->take(20)->get();
+
         return view('siswa.dashboard', compact(
             'student',
             'todayAttendance',
@@ -138,7 +144,9 @@ class DashboardController extends Controller
             'currentTimeStr',
             'leaveRequests',
             'history',
-            'studentNotes'
+            'studentNotes',
+            'savingsAccount',
+            'savingsTransactions'
         ));
     }
 }

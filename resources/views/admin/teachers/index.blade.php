@@ -223,6 +223,15 @@
                                     </span>
                                 @endif
                             </div>
+
+                            @if($teacher->is_savings_officer)
+                                <div class="pt-1">
+                                    <span class="neo-badge bg-[#FFD43B] text-amber-950 text-[10px] font-black px-2 py-0.5 inline-flex items-center gap-1 border border-black shadow-[1px_1px_0px_0px_#000]">
+                                        <span>💰</span>
+                                        <span>Pengelola Tabungan</span>
+                                    </span>
+                                </div>
+                            @endif
                         </td>
                         <td class="p-3 text-center">
                             <div class="flex flex-col items-center justify-center gap-1.5 max-w-[135px] mx-auto">
@@ -232,6 +241,17 @@
                                     </svg>
                                     <span>Atur Mengajar</span>
                                 </button>
+
+                                <form action="{{ route('admin.teachers.toggle-savings-officer', $teacher) }}" method="POST" class="w-full">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" 
+                                        class="w-full neo-btn {{ $teacher->is_savings_officer ? 'bg-[#20C997] hover:bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-[#FFD43B] text-black' }} px-1.5 py-1 text-[10px] cursor-pointer flex items-center justify-center gap-1 font-bold whitespace-nowrap shadow-[1.5px_1.5px_0px_0px_#000]" 
+                                        title="{{ $teacher->is_savings_officer ? 'Lepas Jabatan Pengelola Tabungan' : 'Tunjuk Sebagai Pengelola Tabungan Siswa' }}">
+                                        <span>{{ $teacher->is_savings_officer ? '✓ Pengelola Tabungan' : '+ Tunjuk Pengelola' }}</span>
+                                    </button>
+                                </form>
+
 
                                 <div class="flex items-center gap-1 w-full">
                                     <button onclick="editTeacher({{ json_encode([
