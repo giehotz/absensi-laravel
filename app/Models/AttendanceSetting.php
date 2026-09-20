@@ -16,6 +16,7 @@ class AttendanceSetting extends Model
         'npsn',
         'level',
         'school_address',
+        'logo',
     ];
 
     protected function casts(): array

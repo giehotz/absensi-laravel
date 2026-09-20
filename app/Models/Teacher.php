@@ -15,7 +15,13 @@ class Teacher extends Model
         'user_id',
         'nip',
         'phone',
+        'photo',
     ];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo ? asset('storage/'.$this->photo) : null;
+    }
 
     public function user(): BelongsTo
     {

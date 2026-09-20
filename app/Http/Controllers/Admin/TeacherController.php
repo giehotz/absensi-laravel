@@ -40,8 +40,8 @@ class TeacherController extends Controller
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Email wajib diisi.',
             'email.unique' => 'Email sudah terdaftar pada sistem.',
-            'nip.required' => 'NIP wajib diisi.',
-            'nip.unique' => 'NIP sudah digunakan.',
+            'nip.required' => 'NIP / PEGID wajib diisi.',
+            'nip.unique' => 'NIP / PEGID sudah digunakan.',
         ]);
 
         DB::transaction(function () use ($validated) {
@@ -75,8 +75,8 @@ class TeacherController extends Controller
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Email wajib diisi.',
             'email.unique' => 'Email sudah digunakan.',
-            'nip.required' => 'NIP wajib diisi.',
-            'nip.unique' => 'NIP sudah digunakan.',
+            'nip.required' => 'NIP / PEGID wajib diisi.',
+            'nip.unique' => 'NIP / PEGID sudah digunakan.',
         ]);
 
         DB::transaction(function () use ($validated, $teacher) {
@@ -121,7 +121,7 @@ class TeacherController extends Controller
         $headers = [
             'A1' => 'No',
             'B1' => 'Nama Lengkap',
-            'C1' => 'NIP',
+            'C1' => 'NIP / PEGID',
             'D1' => 'Email',
             'E1' => 'No. Telepon',
             'F1' => 'Password',
@@ -251,7 +251,7 @@ class TeacherController extends Controller
                     continue;
                 }
                 if (empty($nip)) {
-                    $skipped[] = "Baris $index ($name): NIP kosong.";
+                    $skipped[] = "Baris $index ($name): NIP / PEGID kosong.";
 
                     continue;
                 }
@@ -270,7 +270,7 @@ class TeacherController extends Controller
 
                 // Check duplicate NIP in teachers
                 if (Teacher::where('nip', $nip)->exists()) {
-                    $skipped[] = "Baris $index ($name): NIP '$nip' sudah digunakan.";
+                    $skipped[] = "Baris $index ($name): NIP / PEGID '$nip' sudah digunakan.";
 
                     continue;
                 }

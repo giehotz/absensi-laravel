@@ -43,7 +43,7 @@
                 <thead class="bg-[#FFF9DB] border-b-2 border-black text-xs font-black uppercase tracking-wider">
                     <tr>
                         <th class="p-3.5 border-r border-black">No</th>
-                        <th class="p-3.5 border-r border-black">NIP</th>
+                        <th class="p-3.5 border-r border-black">NIP / PEGID</th>
                         <th class="p-3.5 border-r border-black">Nama Guru & Email</th>
                         <th class="p-3.5 border-r border-black">No. Telepon</th>
                         <th class="p-3.5 border-r border-black">Wali Kelas</th>
@@ -58,7 +58,7 @@
                         </td>
                         <td class="p-3.5 border-r border-black">
                             <span class="neo-badge bg-[#E7F5FF] text-blue-900 font-mono text-[11px]">
-                                {{ $teacher->nip }}
+                                {{ $teacher->nip ?: '-' }}
                             </span>
                         </td>
                         <td class="p-3.5 border-r border-black">
@@ -136,7 +136,7 @@
             </div>
             <ul class="list-disc list-inside space-y-0.5 text-slate-700 pl-1">
                 <li>Gunakan template resmi agar header kolom terbaca tepat.</li>
-                <li>Kolom <b>Nama Lengkap</b>, <b>NIP</b>, dan <b>Email</b> wajib diisi.</li>
+                <li>Kolom <b>Nama Lengkap</b>, <b>NIP / PEGID</b>, dan <b>Email</b> wajib diisi.</li>
                 <li>Kata sandi default jika kosong otomatis: <code>password</code>.</li>
                 <li>Format file: <b>.xlsx, .xls, .csv</b> (Maksimal 5MB).</li>
             </ul>
@@ -197,8 +197,8 @@
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">NIP (Nomor Induk Pegawai) *</label>
-                    <input type="text" name="nip" required placeholder="1985..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                    <label class="block font-heading font-bold text-xs text-black mb-1">NIP / PEGID *</label>
+                    <input type="text" name="nip" required placeholder="NIP atau PegID..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">No. WhatsApp / HP</label>
@@ -249,8 +249,8 @@
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">NIP *</label>
-                    <input type="text" id="edit_nip" name="nip" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                    <label class="block font-heading font-bold text-xs text-black mb-1">NIP / PEGID *</label>
+                    <input type="text" id="edit_nip" name="nip" required placeholder="NIP atau PegID..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">No. WhatsApp / HP</label>

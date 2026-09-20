@@ -24,22 +24,33 @@
             <!-- Brand Logo -->
             <div class="flex items-center gap-3">
                 <a href="{{ url('/') }}" class="flex items-center gap-2 group">
-                    <div class="w-11 h-11 bg-[#5294FF] text-white font-heading font-black text-2xl flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_0px_#000] group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-[1px_1px_0px_0px_#000] transition-all">
-                        A
-                    </div>
+                    @if(!empty($schoolSetting->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($schoolSetting->logo))
+                        <div class="w-11 h-11 bg-white rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_#000] p-1 flex items-center justify-center overflow-hidden shrink-0 group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-[1px_1px_0px_0px_#000] transition-all">
+                            <img src="{{ asset('storage/' . $schoolSetting->logo) }}" alt="Logo {{ $schoolSetting->school_name ?? 'Sekolah' }}" class="w-full h-full object-contain">
+                        </div>
+                    @else
+                        <div class="w-11 h-11 bg-[#5294FF] text-white font-heading font-black text-2xl flex items-center justify-center border-2 border-black shadow-[3px_3px_0px_0px_#000] group-hover:translate-x-0.5 group-hover:translate-y-0.5 group-hover:shadow-[1px_1px_0px_0px_#000] transition-all shrink-0">
+                            {{ !empty($schoolSetting->school_name) ? strtoupper(substr($schoolSetting->school_name, 0, 1)) : 'A' }}
+                        </div>
+                    @endif
                     <div>
                         <div class="font-heading font-bold text-lg sm:text-xl tracking-tight leading-none text-black">
                             ABSENSI<span class="bg-[#FFD43B] px-1 ml-1 border border-black text-sm">SISWA</span>
                         </div>
-                        <div class="text-[11px] font-semibold text-slate-600 tracking-wider uppercase">Sistem Presensi Terpadu</div>
+                        <div class="text-[11px] font-semibold text-slate-600 tracking-wider uppercase">
+                            {{ $schoolSetting->school_name ?? 'Sistem Presensi Terpadu' }}
+                        </div>
                     </div>
                 </a>
             </div>
 
-            <!-- User Status & Logout -->
-            @auth
-            <div class="flex items-center gap-3">
-                <div class="hidden sm:flex items-center gap-2 bg-[#FFF9DB] border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_#000] rounded-sm">
+            <!-- Right Header: Date, Clock & User Status -->
+            <div class="flex items-center gap-2.5 sm:gap-3">
+                <!-- Date & Live Clock (Waktu Indonesia) -->
+                @include('partials._header-clock')
+
+                @auth
+                <div class="hidden md:flex items-center gap-2 bg-[#FFF9DB] border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_#000] rounded-sm">
                     <div class="w-2.5 h-2.5 rounded-full bg-[#20C997] border border-black animate-pulse"></div>
                     <div class="text-xs font-bold text-black">
                         {{ Auth::user()->name }}
@@ -63,8 +74,8 @@
                         <span>Keluar</span>
                     </button>
                 </form>
+                @endauth
             </div>
-            @endauth
         </div>
     </header>
 

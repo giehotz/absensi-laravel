@@ -120,9 +120,15 @@
                     <!-- Kop Sekolah -->
                     <div class="bg-slate-900 text-white px-2.5 py-1.5 flex items-center justify-between border-b-2 border-black">
                         <div class="flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-full bg-[#FFD43B] border border-black flex items-center justify-center font-black text-xs text-black font-heading shrink-0">
-                                🎓
-                            </div>
+                            @if(!empty($setting->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo))
+                                <div class="w-7 h-7 rounded-full bg-white border border-black flex items-center justify-center overflow-hidden shrink-0 p-0.5">
+                                    <img src="{{ asset('storage/' . $setting->logo) }}" alt="Logo" class="w-full h-full object-contain">
+                                </div>
+                            @else
+                                <div class="w-7 h-7 rounded-full bg-[#FFD43B] border border-black flex items-center justify-center font-black text-xs text-black font-heading shrink-0">
+                                    🎓
+                                </div>
+                            @endif
                             <div class="leading-tight truncate">
                                 <div class="font-heading font-black text-[11px] uppercase tracking-tight truncate text-[#FFD43B]">
                                     {{ $setting->school_name ?? 'SMP NEGERI 1 GARUDA' }}

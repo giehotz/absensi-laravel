@@ -259,7 +259,7 @@
                 <div class="flex items-center justify-between mb-1">
                     <h3 class="font-heading font-black text-base text-black flex items-center gap-2">
                         <span class="w-3 h-3 bg-[#5294FF] border border-black inline-block"></span>
-                        Tren Kehadiran Harian
+                        Tren Kehadiran Harian ({{ $reportMonthName }})
                     </h3>
                     <span class="neo-badge bg-[#E7F5FF] text-blue-900 text-[10px]">Harian</span>
                 </div>
@@ -709,7 +709,17 @@
                     legend: {
                         display: false
                     },
-                    tooltip: neobrutalismTooltip
+                    tooltip: {
+                        ...neobrutalismTooltip,
+                        callbacks: {
+                            ...neobrutalismTooltip.callbacks,
+                            title: function(tooltipItems) {
+                                if (!tooltipItems.length) return '';
+                                const idx = tooltipItems[0].dataIndex;
+                                return (barData.full_dates && barData.full_dates[idx]) ? barData.full_dates[idx] : tooltipItems[0].label;
+                            }
+                        }
+                    }
                 }
             }
         });

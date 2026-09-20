@@ -74,9 +74,19 @@ class AttendanceReportController extends Controller
             'colors' => ['#20C997', '#FFD43B', '#5294FF', '#845EF7', '#FF6B6B'],
         ];
 
+        // Menentukan nama bulan untuk judul grafik tren
+        $startCarbon = Carbon::parse($startDate);
+        $endCarbon = Carbon::parse($endDate);
+        if ($startCarbon->format('Y-m') === $endCarbon->format('Y-m')) {
+            $reportMonthName = $startCarbon->translatedFormat('F');
+        } else {
+            $reportMonthName = $startCarbon->translatedFormat('M').' - '.$endCarbon->translatedFormat('M');
+        }
+
         // Data untuk Neobrutalism Bar Chart (Tren Kehadiran Harian)
         $period = CarbonPeriod::create($startDate, $endDate);
         $dailyLabels = [];
+        $dailyFullDates = [];
         $dailyHadir = [];
         $dailyTerlambat = [];
         $dailyIzinSakit = [];
@@ -90,7 +100,8 @@ class AttendanceReportController extends Controller
 
         foreach ($period as $date) {
             $dateStr = $date->toDateString();
-            $dailyLabels[] = $date->translatedFormat('d M');
+            $dailyLabels[] = (string) $date->format('j');
+            $dailyFullDates[] = 'Tanggal '.$date->format('j').' '.$date->translatedFormat('F');
 
             $statusCounts = $dailyStats->get($dateStr, collect())->pluck('count', 'status')->all();
 
@@ -102,6 +113,7 @@ class AttendanceReportController extends Controller
 
         $barChartData = [
             'labels' => $dailyLabels,
+            'full_dates' => $dailyFullDates,
             'hadir' => $dailyHadir,
             'terlambat' => $dailyTerlambat,
             'izin_sakit' => $dailyIzinSakit,
@@ -172,6 +184,7 @@ class AttendanceReportController extends Controller
             'attendanceRate' => $attendanceRate,
             'donutChartData' => $donutChartData,
             'barChartData' => $barChartData,
+            'reportMonthName' => $reportMonthName,
             'students' => $students,
             'attendanceLogs' => $attendanceLogs,
         ]);

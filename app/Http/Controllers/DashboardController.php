@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
+use App\Models\LeaveRequest;
 use App\Models\NotificationLog;
 use App\Models\QrToken;
 use App\Models\Schedule;
@@ -53,7 +54,10 @@ class DashboardController extends Controller
     public function guru(Request $request): View
     {
         $user = Auth::user();
-        $teacher = $user->teacher ?? Teacher::firstOrCreate(['user_id' => $user->id], ['nip' => 'GURU-DEMO', 'phone' => '081234567800']);
+        $teacher = $user->teacher ?? Teacher::firstOrCreate(
+            ['user_id' => $user->id],
+            ['nip' => 'GURU-DEMO', 'phone' => '081234567800']
+        );
         $today = Carbon::today()->toDateString();
         $currentDayOfWeek = (int) Carbon::now()->dayOfWeekIso;
 
@@ -64,12 +68,109 @@ class DashboardController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        // Kelas yang diampu sebagai Wali Kelas
+        // Seluruh jadwal mingguan guru
+        $weeklySchedules = Schedule::with(['schoolClass', 'subject'])
+            ->where('teacher_id', $teacher->id)
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get();
+
+        // Kelas binaan (sebagai Wali Kelas)
         $homeroomClasses = SchoolClass::with(['students.user', 'students.attendances' => function ($q) use ($today) {
             $q->where('date', $today);
         }])->where('homeroom_teacher_id', $teacher->id)->get();
 
-        return view('dashboard.guru', compact('teacher', 'todaySchedules', 'homeroomClasses'));
+        // Kelas & siswa dalam lingkup guru (jadwal mengajar + wali kelas)
+        $taughtClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id')->unique();
+        $homeroomClassIds = $homeroomClasses->pluck('id');
+        $allClassIds = $taughtClassIds->merge($homeroomClassIds)->unique();
+        $studentIds = Student::whereIn('school_class_id', $allClassIds)->pluck('id');
+
+        // Statistik presensi hari ini untuk siswa binaan/ajar
+        $attendancesToday = Attendance::whereIn('student_id', $studentIds)
+            ->where('date', $today)
+            ->get();
+
+        $totalStudents = $studentIds->count();
+        $stats = [
+            'total_students' => $totalStudents,
+            'hadir' => $attendancesToday->where('status', 'hadir')->count(),
+            'terlambat' => $attendancesToday->where('status', 'terlambat')->count(),
+            'izin' => $attendancesToday->where('status', 'izin')->count(),
+            'sakit' => $attendancesToday->where('status', 'sakit')->count(),
+            'alpa' => $attendancesToday->where('status', 'alpa')->count(),
+            'belum_absen' => max(0, $totalStudents - $attendancesToday->count()),
+        ];
+
+        // 10 Log presensi terbaru hari ini
+        $recentAttendances = Attendance::with(['student.user', 'student.schoolClass', 'schedule.subject'])
+            ->whereIn('student_id', $studentIds)
+            ->where('date', $today)
+            ->latest('check_in_time')
+            ->latest('id')
+            ->take(10)
+            ->get();
+
+        // Ringkasan Kehadiran 7 Hari Terakhir (Progress Bar Mingguan)
+        $startDate = Carbon::today()->subDays(6)->toDateString();
+        $weeklyAttendances = Attendance::whereIn('student_id', $studentIds)
+            ->whereBetween('date', [$startDate, $today])
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        $weeklyHadir = (int) ($weeklyAttendances['hadir'] ?? 0);
+        $weeklyTerlambat = (int) ($weeklyAttendances['terlambat'] ?? 0);
+        $weeklySakit = (int) ($weeklyAttendances['sakit'] ?? 0);
+        $weeklyIzin = (int) ($weeklyAttendances['izin'] ?? 0);
+        $weeklyAlpa = (int) ($weeklyAttendances['alpa'] ?? 0);
+        $weeklyTotal = $weeklyHadir + $weeklyTerlambat + $weeklySakit + $weeklyIzin + $weeklyAlpa;
+
+        $weeklyStats = [
+            'total' => $weeklyTotal,
+            'hadir' => [
+                'count' => $weeklyHadir,
+                'percentage' => $weeklyTotal > 0 ? round(($weeklyHadir / $weeklyTotal) * 100, 1) : 0,
+            ],
+            'terlambat' => [
+                'count' => $weeklyTerlambat,
+                'percentage' => $weeklyTotal > 0 ? round(($weeklyTerlambat / $weeklyTotal) * 100, 1) : 0,
+            ],
+            'sakit' => [
+                'count' => $weeklySakit,
+                'percentage' => $weeklyTotal > 0 ? round(($weeklySakit / $weeklyTotal) * 100, 1) : 0,
+            ],
+            'izin' => [
+                'count' => $weeklyIzin,
+                'percentage' => $weeklyTotal > 0 ? round(($weeklyIzin / $weeklyTotal) * 100, 1) : 0,
+            ],
+            'alpa' => [
+                'count' => $weeklyAlpa,
+                'percentage' => $weeklyTotal > 0 ? round(($weeklyAlpa / $weeklyTotal) * 100, 1) : 0,
+            ],
+        ];
+
+        // Permohonan izin yang pending untuk siswa kelas binaan guru (atau kelas yang diampu)
+        $targetLeaveClassIds = $homeroomClassIds->isNotEmpty() ? $homeroomClassIds : $allClassIds;
+        $pendingLeaveRequests = LeaveRequest::with(['student.user', 'student.schoolClass', 'requester'])
+            ->whereHas('student', function ($q) use ($targetLeaveClassIds) {
+                $q->whereIn('school_class_id', $targetLeaveClassIds);
+            })
+            ->where('status', 'pending')
+            ->latest()
+            ->get();
+
+        return view('guru.dashboard', compact(
+            'teacher',
+            'todaySchedules',
+            'weeklySchedules',
+            'homeroomClasses',
+            'stats',
+            'recentAttendances',
+            'weeklyStats',
+            'pendingLeaveRequests'
+        ));
     }
 
     /**

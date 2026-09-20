@@ -105,4 +105,29 @@ class AuthAndDashboardTest extends TestCase
         $response->assertRedirect(route('login'));
         $this->assertGuest();
     }
+
+    public function test_headers_render_indonesian_clock_and_wib(): void
+    {
+        // 1. Neobrutalism layout (Public / Login page)
+        $loginRes = $this->get('/login');
+        $loginRes->assertStatus(200);
+        $loginRes->assertSee('live-clock-time');
+        $loginRes->assertSee('WIB');
+
+        // 2. Admin layout (Admin Dashboard)
+        $adminUser = User::where('email', 'admin@sekolah.sch.id')->first();
+        $this->actingAs($adminUser);
+        $adminRes = $this->get('/admin/dashboard');
+        $adminRes->assertStatus(200);
+        $adminRes->assertSee('live-clock-time');
+        $adminRes->assertSee('WIB');
+
+        // 3. Guru layout (Guru Dashboard)
+        $guruUser = User::where('email', 'guru@sekolah.sch.id')->first();
+        $this->actingAs($guruUser);
+        $guruRes = $this->get('/guru/dashboard');
+        $guruRes->assertStatus(200);
+        $guruRes->assertSee('live-clock-time');
+        $guruRes->assertSee('WIB');
+    }
 }

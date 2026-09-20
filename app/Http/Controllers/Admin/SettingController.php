@@ -10,6 +10,7 @@ use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class SettingController extends Controller
@@ -60,10 +61,15 @@ class SettingController extends Controller
             'npsn' => ['nullable', 'string', 'max:30'],
             'level' => ['nullable', 'in:SD,MI,SMP,MTs,SMA,MA,SMK'],
             'school_address' => ['nullable', 'string', 'max:500'],
+            'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
+            'remove_logo' => ['nullable', 'boolean'],
         ], [
             'mode.required' => 'Mode absensi wajib dipilih.',
             'tolerance_minutes.required' => 'Toleransi keterlambatan wajib diisi.',
             'tolerance_minutes.integer' => 'Toleransi keterlambatan harus berupa angka menit.',
+            'logo.image' => 'File logo harus berupa gambar.',
+            'logo.mimes' => 'Format logo harus berupa png, jpg, jpeg, svg, atau webp.',
+            'logo.max' => 'Ukuran file logo maksimal adalah 2MB.',
         ]);
 
         $setting = AttendanceSetting::first() ?? new AttendanceSetting;
@@ -81,6 +87,19 @@ class SettingController extends Controller
         if (array_key_exists('school_address', $validated)) {
             $setting->school_address = $validated['school_address'];
         }
+
+        if ($request->hasFile('logo')) {
+            if ($setting->logo && Storage::disk('public')->exists($setting->logo)) {
+                Storage::disk('public')->delete($setting->logo);
+            }
+            $setting->logo = $request->file('logo')->store('logos', 'public');
+        } elseif ($request->boolean('remove_logo')) {
+            if ($setting->logo && Storage::disk('public')->exists($setting->logo)) {
+                Storage::disk('public')->delete($setting->logo);
+            }
+            $setting->logo = null;
+        }
+
         $setting->save();
 
         if (! empty($validated['level'])) {

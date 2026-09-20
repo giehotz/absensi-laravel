@@ -71,4 +71,9 @@ class Student extends Model
     {
         return $this->hasMany(LeaveRequest::class);
     }
+
+    public function studentNotes(): HasMany
+    {
+        return $this->hasMany(StudentNote::class);
+    }
 }
