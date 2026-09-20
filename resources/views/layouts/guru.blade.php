@@ -114,15 +114,18 @@
                     </div>
                     <div class="space-y-1">
                         <!-- Jadwal Mengajar -->
-                        <a href="{{ route('guru.dashboard') }}#jadwal" 
-                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group border-2 border-transparent text-slate-300 font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700">
+                        <a href="{{ route('guru.jadwal') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.jadwal') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                             <div class="flex items-center gap-3">
-                                <svg class="w-4 h-4 shrink-0 text-slate-400 group-hover:text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.jadwal') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
                                 </svg>
                                 <span>Jadwal Mengajar</span>
                             </div>
-                            <span class="text-[10px] font-black bg-[#FFF3BF] text-amber-950 px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Hari Ini</span>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.jadwal') ? 'bg-black text-yellow-300' : 'bg-[#FFF3BF] text-amber-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">KBM</span>
                         </a>
 
                         <!-- Kelas Binaan (Wali Kelas) -->

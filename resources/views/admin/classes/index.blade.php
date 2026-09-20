@@ -15,7 +15,10 @@
                 Atur kelas, jenjang pendidikan, serta penugasan guru wali kelas.
             </p>
         </div>
-        <div>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a href="{{ route('admin.classes.transfer') }}" class="neo-btn bg-[#FFF9DB] hover:bg-[#ffec99] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 cursor-pointer font-heading" title="Pindahkan siswa yang salah kelas antar rombel">
+                <span>⇄</span> Pindah Kelas
+            </a>
             <button onclick="openModal('createClassModal')" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 cursor-pointer font-heading">
                 <span>+</span> Tambah Kelas Baru
             </button>

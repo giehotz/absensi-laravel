@@ -42,27 +42,33 @@ class AttendanceReportController extends Controller
         $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
 
         // Query dasar absensi dengan filter rentang tanggal
-        $attendanceQuery = Attendance::with(['student.user', 'student.schoolClass', 'schedule.subject'])
+        $baseQuery = Attendance::with(['student.user', 'student.schoolClass', 'schedule.subject'])
             ->whereDate('date', '>=', $startDate)
             ->whereDate('date', '<=', $endDate);
 
         if ($schoolClassId && $schoolClassId !== 'all') {
-            $attendanceQuery->whereHas('student', function ($q) use ($schoolClassId) {
+            $baseQuery->whereHas('student', function ($q) use ($schoolClassId) {
                 $q->where('school_class_id', $schoolClassId);
             });
         }
 
+        // Query khusus riwayat logs (menerapkan filter status)
+        $attendanceQuery = clone $baseQuery;
         if ($status && $status !== 'all') {
-            $attendanceQuery->where('status', $status);
+            if ($status === 'izin_sakit') {
+                $attendanceQuery->whereIn('status', ['izin', 'sakit']);
+            } else {
+                $attendanceQuery->where('status', $status);
+            }
         }
 
         // Agregasi Statistik Ringkasan (KPI)
-        $totalRecords = (clone $attendanceQuery)->count();
-        $totalHadir = (clone $attendanceQuery)->where('status', 'hadir')->count();
-        $totalTerlambat = (clone $attendanceQuery)->where('status', 'terlambat')->count();
-        $totalIzin = (clone $attendanceQuery)->where('status', 'izin')->count();
-        $totalSakit = (clone $attendanceQuery)->where('status', 'sakit')->count();
-        $totalAlpa = (clone $attendanceQuery)->where('status', 'alpa')->count();
+        $totalRecords = (clone $baseQuery)->count();
+        $totalHadir = (clone $baseQuery)->where('status', 'hadir')->count();
+        $totalTerlambat = (clone $baseQuery)->where('status', 'terlambat')->count();
+        $totalIzin = (clone $baseQuery)->where('status', 'izin')->count();
+        $totalSakit = (clone $baseQuery)->where('status', 'sakit')->count();
+        $totalAlpa = (clone $baseQuery)->where('status', 'alpa')->count();
 
         $totalPresent = $totalHadir + $totalTerlambat;
         $attendanceRate = $totalRecords > 0 ? round(($totalPresent / $totalRecords) * 100, 1) : 0;
@@ -92,7 +98,7 @@ class AttendanceReportController extends Controller
         $dailyIzinSakit = [];
         $dailyAlpa = [];
 
-        $dailyStats = (clone $attendanceQuery)
+        $dailyStats = (clone $baseQuery)
             ->selectRaw('DATE(date) as log_date, status, COUNT(*) as count')
             ->groupBy('log_date', 'status')
             ->get()
@@ -424,7 +430,11 @@ class AttendanceReportController extends Controller
         }
 
         if ($status && $status !== 'all') {
-            $attendanceLogsQuery->where('status', $status);
+            if ($status === 'izin_sakit') {
+                $attendanceLogsQuery->whereIn('status', ['izin', 'sakit']);
+            } else {
+                $attendanceLogsQuery->where('status', $status);
+            }
         }
 
         $logs = $attendanceLogsQuery->orderBy('date', 'desc')

@@ -94,7 +94,8 @@
                         <option value="terlambat" {{ $status == 'terlambat' ? 'selected' : '' }}>Terlambat</option>
                         <option value="izin" {{ $status == 'izin' ? 'selected' : '' }}>Izin</option>
                         <option value="sakit" {{ $status == 'sakit' ? 'selected' : '' }}>Sakit</option>
-                        <option value="alpa" {{ $status == 'alpa' ? 'selected' : '' }}>Alpa</option>
+                        <option value="izin_sakit" {{ $status == 'izin_sakit' ? 'selected' : '' }}>Izin & Sakit</option>
+                        <option value="alpa" {{ $status == 'alpa' ? 'selected' : '' }}>Alpa (Tanpa Keterangan)</option>
                     </select>
                 </div>
             </div>

@@ -10,6 +10,7 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -34,6 +35,101 @@ class SchoolClassController extends Controller
         $academicYears = AcademicYear::all();
 
         return view('admin.classes.index', compact('classes', 'teachers', 'academicYears'));
+    }
+
+    public function transferView(Request $request): View
+    {
+        $classes = SchoolClass::with(['academicYear', 'homeroomTeacher.user'])
+            ->withCount('students')
+            ->orderBy('name')
+            ->get();
+
+        $selectedClassId = $request->query('from_class_id');
+
+        return view('admin.classes.transfer', compact('classes', 'selectedClassId'));
+    }
+
+    public function getTransferData(SchoolClass $class): JsonResponse
+    {
+        $class->load(['academicYear', 'homeroomTeacher.user']);
+
+        $students = Student::with('user')
+            ->where('school_class_id', $class->id)
+            ->join('users', 'students.user_id', '=', 'users.id')
+            ->orderBy('users.name')
+            ->select('students.*')
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'name' => $s->user?->name ?? 'Tanpa Nama',
+                    'nis' => $s->nis ?? '-',
+                    'nisn' => $s->nisn ?? '-',
+                    'gender' => $s->gender ?? '-',
+                ];
+            });
+
+        $targetClasses = SchoolClass::with(['homeroomTeacher.user'])
+            ->withCount('students')
+            ->where('academic_year_id', $class->academic_year_id)
+            ->where('id', '!=', $class->id)
+            ->orderBy('name')
+            ->get()
+            ->map(function ($tc) {
+                return [
+                    'id' => $tc->id,
+                    'name' => $tc->name,
+                    'level' => $tc->level,
+                    'homeroom_teacher' => $tc->homeroomTeacher?->user?->name ?? 'Belum Ditentukan',
+                    'students_count' => $tc->students_count,
+                ];
+            });
+
+        return response()->json([
+            'source_class' => [
+                'id' => $class->id,
+                'name' => $class->name,
+                'level' => $class->level,
+                'academic_year' => $class->academicYear ? $class->academicYear->name.' ('.ucfirst($class->academicYear->semester).')' : '-',
+                'homeroom_teacher' => $class->homeroomTeacher?->user?->name ?? 'Belum Ditentukan',
+            ],
+            'students' => $students,
+            'target_classes' => $targetClasses,
+        ]);
+    }
+
+    public function executeTransfer(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'source_class_id' => ['required', 'exists:school_classes,id'],
+            'target_class_id' => ['required', 'exists:school_classes,id', 'different:source_class_id'],
+            'student_ids' => ['required', 'array', 'min:1'],
+            'student_ids.*' => ['required', 'exists:students,id'],
+        ], [
+            'source_class_id.required' => 'Kelas asal wajib dipilih.',
+            'target_class_id.required' => 'Kelas tujuan wajib dipilih.',
+            'target_class_id.different' => 'Kelas tujuan tidak boleh sama dengan kelas asal.',
+            'student_ids.required' => 'Pilih minimal satu siswa untuk dipindahkan.',
+            'student_ids.min' => 'Pilih minimal satu siswa untuk dipindahkan.',
+        ]);
+
+        $sourceClass = SchoolClass::findOrFail($validated['source_class_id']);
+        $targetClass = SchoolClass::findOrFail($validated['target_class_id']);
+
+        if ($sourceClass->academic_year_id !== $targetClass->academic_year_id) {
+            return back()->with('error', 'Kelas asal dan kelas tujuan harus berada dalam tahun ajaran yang sama.');
+        }
+
+        $count = 0;
+        DB::transaction(function () use ($validated, $sourceClass, $targetClass, &$count) {
+            $count = Student::where('school_class_id', $sourceClass->id)
+                ->whereIn('id', $validated['student_ids'])
+                ->update(['school_class_id' => $targetClass->id]);
+        });
+
+        return redirect()
+            ->route('admin.classes.transfer', ['from_class_id' => $targetClass->id])
+            ->with('success', "Berhasil memindahkan {$count} siswa dari {$sourceClass->name} ke {$targetClass->name}.");
     }
 
     public function students(SchoolClass $class): View

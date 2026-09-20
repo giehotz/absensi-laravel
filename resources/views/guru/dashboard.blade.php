@@ -11,27 +11,19 @@
     {{-- 2. 4 Stats Cards --}}
     @include('guru._stats-cards')
 
-    {{-- 3. Two-Column Layout: Left = Jadwal & Ringkasan, Right = Log Presensi --}}
+    {{-- 3. Two-Column Layout: Left = Jadwal Mengajar, Right = Ringkasan Mingguan --}}
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div class="lg:col-span-7 space-y-8">
-            <div id="jadwal">
-                @include('guru._jadwal-hari-ini')
-            </div>
-            <div id="rekap">
-                @include('guru._ringkasan-mingguan')
-            </div>
+        <div class="lg:col-span-7 space-y-8" id="jadwal">
+            @include('guru._jadwal-hari-ini')
         </div>
 
-        <div class="lg:col-span-5 space-y-8">
-            @include('guru._log-presensi')
+        <div class="lg:col-span-5 space-y-8" id="rekap">
+            @include('guru._ringkasan-mingguan')
         </div>
     </div>
 
     {{-- 4. Permohonan Izin / Sakit Pending --}}
     @include('guru._leave-requests')
-
-    {{-- 5. Siswa Kelas Binaan (Wali Kelas) --}}
-    @include('guru._kelas-binaan')
 </div>
 @endsection
 

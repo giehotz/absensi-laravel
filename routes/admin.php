@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AcademicYearController;
+use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
 use App\Http\Controllers\Admin\ScheduleController;
@@ -23,6 +24,9 @@ Route::post('teachers/import', [TeacherController::class, 'importExcel'])->name(
 Route::resource('teachers', TeacherController::class)->except(['create', 'edit', 'show']);
 
 // Master Data Kelas
+Route::get('classes/transfer', [SchoolClassController::class, 'transferView'])->name('classes.transfer');
+Route::post('classes/transfer', [SchoolClassController::class, 'executeTransfer'])->name('classes.transfer.store');
+Route::get('classes/{class}/transfer-data', [SchoolClassController::class, 'getTransferData'])->name('classes.transfer-data');
 Route::get('classes/{class}/students', [SchoolClassController::class, 'students'])->name('classes.students');
 Route::get('classes/{class}/students/template', [SchoolClassController::class, 'downloadStudentsTemplate'])->name('classes.students.template');
 Route::post('classes/{class}/students/import', [SchoolClassController::class, 'importStudentsExcel'])->name('classes.students.import');
@@ -67,3 +71,11 @@ Route::post('database-maintenance/optimize', [DatabaseMaintenanceController::cla
 // Presensi Manual Siswa (Admin)
 Route::get('attendances/manual', [ManualAttendanceController::class, 'admin'])->name('attendances.manual');
 Route::post('attendances/manual', [ManualAttendanceController::class, 'store'])->name('attendances.manual.store');
+
+// Manajemen API Client & Integrasi
+Route::get('api-clients', [ApiClientController::class, 'index'])->name('api-clients.index');
+Route::post('api-clients', [ApiClientController::class, 'store'])->name('api-clients.store');
+Route::put('api-clients/{client}', [ApiClientController::class, 'update'])->name('api-clients.update');
+Route::post('api-clients/{client}/regenerate', [ApiClientController::class, 'regenerateKey'])->name('api-clients.regenerate');
+Route::patch('api-clients/{client}/toggle', [ApiClientController::class, 'toggle'])->name('api-clients.toggle');
+Route::delete('api-clients/{client}', [ApiClientController::class, 'destroy'])->name('api-clients.destroy');

@@ -212,6 +212,18 @@
                             </svg>
                             <span>Pengaturan</span>
                         </a>
+
+                        <!-- API & Integrasi -->
+                        <a href="{{ route('admin.api-clients.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.api-clients.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.api-clients.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>API & Integrasi</span>
+                        </a>
                     </div>
                 </div>
             </nav>

@@ -35,9 +35,10 @@
     </div>
 
     <!-- 4 Stats Cards Grid -->
+    @php $today = \Carbon\Carbon::today()->toDateString(); @endphp
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <!-- Hadir -->
-        <div class="bg-[#D3F9D8] neo-box p-5 flex flex-col justify-between">
+        <a href="{{ route('admin.reports.attendance', ['status' => 'hadir', 'start_date' => $today, 'end_date' => $today, 'tab' => 'logs']) }}" class="bg-[#D3F9D8] neo-box p-5 flex flex-col justify-between cursor-pointer hover:scale-[1.02] hover:shadow-[5px_5px_0px_0px_#000] transition-all duration-150">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-black uppercase tracking-wider text-emerald-900">Hadir Hari Ini</span>
                 <span class="text-xl">✅</span>
@@ -46,10 +47,10 @@
                 <div class="text-3xl sm:text-4xl font-black font-heading text-black">{{ $stats['hadir_today'] }}</div>
                 <div class="text-xs font-semibold text-emerald-800 mt-1">Siswa tepat waktu</div>
             </div>
-        </div>
+        </a>
 
         <!-- Terlambat -->
-        <div class="bg-[#FFF3BF] neo-box p-5 flex flex-col justify-between">
+        <a href="{{ route('admin.reports.attendance', ['status' => 'terlambat', 'start_date' => $today, 'end_date' => $today, 'tab' => 'logs']) }}" class="bg-[#FFF3BF] neo-box p-5 flex flex-col justify-between cursor-pointer hover:scale-[1.02] hover:shadow-[5px_5px_0px_0px_#000] transition-all duration-150">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-black uppercase tracking-wider text-amber-900">Terlambat</span>
                 <span class="text-xl">⏰</span>
@@ -58,10 +59,10 @@
                 <div class="text-3xl sm:text-4xl font-black font-heading text-black">{{ $stats['terlambat_today'] }}</div>
                 <div class="text-xs font-semibold text-amber-800 mt-1">Melebihi batas toleransi</div>
             </div>
-        </div>
+        </a>
 
         <!-- Izin & Sakit -->
-        <div class="bg-[#E7F5FF] neo-box p-5 flex flex-col justify-between">
+        <a href="{{ route('admin.reports.attendance', ['status' => 'izin_sakit', 'start_date' => $today, 'end_date' => $today, 'tab' => 'logs']) }}" class="bg-[#E7F5FF] neo-box p-5 flex flex-col justify-between cursor-pointer hover:scale-[1.02] hover:shadow-[5px_5px_0px_0px_#000] transition-all duration-150">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-black uppercase tracking-wider text-blue-900">Izin & Sakit</span>
                 <span class="text-xl">📝</span>
@@ -70,10 +71,10 @@
                 <div class="text-3xl sm:text-4xl font-black font-heading text-black">{{ $stats['izin_today'] + $stats['sakit_today'] }}</div>
                 <div class="text-xs font-semibold text-blue-800 mt-1">{{ $stats['sakit_today'] }} Sakit, {{ $stats['izin_today'] }} Izin</div>
             </div>
-        </div>
+        </a>
 
         <!-- Alpa -->
-        <div class="bg-[#FFE3E3] neo-box p-5 flex flex-col justify-between">
+        <a href="{{ route('admin.reports.attendance', ['status' => 'alpa', 'start_date' => $today, 'end_date' => $today, 'tab' => 'logs']) }}" class="bg-[#FFE3E3] neo-box p-5 flex flex-col justify-between cursor-pointer hover:scale-[1.02] hover:shadow-[5px_5px_0px_0px_#000] transition-all duration-150">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-black uppercase tracking-wider text-rose-900">Tanpa Keterangan</span>
                 <span class="text-xl">❌</span>
@@ -82,7 +83,7 @@
                 <div class="text-3xl sm:text-4xl font-black font-heading text-black">{{ $stats['alpa_today'] }}</div>
                 <div class="text-xs font-semibold text-rose-800 mt-1">Belum melakukan presensi</div>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Two-Column Layout -->

@@ -83,6 +83,12 @@
                 <span>Upload Excel</span>
             </button>
 
+            <!-- Shortcut Pindah Siswa -->
+            <a href="{{ route('admin.classes.transfer', ['from_class_id' => $class->id]) }}" class="neo-btn bg-[#E7F5FF] hover:bg-[#d0ebff] text-blue-950 px-3.5 py-2 text-xs uppercase flex items-center gap-1.5 cursor-pointer font-heading" title="Pindahkan Siswa dari Kelas Ini ke Kelas Lain">
+                <span>⇄</span>
+                <span>Pindah Siswa</span>
+            </a>
+
             <!-- Tambah Siswa Manual -->
             <button onclick="openModal('createStudentModal')" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-2 text-xs uppercase flex items-center gap-1.5 cursor-pointer font-heading">
                 <span>+</span> Tambah Siswa Manual

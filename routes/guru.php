@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Route;
 // Dashboard Guru
 Route::get('/dashboard', [DashboardController::class, 'guru'])->name('dashboard');
 
+// Jadwal Mengajar (Dalam Pengembangan)
+Route::view('/jadwal', 'guru.jadwal')->name('jadwal');
+
 // Perizinan Siswa (Guru / Wali Kelas)
 Route::get('/perizinan', [LeaveRequestController::class, 'index'])->name('leave-requests.index');
 Route::post('/perizinan', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
