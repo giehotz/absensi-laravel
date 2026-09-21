@@ -177,10 +177,10 @@
                 </div>
 
 
-                <!-- Group: Laporan & Akun -->
+                <!-- Group: Laporan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Laporan & Akun
+                        Laporan
                     </div>
                     <div class="space-y-1">
                         <!-- Rekap Kehadiran -->
@@ -194,42 +194,41 @@
                             </svg>
                             <span>Rekap Kehadiran</span>
                         </a>
-
-                        <!-- Profil Saya -->
-                        <a href="{{ route('guru.profile.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('guru.profile.*') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.profile.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Profil Saya</span>
-                        </a>
                     </div>
                 </div>
             </nav>
 
-            <!-- Sidebar Footer: High Contrast User Profile Card -->
+            <!-- Sidebar Footer: High Contrast User Profile Card & Logout -->
             <div class="p-3 border-t-4 border-black bg-[#1E293B] shrink-0 space-y-2.5">
-                <div class="flex items-center gap-2.5 p-2 bg-[#0F172A] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
+                <!-- Tombol Akses Profil Saya -->
+                <a href="{{ route('guru.profile.index') }}" 
+                   class="flex items-center gap-2.5 p-2 border-2 border-black rounded-lg transition-all duration-150 cursor-pointer group
+                   {{ request()->routeIs('guru.profile.*') 
+                        ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000000] translate-x-0.5' 
+                        : 'bg-[#0F172A] text-slate-200 hover:bg-slate-800/90 hover:border-slate-600 shadow-[2px_2px_0px_0px_#000]' }}"
+                   title="Buka Profil Saya">
                     @if(!empty(Auth::user()->teacher?->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists(Auth::user()->teacher->photo))
                         <div class="w-8 h-8 rounded-md bg-white border-2 border-black overflow-hidden shrink-0 shadow-[1px_1px_0px_0px_#000]">
                             <img src="{{ asset('storage/' . Auth::user()->teacher->photo) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
                         </div>
                     @else
-                        <div class="w-8 h-8 rounded-md bg-[#5294FF] text-white border-2 border-black flex items-center justify-center font-bold text-xs shrink-0 shadow-[1px_1px_0px_0px_#000]">
+                        <div class="w-8 h-8 rounded-md {{ request()->routeIs('guru.profile.*') ? 'bg-black text-white' : 'bg-[#5294FF] text-white' }} border-2 border-black flex items-center justify-center font-bold text-xs shrink-0 shadow-[1px_1px_0px_0px_#000]">
                             👨‍🏫
                         </div>
                     @endif
                     <div class="min-w-0 flex-1">
-                        <div class="text-xs font-bold text-white truncate">{{ Auth::user()->name }}</div>
-                        <div class="text-[10px] font-semibold text-[#5294FF] flex items-center gap-1">
+                        <div class="text-xs font-bold text-white truncate group-hover:text-yellow-300 transition-colors">
+                            {{ Auth::user()->name }}
+                        </div>
+                        <div class="text-[10px] font-semibold {{ request()->routeIs('guru.profile.*') ? 'text-white' : 'text-[#5294FF]' }} flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-[#20C997]"></span>
                             <span>Dewan Guru</span>
                         </div>
                     </div>
-                </div>
+                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
 
                 <form action="{{ route('logout') }}" method="POST">
                     @csrf

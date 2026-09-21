@@ -25,16 +25,16 @@ class AppServiceProvider extends ServiceProvider
     {
         Carbon::setLocale(config('app.locale', 'id'));
 
-        View::composer(['layouts.*'], function ($view) {
-            try {
-                if (Schema::hasTable('attendance_settings')) {
-                    $view->with('schoolSetting', AttendanceSetting::first());
-                } else {
-                    $view->with('schoolSetting', null);
+        View::composer(['layouts.*', 'auth.*', 'welcome'], function ($view) {
+            static $setting = false;
+            if ($setting === false) {
+                try {
+                    $setting = Schema::hasTable('attendance_settings') ? AttendanceSetting::first() : null;
+                } catch (\Throwable $e) {
+                    $setting = null;
                 }
-            } catch (\Throwable $e) {
-                $view->with('schoolSetting', null);
             }
+            $view->with('schoolSetting', $setting);
         });
     }
 }

@@ -1,4 +1,4 @@
-<div class="flex items-center gap-1.5 sm:gap-2">
+<div class="hidden sm:flex items-center gap-1.5 sm:gap-2">
     <!-- Date Pill (Waktu Indonesia) -->
     <div class="hidden sm:flex items-center gap-1.5 bg-[#FFF9DB] text-slate-900 border-2 border-black px-2.5 sm:px-3 py-1 text-xs font-mono font-bold shadow-[2px_2px_0px_0px_#000]" title="Tanggal Hari Ini (WIB)">
         <svg class="w-3.5 h-3.5 text-slate-700 shrink-0" fill="currentColor" viewBox="0 0 20 20">

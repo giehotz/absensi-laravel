@@ -137,6 +137,17 @@ class ScheduleController extends Controller
             ],
         ];
 
+        $maxJam = 10;
+        foreach ($allSlotsByDay as $daySlots) {
+            if ($daySlots->isNotEmpty()) {
+                $dayMax = (int) $daySlots->max('jam_ke');
+                if ($dayMax > $maxJam) {
+                    $maxJam = $dayMax;
+                }
+            }
+        }
+        $maxJam = min(12, max(10, $maxJam));
+
         return view('admin.schedules.index', compact(
             'academicYear',
             'classes',
@@ -151,7 +162,8 @@ class ScheduleController extends Controller
             'teacherAssignmentsMap',
             'nonKbmSlotsByDay',
             'kbmSlotsByDay',
-            'allSlotsByDay'
+            'allSlotsByDay',
+            'maxJam'
         ));
     }
 

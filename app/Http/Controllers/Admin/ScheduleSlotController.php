@@ -74,11 +74,23 @@ class ScheduleSlotController extends Controller
         $kegiatanLabels = SlotTemplate::KEGIATAN_LABELS;
         $kegiatanColors = SlotTemplate::KEGIATAN_COLORS;
 
+        $maxJamPerWeek = 10;
+        foreach ($slotsByDay as $daySlots) {
+            if (! empty($daySlots)) {
+                $maxDayJam = max(array_column($daySlots, 'jam_ke') ?: [1]);
+                if ($maxDayJam > $maxJamPerWeek) {
+                    $maxJamPerWeek = $maxDayJam;
+                }
+            }
+        }
+        $maxJamPerWeek = min(12, max(10, $maxJamPerWeek));
+
         return view('admin.schedules.slots', compact(
             'academicYear',
             'slotsByDay',
             'kegiatanLabels',
-            'kegiatanColors'
+            'kegiatanColors',
+            'maxJamPerWeek'
         ));
     }
 

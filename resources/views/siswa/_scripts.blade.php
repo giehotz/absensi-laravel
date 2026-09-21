@@ -99,17 +99,116 @@
         }
     }
 
-    // Initialize tab from URL on page load
+    // Profile Sub-tab Switcher
+    function switchProfileSubTab(subTabId) {
+        var subTabs = ['card', 'biodata', 'ortu', 'keamanan'];
+        subTabs.forEach(function(tab) {
+            var pane = document.getElementById('profileSubPane-' + tab);
+            var btn = document.getElementById('btnProfileSubTab-' + tab);
+            if (pane) {
+                if (tab === subTabId) {
+                    pane.classList.remove('hidden');
+                } else {
+                    pane.classList.add('hidden');
+                }
+            }
+            if (btn) {
+                if (tab === subTabId) {
+                    btn.className = 'profile-subtab-btn bg-[#FFD43B] text-black border-2 border-black p-2 rounded text-xs font-black flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer';
+                } else {
+                    btn.className = 'profile-subtab-btn bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-transparent p-2 rounded text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer';
+                }
+            }
+        });
+    }
+
+    // Preview Siswa Photo Upload
+    function previewSiswaPhoto(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var preview = document.getElementById('siswaPhotoPreview');
+                var placeholder = document.getElementById('siswaPhotoPlaceholder');
+                if (preview) {
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.add('hidden');
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Print Student ID Card Only
+    function printStudentCardOnly() {
+        window.print();
+    }
+
+    // Password Visibility Toggle for Student
+    function toggleSiswaPassVisibility(inputId, iconId) {
+        var input = document.getElementById(inputId);
+        var icon = document.getElementById(iconId);
+        if (!input) return;
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) icon.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            if (icon) icon.textContent = '👁️';
+        }
+    }
+
+    // Keep floating bottom nav bounded above footer
+    function adjustFloatingNavPosition() {
+        var nav = document.getElementById('floatingBottomNav');
+        var footer = document.querySelector('footer');
+        if (!nav || !footer) return;
+
+        var footerRect = footer.getBoundingClientRect();
+        var windowHeight = window.innerHeight;
+
+        // When footer enters viewport, push nav above footer with 16px margin
+        if (footerRect.top < windowHeight) {
+            var overlap = windowHeight - footerRect.top;
+            nav.style.bottom = (overlap + 16) + 'px';
+        } else {
+            nav.style.bottom = '';
+        }
+    }
+
+    window.addEventListener('scroll', adjustFloatingNavPosition, { passive: true });
+    window.addEventListener('resize', adjustFloatingNavPosition, { passive: true });
+
+    // Initialize tab from URL or session on page load
     document.addEventListener('DOMContentLoaded', function() {
+        adjustFloatingNavPosition();
+
         var urlParams = new URLSearchParams(window.location.search);
         var tabParam = urlParams.get('tab');
         var hashParam = window.location.hash;
 
-        if (tabParam) {
-            switchTab(tabParam);
-        } else if (hashParam && hashParam.indexOf('tab=') !== -1) {
-            var tabName = hashParam.split('tab=')[1];
-            if (tabName) switchTab(tabName);
-        }
+        @if($errors->has('current_password') || $errors->has('password'))
+            switchTab('profil');
+            switchProfileSubTab('keamanan');
+        @elseif($errors->any() && (old('phone') || old('email')))
+            switchTab('profil');
+            switchProfileSubTab('biodata');
+        @elseif((session('status') && str_contains(session('status'), 'Kata sandi')) || (session('success') && str_contains(session('success'), 'Kata sandi')))
+            switchTab('profil');
+            switchProfileSubTab('keamanan');
+        @elseif((session('status') && str_contains(session('status'), 'Profil')) || (session('success') && str_contains(session('success'), 'Profil')))
+            switchTab('profil');
+            switchProfileSubTab('biodata');
+        @else
+            if (tabParam) {
+                switchTab(tabParam);
+            } else if (hashParam && hashParam.indexOf('tab=') !== -1) {
+                var tabName = hashParam.split('tab=')[1];
+                if (tabName) switchTab(tabName);
+            }
+        @endif
     });
 </script>

@@ -37,6 +37,7 @@
             document.write('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>');
         }
     </script>
+    @stack('styles')
 </head>
 <body class="min-h-screen text-slate-900 flex antialiased">
     <!-- Mobile Sidebar Backdrop -->
@@ -342,6 +343,21 @@
                     });
                 } else {
                     alert(@json(session('error')));
+                }
+            </script>
+            @endif
+
+            @if(session('conflict_error'))
+            <script>
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Jadwal Bentrok!',
+                        text: @json(session('conflict_error')),
+                        confirmButtonColor: '#FF6B6B',
+                    });
+                } else {
+                    alert(@json(session('conflict_error')));
                 }
             </script>
             @endif

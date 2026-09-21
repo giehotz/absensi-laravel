@@ -16,8 +16,16 @@
             font-family: 'Space Grotesk', sans-serif;
         }
     </style>
+    <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <script>
+        if (typeof Swal === 'undefined') {
+            document.write('<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"><\/script>');
+        }
+    </script>
+    @stack('styles')
 </head>
 <body class="min-h-screen text-slate-900 flex flex-col antialiased">
+    @unless(View::hasSection('hide_header'))
     <!-- Navbar Neobrutalism -->
     <header class="bg-white border-b-4 border-black sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
@@ -45,7 +53,7 @@
             </div>
 
             <!-- Right Header: Date, Clock & User Status -->
-            <div class="flex items-center gap-2.5 sm:gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                 <!-- Date & Live Clock (Waktu Indonesia) -->
                 @include('partials._header-clock')
 
@@ -65,7 +73,7 @@
                     </span>
                 </div>
 
-                <form action="{{ route('logout') }}" method="POST">
+                <form action="{{ route('logout') }}" method="POST" class="shrink-0">
                     @csrf
                     <button type="submit" class="neo-btn bg-[#FF6B6B] text-white hover:bg-[#ff5252] px-3.5 py-2 text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,29 +86,56 @@
             </div>
         </div>
     </header>
+    @endunless
 
     <!-- Main Content Wrapper -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Flash Message Alerts -->
+        <!-- Flash Message Alerts with Auto-Dismiss -->
         @if(session('success'))
-        <div class="mb-6 bg-[#D3F9D8] border-3 border-black p-4 neo-box flex items-center justify-between gap-3 text-emerald-950 font-bold">
+        <div id="flashAlertSuccess" class="mb-6 bg-[#D3F9D8] border-3 border-black p-4 neo-box flex items-center justify-between gap-3 text-emerald-950 font-bold transition-all duration-500">
             <div class="flex items-center gap-3">
-                <span class="w-8 h-8 rounded-full bg-[#20C997] border-2 border-black flex items-center justify-center font-black text-black">✓</span>
+                <span class="w-8 h-8 rounded-full bg-[#20C997] border-2 border-black flex items-center justify-center font-black text-black shrink-0">✓</span>
                 <span>{{ session('success') }}</span>
             </div>
-            <button onclick="this.parentElement.remove()" class="text-black font-black text-xl hover:opacity-75">✕</button>
+            <button type="button" onclick="dismissFlashAlert('flashAlertSuccess')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer leading-none px-1">✕</button>
         </div>
+        <script>
+            setTimeout(() => {
+                dismissFlashAlert('flashAlertSuccess');
+            }, 4000);
+        </script>
         @endif
 
         @if(session('error'))
-        <div class="mb-6 bg-[#FFE3E3] border-3 border-black p-4 neo-box flex items-center justify-between gap-3 text-rose-950 font-bold">
+        <div id="flashAlertError" class="mb-6 bg-[#FFE3E3] border-3 border-black p-4 neo-box flex items-center justify-between gap-3 text-rose-950 font-bold transition-all duration-500">
             <div class="flex items-center gap-3">
-                <span class="w-8 h-8 rounded-full bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-white">!</span>
+                <span class="w-8 h-8 rounded-full bg-[#FF6B6B] border-2 border-black flex items-center justify-center font-black text-white shrink-0">!</span>
                 <span>{{ session('error') }}</span>
             </div>
-            <button onclick="this.parentElement.remove()" class="text-black font-black text-xl hover:opacity-75">✕</button>
+            <button type="button" onclick="dismissFlashAlert('flashAlertError')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer leading-none px-1">✕</button>
         </div>
+        <script>
+            setTimeout(() => {
+                dismissFlashAlert('flashAlertError');
+            }, 6000);
+        </script>
         @endif
+
+        <script>
+            function dismissFlashAlert(id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(-10px)';
+                    setTimeout(() => {
+                        if (el && el.parentNode) {
+                            el.parentNode.removeChild(el);
+                        }
+                    }, 400);
+                }
+            }
+        </script>
 
         @yield('content')
     </main>
@@ -117,5 +152,6 @@
             </div>
         </div>
     </footer>
+    @stack('scripts')
 </body>
 </html>

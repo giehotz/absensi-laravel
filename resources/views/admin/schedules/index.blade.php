@@ -1,11 +1,11 @@
 @extends('layouts.admin')
 
-@section('title', 'Jadwal Pelajaran')
-@section('page-title', 'Manajemen Jadwal Pelajaran')
+@section('title', 'Jadwal Pelajaran Kelas')
+@section('page-title', 'Plot Jadwal Kelas (EMIS GTK)')
 
 @section('content')
 <div class="space-y-6">
-    <!-- Navigation Tabs: Plot Jadwal vs Template Slot Jam -->
+    <!-- Navigation Tabs -->
     <div class="flex border-b-2 border-black gap-2">
         <a href="{{ route('admin.schedules.index') }}" 
            class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm">
@@ -13,14 +13,14 @@
         </a>
         <a href="{{ route('admin.schedules.slots.index') }}" 
            class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
-            ⚙️ Template Slot Jam KBM (EMIS GTK)
+            ⚙️ Template Jam Simpatika / EMIS GTK
         </a>
     </div>
 
     <!-- Header Title Card -->
-    <div class="bg-[#FFF3BF] neo-box-lg p-6 sm:p-8 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="bg-[#FFF3BF] neo-box-lg p-6 sm:p-7 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="space-y-1.5 z-10">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
                 <span class="neo-badge bg-[#5294FF] text-white">ADMINISTRATOR</span>
                 <span class="text-xs font-mono font-bold bg-white px-2 py-0.5 border border-black">
                     {{ $academicYear->name ?? 'Tahun Ajaran Aktif' }}
@@ -28,314 +28,411 @@
                 <span class="text-xs font-mono font-bold bg-white px-2 py-0.5 border border-black hidden sm:inline-block">
                     Semester {{ ucfirst($academicYear->semester ?? 'Ganjil') }}
                 </span>
+                @if($selectedClass)
+                    <span class="text-xs font-heading font-black bg-[#CC5DE8] text-white px-2.5 py-0.5 border border-black">
+                        Kelas {{ $selectedClass->name }}
+                    </span>
+                @endif
             </div>
             <h1 class="font-heading text-2xl sm:text-3xl font-black tracking-tight text-black uppercase">
-                JADWAL KELAS MINGGUAN
+                PLOT JADWAL KELAS MINGGUAN
             </h1>
             <p class="text-xs sm:text-sm font-semibold text-slate-800 max-w-2xl">
-                Susun dan kelola jadwal tatap muka mingguan kelas dengan sistem deteksi otomatis anti-bentrok guru & kelas (referensi Simpatika).
+                Plotting jadwal tatap muka kelas berbasis matriks mingguan EMIS GTK. Dilengkapi deteksi bentrok jadwal guru dan dukungan multi-jam pelajaran.
             </p>
         </div>
 
-        <div class="z-10 flex flex-wrap gap-2">
-            <a href="{{ route('admin.schedules.slots.index') }}" class="neo-btn bg-white text-black text-xs font-bold px-4 py-2.5 flex items-center gap-1.5 hover:bg-slate-100 cursor-pointer">
-                <span>⚙️</span> Atur Template Jam (EMIS)
+        <div class="z-10 flex flex-wrap gap-2 shrink-0">
+            <button type="button" onclick="window.print()" class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-bold px-3.5 py-2.5 flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000]">
+                <span>🖨️</span> Cetak Jadwal
+            </button>
+            <a href="{{ route('admin.schedules.slots.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-bold px-3.5 py-2.5 flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000]">
+                <span>⚙️</span> Atur Template Slot
             </a>
-            <button type="button" onclick="openCreateScheduleModal()" class="neo-btn bg-[#20C997] text-black text-xs font-black px-4 py-2.5 flex items-center gap-1.5 hover:bg-emerald-400 cursor-pointer shadow-sm">
+            <button type="button" onclick="openCreateScheduleModal()" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black text-xs font-black px-4 py-2.5 flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000]">
                 <span>➕</span> Tambah Jadwal Baru
             </button>
         </div>
     </div>
 
-    <!-- Toolbar: Pemilihan Kelas & Statistik Ringkas -->
-    <div class="bg-white neo-box p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <form method="GET" action="{{ route('admin.schedules.index') }}" class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <label for="school_class_id" class="text-xs font-black uppercase text-black shrink-0">
-                Pilih Kelas:
-            </label>
-            <select name="school_class_id" id="school_class_id" onchange="this.form.submit()"
-                    class="bg-white border-2 border-black px-3 py-1.5 text-xs font-black text-black focus:outline-hidden min-w-[200px]">
-                @foreach($classes as $cls)
-                    <option value="{{ $cls->id }}" {{ $selectedClassId == $cls->id ? 'selected' : '' }}>
-                        {{ $cls->name }} (Tingkat {{ $cls->level }})
-                    </option>
-                @endforeach
-            </select>
-        </form>
+    <!-- Alert / Status Notifikasi -->
+    @if(session('success'))
+    <div class="bg-[#D3F9D8] border-2 border-black p-4 neo-box text-emerald-950 font-bold text-xs flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span>✅</span> {{ session('success') }}
+        </div>
+        <button type="button" onclick="this.parentElement.remove()" class="text-black font-black hover:opacity-75">✕</button>
+    </div>
+    @endif
 
-        @if($selectedClass)
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="text-xs font-bold bg-[#E7F5FF] text-blue-900 border-2 border-black px-3 py-1">
-                    Wali Kelas: <b>{{ $selectedClass->homeroomTeacher->user->name ?? 'Belum Ditugaskan' }}</b>
-                </span>
-                <span class="text-xs font-mono font-bold bg-[#D3F9D8] text-emerald-950 border-2 border-black px-3 py-1">
-                    Total: <b>{{ $schedules->count() }} Sesi Mengajar</b>
-                </span>
+    @if(session('conflict_error'))
+    <div class="bg-[#FFE3E3] border-2 border-black p-4 neo-box text-rose-950 font-bold text-xs flex items-start gap-2.5">
+        <span class="text-lg">⚠️</span>
+        <div class="flex-1">
+            <span class="font-black uppercase block mb-0.5">Jadwal Gagal Disimpan (Bentrok)</span>
+            <span>{{ session('conflict_error') }}</span>
+        </div>
+        <button type="button" onclick="this.parentElement.remove()" class="text-black font-black hover:opacity-75">✕</button>
+    </div>
+    @endif
+
+    @php
+        // Hitung total jam pelajaran (JP) terjadwal untuk kelas yang dipilih
+        $totalScheduledMinutes = 0;
+        foreach ($schedules as $sch) {
+            $startM = \Carbon\Carbon::parse($sch->start_time);
+            $endM = \Carbon\Carbon::parse($sch->end_time);
+            $totalScheduledMinutes += $startM->diffInMinutes($endM);
+        }
+        $totalScheduledJp = max(0, (int) round($totalScheduledMinutes / 40));
+        $targetJp = 38; // Target standar JP per minggu Kurikulum Merdeka / Kemenag
+        $percentJp = min(100, (int) round(($totalScheduledJp / max(1, $targetJp)) * 100));
+        $shortageJp = max(0, $targetJp - $totalScheduledJp);
+    @endphp
+
+    <!-- Toolbar: Pemilihan Kelas & Kesesuaian Regulasi EMIS GTK -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Selector Kelas & Info Wali -->
+        <div class="lg:col-span-5 bg-white neo-box p-4 flex flex-col justify-between space-y-3">
+            <form method="GET" action="{{ route('admin.schedules.index') }}" class="space-y-1.5">
+                <label for="school_class_id" class="block text-xs font-black uppercase text-black flex items-center justify-between">
+                    <span>Pilih Kelas:</span>
+                    <span class="text-[10px] font-mono text-slate-500">{{ $classes->count() }} Rombel Tersedia</span>
+                </label>
+                <div class="flex gap-2">
+                    <select name="school_class_id" id="school_class_id" onchange="this.form.submit()"
+                            class="flex-1 bg-slate-50 border-2 border-black px-3 py-2 text-xs font-black text-black focus:outline-hidden rounded">
+                        @foreach($classes as $cls)
+                            <option value="{{ $cls->id }}" {{ $selectedClassId == $cls->id ? 'selected' : '' }}>
+                                Kelas {{ $cls->name }} (Tingkat {{ $cls->level }})
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            </form>
+
+            @if($selectedClass)
+                <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-200 text-xs">
+                    <span class="text-slate-600 font-bold">Wali Kelas:</span>
+                    <span class="font-heading font-black text-slate-900 bg-[#E7F5FF] border border-black px-2 py-0.5 rounded truncate max-w-[240px]">
+                        👨‍🏫 {{ $selectedClass->homeroomTeacher->user->name ?? 'Belum Ditugaskan' }}
+                    </span>
+                </div>
+            @endif
+        </div>
+
+        <!-- Kesesuaian Regulasi (Target JP vs Terjadwal) ala EMIS GTK -->
+        <div class="lg:col-span-7 bg-white neo-box p-4 flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between gap-2">
+                <div>
+                    <h4 class="font-heading font-black text-xs uppercase text-black flex items-center gap-1.5">
+                        <span>📊</span> Kesesuaian Beban Regulasi KBM
+                    </h4>
+                    <p class="text-[11px] font-medium text-slate-600">
+                        Target {{ $targetJp }} JP · Terjadwal <b>{{ $totalScheduledJp }} JP</b> · Kurang <b>{{ $shortageJp }} JP</b>
+                    </p>
+                </div>
+                <div>
+                    @if($shortageJp === 0)
+                        <span class="neo-badge bg-[#20C997] text-black font-black text-[11px]">
+                            ✅ Lengkap (100%)
+                        </span>
+                    @else
+                        <span class="neo-badge bg-[#FFF3BF] text-amber-950 font-black text-[11px]">
+                            ⚠️ Kurang {{ $shortageJp }} JP ({{ $percentJp }}%)
+                        </span>
+                    @endif
+                </div>
             </div>
-        @endif
+
+            <!-- Progress Bar -->
+            <div class="space-y-1">
+                <div class="w-full bg-slate-100 border-2 border-black h-4 rounded overflow-hidden p-0.5">
+                    <div class="h-full {{ $shortageJp === 0 ? 'bg-[#20C997]' : 'bg-[#5294FF]' }} transition-all duration-500 rounded-xs" 
+                         style="width: {{ $percentJp }}%;"></div>
+                </div>
+                <div class="flex justify-between text-[10px] font-mono font-bold text-slate-500">
+                    <span>0 JP</span>
+                    <span>50%</span>
+                    <span>Target: {{ $targetJp }} JP</span>
+                </div>
+            </div>
+        </div>
     </div>
 
     @if(!$selectedClass)
         <div class="bg-white neo-box p-12 text-center text-slate-500 space-y-2">
             <div class="text-4xl">🏫</div>
-            <div class="text-base font-black text-black">Belum Ada Data Kelas</div>
+            <div class="text-base font-black text-black">Belum Ada Data Rombel / Kelas</div>
             <p class="text-xs">Silakan tambahkan data kelas terlebih dahulu di menu Data Kelas.</p>
         </div>
     @else
-        <!-- Matriks 6 Hari Jadwal Mingguan (Senin s.d. Sabtu) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            @foreach($schedulesByDay as $dayNum => $dayData)
-                <div class="bg-white neo-box p-5 flex flex-col justify-between space-y-4">
-                    <!-- Header Hari -->
-                    <div class="flex items-center justify-between border-b-2 border-black pb-2.5">
-                        <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 bg-black rounded-full inline-block"></span>
-                            <h3 class="font-heading font-black text-base uppercase text-black">
-                                {{ $dayData['name'] }}
-                            </h3>
-                        </div>
-                        <div class="flex items-center gap-1 flex-wrap justify-end">
-                            <span class="text-[10px] font-mono font-bold bg-[#D3F9D8] text-emerald-950 border border-black px-1.5 py-0.5" title="Sesi Terisi">
-                                {{ count($dayData['items']) }} Terisi
-                            </span>
-                            <button type="button" onclick="openCreateScheduleModal({{ $dayNum }})" 
-                                    class="text-xs font-black bg-[#20C997] hover:bg-emerald-400 border border-black px-1.5 py-0.5 cursor-pointer" 
-                                    title="Tambah Jadwal Hari {{ $dayData['name'] }}">
-                                ➕
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Daftar Sesi Tatap Muka, Slot Belum Terisi, & Kegiatan Non-KBM -->
-                    <div class="space-y-2.5 flex-1">
-                        @php
-                            $daySlots = $allSlotsByDay[$dayNum] ?? collect();
-                            $daySchedules = $dayData['items'];
-                            $renderedScheduleIds = [];
-                            $timelineItems = collect();
-
-                            // 1. Petakan setiap slot template
-                            foreach ($daySlots as $slot) {
-                                $slotStart = substr((string) $slot->start_time, 0, 5);
-                                $slotEnd = substr((string) $slot->end_time, 0, 5);
-
-                                if ($slot->k_jadwal != 0) {
-                                    // Non-KBM Slot (Upacara, Istirahat, dll.)
-                                    $timelineItems->push([
-                                        'type' => 'non_kbm',
-                                        'start' => $slotStart,
-                                        'end' => $slotEnd,
-                                        'slot' => $slot,
-                                    ]);
-                                } else {
-                                    // KBM Slot: Cari jadwal kelas yang beririsan
-                                    $matchedSchedule = $daySchedules->first(function ($sch) use ($slotStart, $slotEnd) {
-                                        $schStart = substr((string) $sch->start_time, 0, 5);
-                                        $schEnd = substr((string) $sch->end_time, 0, 5);
-                                        return ($schStart < $slotEnd) && ($schEnd > $slotStart);
-                                    });
-
-                                    if ($matchedSchedule) {
-                                        if (!in_array($matchedSchedule->id, $renderedScheduleIds)) {
-                                            $renderedScheduleIds[] = $matchedSchedule->id;
-                                            $timelineItems->push([
-                                                'type' => 'schedule',
-                                                'start' => substr((string) $matchedSchedule->start_time, 0, 5),
-                                                'end' => substr((string) $matchedSchedule->end_time, 0, 5),
-                                                'schedule' => $matchedSchedule,
-                                                'slot' => $slot,
-                                            ]);
-                                        }
-                                    } else {
-                                        // SLOT KBM BELUM TERISI (KOSONG)
-                                        $timelineItems->push([
-                                            'type' => 'empty_slot',
-                                            'start' => $slotStart,
-                                            'end' => $slotEnd,
-                                            'slot' => $slot,
-                                        ]);
-                                    }
-                                }
-                            }
-
-                            // 2. Sertakan jadwal di luar template jika ada
-                            foreach ($daySchedules as $sch) {
-                                if (!in_array($sch->id, $renderedScheduleIds)) {
-                                    $timelineItems->push([
-                                        'type' => 'schedule',
-                                        'start' => substr((string) $sch->start_time, 0, 5),
-                                        'end' => substr((string) $sch->end_time, 0, 5),
-                                        'schedule' => $sch,
-                                        'slot' => null,
-                                    ]);
-                                }
-                            }
-
-                            $timelineItems = $timelineItems->sortBy('start')->values();
-                        @endphp
-
-                        @forelse($timelineItems as $item)
-                            @if($item['type'] === 'non_kbm')
-                                @php
-                                    $nSlot = $item['slot'];
-                                    $colorConfig = \App\Models\SlotTemplate::KEGIATAN_COLORS[$nSlot->k_jadwal] ?? [
-                                        'bg' => 'bg-slate-100',
-                                        'text' => 'text-slate-900',
-                                        'badge_bg' => 'bg-slate-300',
-                                        'badge_text' => 'text-black',
-                                        'name' => 'Kegiatan',
-                                    ];
-                                @endphp
-                                <div class="p-2.5 border-2 border-black rounded-sm space-y-1 {{ $colorConfig['bg'] }} shadow-[1.5px_1.5px_0px_0px_#000]">
-                                    <div class="flex items-center justify-between gap-1">
-                                        <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black {{ $colorConfig['badge_bg'] }} {{ $colorConfig['badge_text'] }}">
-                                            {{ $colorConfig['name'] }}
-                                        </span>
-                                        <span class="text-[10px] font-mono font-black {{ $colorConfig['text'] }}">
-                                            {{ $nSlot->getShortStartTime() }} - {{ $nSlot->getShortEndTime() }}
-                                        </span>
-                                    </div>
-                                    <div class="text-xs font-black {{ $colorConfig['text'] }} truncate">
-                                        {{ $nSlot->name ?: $nSlot->getCategoryLabel() }}
-                                    </div>
-                                    <div class="text-[9px] font-semibold text-slate-600 flex items-center gap-1">
-                                        <span>🔒</span> Kegiatan Bersama (Terkunci)
-                                    </div>
-                                </div>
-                            @elseif($item['type'] === 'empty_slot')
-                                @php
-                                    $eSlot = $item['slot'];
-                                    $slotLabel = $eSlot->name ?: ('Jam ke-' . $eSlot->jam_ke);
-                                @endphp
-                                <div onclick="openCreateScheduleModal({{ $dayNum }}, '{{ $item['start'] }}', '{{ $item['end'] }}')"
-                                     class="p-2.5 border-2 border-dashed border-black/60 bg-[#FFFDF5] hover:bg-[#FFF9DB] rounded-sm transition-all group cursor-pointer shadow-[1px_1px_0px_0px_#000]">
-                                    <div class="flex items-center justify-between gap-1">
-                                        <div class="flex items-center gap-1.5">
-                                            <span class="font-mono text-[10px] font-bold bg-slate-200 px-1.5 py-0.2 rounded text-slate-800 border border-slate-400">
-                                                J-{{ $eSlot->jam_ke }}
-                                            </span>
-                                            <span class="text-[11px] font-bold text-slate-800 group-hover:text-black">
-                                                {{ $slotLabel }}
-                                            </span>
-                                        </div>
-                                        <span class="text-[10px] font-mono font-bold text-slate-600">
-                                            {{ $item['start'] }} - {{ $item['end'] }}
-                                        </span>
-                                    </div>
-
-                                    <div class="mt-2 pt-1.5 border-t border-black/10 flex items-center justify-between">
-                                        <span class="text-[9px] font-bold text-amber-900 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
-                                            Belum Terisi
-                                        </span>
-                                        <span class="text-[10px] font-black text-black bg-[#20C997] group-hover:bg-[#12b886] px-2 py-0.5 rounded border border-black flex items-center gap-1 shadow-[1px_1px_0px_0px_#000]">
-                                            <span>+</span> Isi Jadwal
-                                        </span>
-                                    </div>
-                                </div>
-                            @else
-                                @php
-                                    $sch = $item['schedule'];
-                                    $startCarbon = \Carbon\Carbon::parse($sch->start_time);
-                                    $endCarbon = \Carbon\Carbon::parse($sch->end_time);
-                                    $diffMinutes = $startCarbon->diffInMinutes($endCarbon);
-                                    $jp = max(1, (int) round($diffMinutes / 40));
-                                @endphp
-                                <div class="p-3 bg-white border-2 border-black rounded-sm space-y-2 hover:bg-amber-50/50 transition-colors relative group shadow-[1.5px_1.5px_0px_0px_#000]">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <div class="flex items-center gap-1.5 flex-wrap">
-                                            <span class="text-[10px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 border border-black rounded-xs">
-                                                {{ $jp }} JP
-                                            </span>
-                                            <span class="text-[11px] font-mono font-black bg-black text-white px-2 py-0.5 rounded-sm">
-                                                {{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }}
-                                            </span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <button type="button" onclick='openEditScheduleModal(@json($sch))' 
-                                                    class="text-[11px] font-bold bg-white border border-black px-1.5 py-0.5 hover:bg-slate-200 cursor-pointer" title="Edit Jadwal">
-                                                ✏️
-                                            </button>
-                                            <form action="{{ route('admin.schedules.destroy', $sch->id) }}" method="POST" class="inline" onsubmit="return confirmDeleteSchedule(event)">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-[11px] font-bold bg-[#FF6B6B] text-white border border-black px-1.5 py-0.5 hover:bg-rose-600 cursor-pointer" title="Hapus">
-                                                    ✕
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div class="text-xs font-black text-black">
-                                            {{ $sch->subject->name ?? 'Mata Pelajaran' }}
-                                        </div>
-                                        <div class="text-[10px] font-mono text-slate-500 font-semibold">
-                                            Kode: {{ $sch->subject->code ?? '-' }}
-                                        </div>
-                                    </div>
-
-                                    <div class="pt-1.5 border-t border-black/10 flex items-center justify-between text-[11px] font-medium text-slate-700">
-                                        <div class="flex items-center gap-1.5 truncate">
-                                            <span>👨‍🏫</span>
-                                            <span class="truncate font-semibold text-black">{{ $sch->teacher->user->name ?? 'Guru' }}</span>
-                                        </div>
-                                        <span class="text-[10px] font-mono text-slate-500">
-                                            {{ $sch->teacher->nip ?? '-' }}
-                                        </span>
-                                    </div>
-                                </div>
-                            @endif
-                        @empty
-                            <div class="py-6 px-3 bg-slate-50/50 border border-dashed border-slate-300 rounded text-center text-slate-400 text-xs">
-                                <span>☕ Belum ada jadwal</span>
-                            </div>
-                        @endforelse
-                    </div>
-
-                    <!-- Footer Hari -->
-                    <div class="pt-2 border-t border-black/10 flex justify-end">
-                        <button type="button" onclick="openCreateScheduleModal({{ $dayNum }})" 
-                                class="w-full neo-btn bg-slate-100 hover:bg-white text-black text-[11px] font-bold py-1.5 text-center">
-                            + Tambah Sesi {{ $dayData['name'] }}
-                        </button>
-                    </div>
+        <!-- Matriks Mingguan Jadwal Pelajaran (Senin s.d. Sabtu) ala EMIS GTK -->
+        <div class="bg-white neo-box overflow-hidden">
+            <div class="p-4 border-b-2 border-black bg-[#FFF9DB] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h3 class="font-heading font-black text-sm uppercase text-black flex items-center gap-1.5">
+                        <span>🗓️</span> MATRIKS JADWAL KELAS {{ $selectedClass->name }} (EMIS GTK)
+                    </h3>
+                    <p class="text-[11px] font-semibold text-slate-600">
+                        Klik tombol <b>[+]</b> pada slot KBM kosong untuk menambah jadwal. Klik pada jadwal terisi untuk melihat detail, mengubah, atau menghapus.
+                    </p>
                 </div>
-            @endforeach
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-mono font-bold bg-white px-2.5 py-1 border border-black">
+                        Total: <b>{{ $schedules->count() }} Sesi</b> ({{ $totalScheduledJp }} JP)
+                    </span>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[980px]">
+                    <thead>
+                        <tr class="bg-slate-100 border-b-2 border-black text-xs font-black uppercase text-black">
+                            <th class="p-3 border-r-2 border-black text-center w-24 bg-slate-200/70">Jam</th>
+                            @foreach([1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu'] as $dNum => $dName)
+                                @php
+                                    $daySlotsCount = ($allSlotsByDay[$dNum] ?? collect())->count();
+                                    $daySchedCount = $schedules->where('day_of_week', $dNum)->count();
+                                @endphp
+                                <th class="p-3 border-r-2 border-black text-center min-w-[150px] {{ $dNum === 5 ? 'bg-emerald-50 text-emerald-950' : '' }}">
+                                    <div>{{ $dName }}</div>
+                                    <div class="text-[10px] font-mono font-semibold opacity-75">
+                                        {{ $daySchedCount }} Mapel ({{ $daySlotsCount }} Jam)
+                                    </div>
+                                </th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y-2 divide-black text-xs font-medium">
+                        @for($jam = 1; $jam <= $maxJam; $jam++)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                <!-- Nomor Jam -->
+                                <td class="p-2.5 border-r-2 border-black text-center font-heading font-black text-xs bg-slate-100">
+                                    <div>Jam {{ $jam }}</div>
+                                </td>
+
+                                <!-- Kolom Hari 1 s.d. 6 (Senin s.d. Sabtu) -->
+                                @for($day = 1; $day <= 6; $day++)
+                                    @php
+                                        $daySlots = $allSlotsByDay[$day] ?? collect();
+                                        $slot = $daySlots->firstWhere('jam_ke', $jam);
+                                    @endphp
+
+                                    <td class="p-1.5 border-r-2 border-black text-center align-middle">
+                                        @if(!$slot)
+                                            <!-- Jam di luar batas aktif hari tersebut (Pulang) -->
+                                            <div class="border-2 border-dashed border-slate-200 p-2 rounded flex flex-col items-center justify-center h-24 text-slate-400 bg-slate-50/70">
+                                                <span class="text-[10px] font-bold uppercase tracking-wider">Pulang</span>
+                                                <span class="text-[9px] text-slate-400 mt-0.5">Non-Aktif</span>
+                                            </div>
+                                        @elseif($slot->isNonKbm())
+                                            <!-- Slot Non-KBM (Upacara, Istirahat, Pembiasaan, Senam, Religi) -->
+                                            @php
+                                                $colorConfig = \App\Models\SlotTemplate::KEGIATAN_COLORS[$slot->k_jadwal] ?? [
+                                                    'bg' => 'bg-slate-100',
+                                                    'text' => 'text-slate-900',
+                                                    'badge_bg' => 'bg-slate-300',
+                                                    'badge_text' => 'text-black',
+                                                    'name' => 'Kegiatan',
+                                                ];
+                                            @endphp
+                                            <div class="border-2 border-black p-2 rounded flex flex-col justify-between h-24 shadow-[2px_2px_0px_0px_#000] {{ $colorConfig['bg'] }}">
+                                                <div class="flex items-center justify-between text-[10px] font-mono font-bold {{ $colorConfig['text'] }}">
+                                                    <span>{{ $slot->getShortStartTime() }} - {{ $slot->getShortEndTime() }}</span>
+                                                    <span class="w-2 h-2 rounded-full border border-black {{ $colorConfig['badge_bg'] }}"></span>
+                                                </div>
+                                                <div class="font-heading font-black text-xs {{ $colorConfig['text'] }} truncate my-auto">
+                                                    {{ $slot->name ?: $slot->getCategoryLabel() }}
+                                                </div>
+                                                <div class="text-[9px] font-bold text-slate-600 truncate flex items-center justify-center gap-1">
+                                                    <span>🔒</span> {{ $colorConfig['name'] }}
+                                                </div>
+                                            </div>
+                                        @else
+                                            <!-- Slot KBM: Cek apakah ada jadwal aktif yang mencakup slot ini -->
+                                            @php
+                                                $slotStart = $slot->getShortStartTime();
+                                                $slotEnd = $slot->getShortEndTime();
+
+                                                $coveringSchedule = $schedules->first(function ($sch) use ($day, $slotStart, $slotEnd) {
+                                                    if ((int)$sch->day_of_week !== $day) return false;
+                                                    $schStart = substr((string)$sch->start_time, 0, 5);
+                                                    $schEnd = substr((string)$sch->end_time, 0, 5);
+                                                    return ($schStart < $slotEnd) && ($schEnd > $slotStart);
+                                                });
+                                            @endphp
+
+                                            @if($coveringSchedule)
+                                                @php
+                                                    $sch = $coveringSchedule;
+                                                    $schStart = substr((string)$sch->start_time, 0, 5);
+                                                    $schEnd = substr((string)$sch->end_time, 0, 5);
+                                                    $diffMin = \Carbon\Carbon::parse($sch->start_time)->diffInMinutes(\Carbon\Carbon::parse($sch->end_time));
+                                                    $jp = max(1, (int) round($diffMin / 40));
+                                                @endphp
+                                                <!-- Kartu Jadwal Pelajaran Aktif -->
+                                                <div onclick="showScheduleDetail({{ json_encode([
+                                                    'id' => $sch->id,
+                                                    'subject_name' => $sch->subject->name ?? 'Mapel',
+                                                    'subject_code' => $sch->subject->code ?? '-',
+                                                    'teacher_name' => $sch->teacher->user->name ?? 'Guru',
+                                                    'teacher_nip' => $sch->teacher->nip ?? '-',
+                                                    'day_name' => $daysMap[$day],
+                                                    'day_of_week' => $day,
+                                                    'start_time' => $schStart,
+                                                    'end_time' => $schEnd,
+                                                    'jp' => $jp,
+                                                    'class_name' => $selectedClass->name,
+                                                    'school_class_id' => $sch->school_class_id,
+                                                    'subject_id' => $sch->subject_id,
+                                                    'teacher_id' => $sch->teacher_id
+                                                ]) }})"
+                                                     class="border-2 border-black bg-white hover:bg-[#FFF9DB] p-2 rounded flex flex-col justify-between h-24 shadow-[2px_2px_0px_0px_#000] hover:shadow-[3px_3px_0px_0px_#000] transition-all cursor-pointer group text-left">
+                                                    <div class="flex items-center justify-between text-[10px] font-mono font-bold text-slate-800 border-b border-slate-200 pb-0.5">
+                                                        <span>{{ $schStart }} - {{ $schEnd }}</span>
+                                                        <span class="neo-badge bg-[#FFD43B] text-black text-[9px] font-black px-1 py-0.2">
+                                                            {{ $jp }} JP
+                                                        </span>
+                                                    </div>
+                                                    <div class="my-auto">
+                                                        <div class="font-heading font-black text-xs text-black group-hover:text-blue-900 truncate">
+                                                            {{ $sch->subject->name ?? 'Mapel' }}
+                                                        </div>
+                                                        <div class="text-[10px] font-semibold text-slate-600 truncate flex items-center gap-1 mt-0.5">
+                                                            <span>👤</span> {{ $sch->teacher->user->name ?? 'Guru' }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="text-[9px] font-bold text-slate-500 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Detail ↗
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <!-- Slot KBM Kosong (Tersedia untuk Diisi) -->
+                                                <div onclick="openCreateScheduleModal({{ $day }}, '{{ $slotStart }}', '{{ $slotEnd }}', {{ $jam }})"
+                                                     class="border-2 border-dashed border-slate-300 hover:border-black p-2 rounded flex flex-col items-center justify-between h-24 text-slate-500 hover:text-black hover:bg-[#FFFDF5] transition-all cursor-pointer group">
+                                                    <div class="flex items-center justify-between w-full text-[10px] font-mono font-bold text-slate-400 group-hover:text-slate-700">
+                                                        <span>{{ $slotStart }} - {{ $slotEnd }}</span>
+                                                        <span class="text-[9px]">Kosong</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 group-hover:bg-[#20C997] group-hover:text-black text-slate-700 border border-slate-300 group-hover:border-black rounded text-[11px] font-black transition-all">
+                                                        <span>+</span>
+                                                        <span>Isi Jadwal</span>
+                                                    </div>
+                                                    <div class="text-[9px] font-mono text-slate-400">
+                                                        Jam ke-{{ $jam }}
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endif
+                                    </td>
+                                @endfor
+                            </tr>
+                        @endfor
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-4 border-t-2 border-black bg-slate-50 flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-600">
+                    💡 Gunakan fitur Multi-Jam pada formulir untuk menugaskan mata pelajaran sekaligus 2-3 jam tatap muka.
+                </span>
+                <button type="button" onclick="openCreateScheduleModal()" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black text-xs font-black px-4 py-2 flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000]">
+                    <span>➕</span> Tambah Jadwal Baru
+                </button>
+            </div>
         </div>
     @endif
-</div>
 
-<!-- Modal Tambah / Edit Jadwal Pelajaran -->
-<div id="scheduleModal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-2 sm:p-4" onclick="if(event.target===this) closeScheduleModal()">
-    <div class="bg-white neo-box-lg w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[92vh]">
-        <!-- Fixed Header -->
-        <div class="bg-[#FFF3BF] p-3.5 sm:p-4 text-black border-b-2 border-black flex items-center justify-between shrink-0">
-            <h3 id="modalTitle" class="font-heading font-black text-sm uppercase flex items-center gap-2">
-                <span>📅</span> Tambah Jadwal Pelajaran
-            </h3>
-            <button type="button" onclick="closeScheduleModal()" class="font-black text-lg hover:opacity-75 cursor-pointer p-1">✕</button>
-        </div>
-
-        <!-- Form Wrapper -->
-        <form id="scheduleForm" method="POST" action="{{ route('admin.schedules.store') }}" class="flex flex-col flex-1 min-h-0 overflow-hidden">
-            @csrf
-            <div id="methodContainer"></div>
-            
-            <input type="hidden" name="school_class_id" id="form_school_class_id" value="{{ $selectedClassId }}">
-
-            <!-- Scrollable Body Content -->
-            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-left">
-                <!-- Info Kelas Terpilih -->
-                <div class="p-3 bg-[#E7F5FF] border-2 border-black text-xs font-bold text-blue-950 flex flex-wrap items-center justify-between gap-2">
-                    <span>Kelas: {{ $selectedClass->name ?? '' }} (Tingkat {{ $selectedClass->level ?? '' }})</span>
-                    <span class="text-[10px] bg-white px-2 py-0.5 border border-black font-mono">ID: #{{ $selectedClassId }}</span>
+    <!-- Modal Detail Jadwal (Lihat, Edit, Hapus) -->
+    <div id="detailScheduleModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white neo-box-lg max-w-md w-full p-6 space-y-4 relative" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">📋</span>
+                    <div>
+                        <h3 class="font-heading font-black text-base text-black uppercase" id="detailModalTitle">
+                            Detail Jadwal Pelajaran
+                        </h3>
+                        <p class="text-xs font-semibold text-slate-600" id="detailModalSubtitle">
+                            Informasi Sesi Mengajar
+                        </p>
+                    </div>
                 </div>
+                <button type="button" onclick="closeDetailModal()" class="text-black font-black text-lg hover:opacity-75 cursor-pointer">✕</button>
+            </div>
+
+            <!-- Detail Info Card -->
+            <div class="bg-slate-50 border-2 border-black p-4 rounded space-y-2.5 text-xs">
+                <div class="flex items-start justify-between border-b border-slate-200 pb-2">
+                    <span class="text-slate-600 font-bold">Mata Pelajaran:</span>
+                    <span class="font-heading font-black text-sm text-black text-right" id="detailSubjectName">-</span>
+                </div>
+                <div class="flex items-start justify-between border-b border-slate-200 pb-2">
+                    <span class="text-slate-600 font-bold">Guru Pengampu:</span>
+                    <div class="text-right">
+                        <span class="font-bold text-black block" id="detailTeacherName">-</span>
+                        <span class="font-mono text-[10px] text-slate-500 block" id="detailTeacherNip">NIP: -</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span class="text-slate-600 font-bold">Rombel / Kelas:</span>
+                    <span class="font-bold text-black" id="detailClassName">-</span>
+                </div>
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span class="text-slate-600 font-bold">Hari & Waktu:</span>
+                    <span class="font-mono font-black text-blue-900 bg-[#E7F5FF] border border-black px-2 py-0.5 rounded" id="detailTimeRange">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600 font-bold">Beban JP:</span>
+                    <span class="neo-badge bg-[#FFD43B] text-black font-black text-xs" id="detailJpBadge">1 JP</span>
+                </div>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="flex items-center justify-between border-t-2 border-black pt-3">
+                <form id="deleteScheduleForm" method="POST" action="" onsubmit="return false;">
+                    @csrf
+                    @method('DELETE')
+                    <button type="button" onclick="confirmDeleteSchedule()" class="neo-btn bg-[#FFE3E3] hover:bg-[#ffc9c9] text-rose-950 text-xs font-bold px-3 py-2 cursor-pointer border border-black flex items-center gap-1">
+                        <span>🗑️</span> Hapus
+                    </button>
+                </form>
+
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeDetailModal()" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-xs font-bold px-3.5 py-2 cursor-pointer">
+                        Tutup
+                    </button>
+                    <button type="button" onclick="triggerEditFromDetail()" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black text-xs font-black px-4 py-2 cursor-pointer shadow-[2px_2px_0px_0px_#000] flex items-center gap-1">
+                        <span>✏️</span> Edit Jadwal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Form Tambah / Edit Jadwal Pelajaran (Dengan Multi-Jam Support) -->
+    <div id="scheduleModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white neo-box-lg max-w-lg w-full p-6 space-y-4 max-h-[92vh] overflow-y-auto" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <h3 class="font-heading font-black text-base text-black flex items-center gap-1.5" id="modalTitle">
+                    <span>📅</span> Tambah Jadwal Pelajaran
+                </h3>
+                <button type="button" onclick="closeScheduleModal()" class="text-black font-black text-lg hover:opacity-75 cursor-pointer">✕</button>
+            </div>
+
+            <form id="scheduleForm" method="POST" action="{{ route('admin.schedules.store') }}" class="space-y-4">
+                @csrf
+                <div id="methodContainer"></div>
+                <input type="hidden" name="school_class_id" value="{{ $selectedClassId }}">
 
                 <!-- Pilih Hari -->
                 <div>
-                    <label class="block text-xs font-black uppercase text-black mb-1">Hari Belajar *</label>
-                    <select name="day_of_week" id="form_day_of_week" required onchange="refreshSlotOptions()"
-                            class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden">
+                    <label for="form_day_of_week" class="block text-xs font-black uppercase text-black mb-1">
+                        Hari Tatap Muka: <span class="text-rose-600">*</span>
+                    </label>
+                    <select name="day_of_week" id="form_day_of_week" required onchange="onDayChange()"
+                            class="w-full border-2 border-black rounded p-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#FFD43B]">
                         <option value="">-- Pilih Hari --</option>
                         @foreach($daysMap as $dNum => $dName)
                             <option value="{{ $dNum }}">{{ $dName }}</option>
@@ -343,363 +440,222 @@
                     </select>
                 </div>
 
-                <!-- Pilihan Rentang Jam Tatap Muka (Bisa Lebih Dari 1 Jam Pelajaran) -->
-                <div class="p-3 bg-amber-50 border-2 border-black space-y-3">
-                    <div class="flex flex-wrap items-center justify-between gap-2">
-                        <span class="text-[11px] font-black uppercase text-black flex items-center gap-1">
-                            <span>⚡</span> Pilihan Rentang Jam Pelajaran (JP)
+                <!-- Multi-Jam Selector (Pilih Rentang Jam ke-X s.d. Jam ke-Y) -->
+                <div class="bg-[#FFF9DB] border-2 border-black p-3.5 rounded space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-black flex items-center gap-1">
+                            <span>⏱️</span> Pilih Rentang Jam Pelajaran (Multi-Jam):
                         </span>
-                        <span class="text-[10px] bg-white border border-black px-1.5 py-0.5 font-mono font-bold text-slate-700">
-                            Bisa Multi-Jam / Blok
+                        <span id="multiJamBadge" class="text-[10px] font-mono font-black bg-[#FFD43B] text-black border border-black px-1.5 py-0.2 rounded">
+                            1 JP
                         </span>
                     </div>
 
-                    <!-- Dropdown Rentang Dari Jam Ke - Sampai Jam Ke -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white p-2.5 border-2 border-black rounded-xs">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-[10px] font-black text-slate-800 uppercase mb-1">Dari Jam Ke-</label>
-                            <select id="quick_slot_from" onchange="applyRangeSlotTime()" 
-                                    class="w-full bg-slate-50 border border-black px-2 py-1.5 text-xs font-bold text-black focus:outline-hidden">
+                            <label class="block text-[10px] font-bold text-slate-700 uppercase mb-0.5">Mulai Jam ke-:</label>
+                            <select id="select_jam_start" onchange="onJamRangeChange()" class="w-full bg-white border-2 border-black rounded p-1.5 text-xs font-bold">
                                 <option value="">-- Jam Awal --</option>
-                                @foreach($presets['reguler_40']['slots'] as $idx => $slot)
-                                    <option value="{{ $idx }}" data-start="{{ $slot['start'] }}" data-end="{{ $slot['end'] }}">
-                                        {{ $slot['label'] }} ({{ $slot['start'] }})
-                                    </option>
-                                @endforeach
                             </select>
                         </div>
                         <div>
-                            <label class="block text-[10px] font-black text-slate-800 uppercase mb-1">Sampai Jam Ke-</label>
-                            <select id="quick_slot_to" onchange="applyRangeSlotTime()" 
-                                    class="w-full bg-slate-50 border border-black px-2 py-1.5 text-xs font-bold text-black focus:outline-hidden">
+                            <label class="block text-[10px] font-bold text-slate-700 uppercase mb-0.5">Sampai Jam ke-:</label>
+                            <select id="select_jam_end" onchange="onJamRangeChange()" class="w-full bg-white border-2 border-black rounded p-1.5 text-xs font-bold">
                                 <option value="">-- Jam Akhir --</option>
-                                @foreach($presets['reguler_40']['slots'] as $idx => $slot)
-                                    <option value="{{ $idx }}" data-start="{{ $slot['start'] }}" data-end="{{ $slot['end'] }}">
-                                        {{ $slot['label'] }} (s.d {{ $slot['end'] }})
-                                    </option>
-                                @endforeach
                             </select>
                         </div>
                     </div>
 
-                    <!-- Info Kalkulasi JP Real-Time -->
-                    <div id="jpCalcInfo" class="hidden p-2.5 bg-[#D3F9D8] border border-black text-[11px] font-bold text-emerald-950 flex flex-wrap items-center justify-between gap-2">
-                        <span id="jpCalcText"></span>
-                        <span id="jpCalcBadge" class="bg-black text-white text-[10px] font-mono px-2 py-0.5 rounded-xs"></span>
-                    </div>
-
-                    <!-- Tombol Pintas Blok Jam Populer (1 Klik) -->
-                    <div>
-                        <span class="text-[10px] font-black uppercase text-slate-700 block mb-1.5">
-                            Pintas Blok Jam Populer:
-                        </span>
-                        <div class="flex flex-wrap gap-1.5">
-                            <button type="button" onclick="applyPresetBlock(0, 2)" 
-                                    class="text-[10px] font-black bg-white hover:bg-[#FFD43B] border border-black px-2.5 py-1 cursor-pointer transition-colors shadow-2xs">
-                                Jam 1–3 (3 JP) 🔥
-                            </button>
-                            <button type="button" onclick="applyPresetBlock(0, 1)" 
-                                    class="text-[10px] font-bold bg-white hover:bg-[#FFD43B] border border-black px-2.5 py-1 cursor-pointer transition-colors">
-                                Jam 1–2 (2 JP)
-                            </button>
-                            <button type="button" onclick="applyPresetBlock(1, 2)" 
-                                    class="text-[10px] font-bold bg-white hover:bg-[#FFD43B] border border-black px-2.5 py-1 cursor-pointer transition-colors">
-                                Jam 2–3 (2 JP)
-                            </button>
-                            <button type="button" onclick="applyPresetBlock(3, 4)" 
-                                    class="text-[10px] font-bold bg-white hover:bg-[#FFD43B] border border-black px-2.5 py-1 cursor-pointer transition-colors">
-                                Jam 4–5 (2 JP)
-                            </button>
-                            <button type="button" onclick="applyPresetBlock(3, 5)" 
-                                    class="text-[10px] font-bold bg-white hover:bg-[#FFD43B] border border-black px-2.5 py-1 cursor-pointer transition-colors">
-                                Jam 4–6 (3 JP)
-                            </button>
-                            <button type="button" onclick="applyPresetBlock(6, 7)" 
-                                    class="text-[10px] font-bold bg-white hover:bg-[#FFD43B] border border-black px-2.5 py-1 cursor-pointer transition-colors">
-                                Jam 7–8 (2 JP)
-                            </button>
-                        </div>
+                    <div id="rangeTimeSummary" class="text-[11px] font-mono font-bold text-blue-900 bg-white border border-black p-1.5 rounded flex items-center justify-between">
+                        <span>Rentang Waktu: <b id="rangeTimeDisplay">07:00 - 07:40</b></span>
+                        <span class="text-[10px] text-slate-500">Auto-Sync</span>
                     </div>
                 </div>
 
-                <!-- Rentang Waktu (Jam Mulai & Jam Selesai) -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Input Waktu Eksplisit (Sinkron Otomatis dari Slot) -->
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">Jam Mulai (HH:MM) *</label>
+                        <label for="form_start_time" class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                            Jam Mulai (HH:mm): <span class="text-rose-600">*</span>
+                        </label>
                         <input type="time" name="start_time" id="form_start_time" required
-                               class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-mono font-bold text-black focus:outline-hidden">
+                               class="w-full border-2 border-black rounded p-2 text-xs font-mono font-bold bg-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">Jam Selesai (HH:MM) *</label>
+                        <label for="form_end_time" class="block text-xs font-bold text-slate-700 uppercase mb-1">
+                            Jam Selesai (HH:mm): <span class="text-rose-600">*</span>
+                        </label>
                         <input type="time" name="end_time" id="form_end_time" required
-                               class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-mono font-bold text-black focus:outline-hidden">
+                               class="w-full border-2 border-black rounded p-2 text-xs font-mono font-bold bg-white">
                     </div>
                 </div>
 
-                <!-- Mata Pelajaran -->
+                <!-- Pilih Mata Pelajaran -->
                 <div>
-                    <label class="block text-xs font-black uppercase text-black mb-1">Mata Pelajaran *</label>
+                    <label for="form_subject_id" class="block text-xs font-black uppercase text-black mb-1">
+                        Mata Pelajaran: <span class="text-rose-600">*</span>
+                    </label>
                     <select name="subject_id" id="form_subject_id" required
-                            class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden">
+                            class="w-full border-2 border-black rounded p-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#FFD43B]">
                         <option value="">-- Pilih Mata Pelajaran --</option>
-                        @foreach($subjects as $sub)
-                            <option value="{{ $sub->id }}">{{ $sub->code }} — {{ $sub->name }}</option>
+                        @foreach($subjects as $subj)
+                            <option value="{{ $subj->id }}">{{ $subj->name }} ({{ $subj->code }})</option>
                         @endforeach
                     </select>
                 </div>
 
-                <!-- Guru Pengampu -->
+                <!-- Pilih Guru Pengampu -->
                 <div>
-                    <label class="block text-xs font-black uppercase text-black mb-1">Guru Pengampu *</label>
+                    <label for="form_teacher_id" class="block text-xs font-black uppercase text-black mb-1">
+                        Guru Pengampu: <span class="text-rose-600">*</span>
+                    </label>
                     <select name="teacher_id" id="form_teacher_id" required onchange="onTeacherChange()"
-                            class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden">
-                        <option value="">-- Pilih Guru Pengampu --</option>
-                        @foreach($teachers as $t)
-                            <option value="{{ $t->id }}">
-                                {{ $t->user->name ?? 'Guru' }} (NIP: {{ $t->nip ?? '-' }})
+                            class="w-full border-2 border-black rounded p-2 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#FFD43B]">
+                        <option value="">-- Pilih Guru --</option>
+                        @foreach($teachers as $tch)
+                            <option value="{{ $tch->id }}">
+                                {{ $tch->user->name ?? 'Guru' }} (NIP: {{ $tch->nip ?? '-' }})
                             </option>
                         @endforeach
                     </select>
+
+                    <div id="teacher_assignment_hint" class="mt-1 text-[11px] font-bold text-blue-900 bg-[#E7F5FF] border border-black p-2 rounded hidden">
+                        <span>ℹ️ Guru ini memiliki penugasan mata pelajaran khusus.</span>
+                    </div>
                 </div>
 
-                <!-- Hint Penugasan Khusus Guru -->
-                <div id="teacher_assignment_hint" class="hidden"></div>
-
-                <div class="p-3 bg-[#FFF3BF] border-2 border-black rounded-sm text-[11px] font-semibold text-slate-800">
-                    🛡️ <b>Deteksi Bentrok Otomatis:</b> Sistem akan memvalidasi jadwal agar tidak bertabrakan dengan jadwal guru di kelas lain atau jadwal kelas lain di jam yang sama.
+                <!-- Tombol Submit -->
+                <div class="flex items-center justify-end gap-2 border-t-2 border-black pt-3">
+                    <button type="button" onclick="closeScheduleModal()" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-xs font-bold px-4 py-2 cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black text-xs font-black px-5 py-2 cursor-pointer shadow-[2px_2px_0px_0px_#000]">
+                        <span>💾</span> Simpan Jadwal
+                    </button>
                 </div>
-            </div>
-
-            <!-- Fixed Footer Action Buttons -->
-            <div class="p-3.5 sm:p-4 border-t-2 border-black bg-slate-50 flex items-center justify-end gap-2.5 shrink-0">
-                <button type="button" onclick="closeScheduleModal()" class="neo-btn bg-slate-200 text-black text-xs font-bold px-4 py-2 hover:bg-slate-300 cursor-pointer">
-                    Batal
-                </button>
-                <button type="submit" class="neo-btn bg-[#20C997] text-black text-xs font-black px-5 py-2 hover:bg-emerald-400 cursor-pointer">
-                    💾 Simpan Jadwal
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Modal Referensi Template Jam Simpatika -->
-<div id="templateModal" class="fixed inset-0 z-50 bg-black/60 hidden flex items-center justify-center p-2 sm:p-4" onclick="if(event.target===this) closeTemplateModal()">
-    <div class="bg-white neo-box-lg w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[92vh]">
-        <div class="bg-black p-3.5 sm:p-4 text-white flex items-center justify-between shrink-0">
-            <h3 class="font-heading font-black text-sm uppercase flex items-center gap-2">
-                <span>📋</span> Panduan & Template Model Jam Tatap Muka (Simpatika)
-            </h3>
-            <button type="button" onclick="closeTemplateModal()" class="font-black text-lg hover:opacity-75 cursor-pointer p-1">✕</button>
-        </div>
-
-        <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
-            <p class="text-xs font-semibold text-slate-700">
-                Sesuai regulasi kurikulum dan panduan Simpatika Kemenag, sekolah menyusun alokasi jam tatap muka mingguan dengan durasi 40–45 menit per jam pelajaran:
-            </p>
-
-            <!-- Tabel Model Reguler 40 Menit -->
-            <div class="border-2 border-black rounded-sm overflow-hidden">
-                <div class="bg-[#FFD43B] p-2 text-xs font-black uppercase text-black border-b-2 border-black">
-                    1. Model Standar Reguler Pagi (40 Menit / Jam Pelajaran)
-                </div>
-                <table class="w-full text-xs text-left">
-                    <thead class="bg-slate-100 font-bold border-b border-black">
-                        <tr>
-                            <th class="p-2 border-r border-black">Sesi / Jam</th>
-                            <th class="p-2 border-r border-black">Rentang Jam</th>
-                            <th class="p-2">Keterangan</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-black/20 font-mono">
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-1</td>
-                            <td class="p-2 border-r border-black">07:15 - 07:55</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 1</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-2</td>
-                            <td class="p-2 border-r border-black">07:55 - 08:35</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 2</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-3</td>
-                            <td class="p-2 border-r border-black">08:35 - 09:15</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 3</td>
-                        </tr>
-                        <tr class="bg-amber-50">
-                            <td class="p-2 border-r border-black font-bold">Istirahat 1</td>
-                            <td class="p-2 border-r border-black">09:15 - 09:45</td>
-                            <td class="p-2 font-sans">Istirahat Pagi (30 Menit)</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-4</td>
-                            <td class="p-2 border-r border-black">09:45 - 10:25</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 4</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-5</td>
-                            <td class="p-2 border-r border-black">10:25 - 11:05</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 5</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-6</td>
-                            <td class="p-2 border-r border-black">11:05 - 11:45</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 6</td>
-                        </tr>
-                        <tr class="bg-amber-50">
-                            <td class="p-2 border-r border-black font-bold">Istirahat 2</td>
-                            <td class="p-2 border-r border-black">11:45 - 12:30</td>
-                            <td class="p-2 font-sans">Istirahat / Sholat Dzuhur</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-7</td>
-                            <td class="p-2 border-r border-black">12:30 - 13:10</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 7</td>
-                        </tr>
-                        <tr>
-                            <td class="p-2 border-r border-black font-bold">Jam ke-8</td>
-                            <td class="p-2 border-r border-black">13:10 - 13:50</td>
-                            <td class="p-2 font-sans">Tatap Muka Sesi 8 (Kepulangan)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div class="p-3 bg-white border-t-2 border-black flex justify-end">
-            <button type="button" onclick="closeTemplateModal()" class="neo-btn bg-black text-white text-xs font-bold px-4 py-1.5 cursor-pointer">
-                Tutup Panduan
-            </button>
+            </form>
         </div>
     </div>
 </div>
-@endsection
 
-@push('scripts')
 <script>
-    const kbmSlotsByDay = @json($kbmSlotsByDay ?? []);
-    const fallbackSlots = @json($presets['reguler_40']['slots'] ?? []);
-    let currentActiveSlots = fallbackSlots;
+    const allSlotsByDay = @json($allSlotsByDay ?? []);
+    const teacherAssignmentsMap = @json($teacherAssignmentsMap ?? []);
+    const currentClassId = {{ (int) ($selectedClassId ?? 0) }};
 
-    function refreshSlotOptions() {
-        const day = document.getElementById('form_day_of_week').value;
-        currentActiveSlots = (day && kbmSlotsByDay[day] && kbmSlotsByDay[day].length > 0)
-            ? kbmSlotsByDay[day]
-            : fallbackSlots;
+    let activeSelectedSchedule = null;
 
-        const fromSelect = document.getElementById('quick_slot_from');
-        const toSelect = document.getElementById('quick_slot_to');
+    // Show Detail Modal when clicking on a scheduled cell
+    function showScheduleDetail(schData) {
+        activeSelectedSchedule = schData;
 
-        if (fromSelect && toSelect) {
-            fromSelect.innerHTML = '<option value="">-- Jam Awal --</option>';
-            toSelect.innerHTML = '<option value="">-- Jam Akhir --</option>';
+        document.getElementById('detailSubjectName').textContent = schData.subject_name;
+        document.getElementById('detailTeacherName').textContent = schData.teacher_name;
+        document.getElementById('detailTeacherNip').textContent = 'NIP: ' + schData.teacher_nip;
+        document.getElementById('detailClassName').textContent = 'Kelas ' + schData.class_name;
+        document.getElementById('detailTimeRange').textContent = `${schData.day_name}, ${schData.start_time} - ${schData.end_time}`;
+        document.getElementById('detailJpBadge').textContent = schData.jp + ' JP';
 
-            currentActiveSlots.forEach((s, idx) => {
-                fromSelect.innerHTML += `<option value="${idx}" data-start="${s.start}" data-end="${s.end}">${s.label}</option>`;
-                toSelect.innerHTML += `<option value="${idx}" data-start="${s.start}" data-end="${s.end}">${s.label}</option>`;
+        document.getElementById('deleteScheduleForm').action = `/admin/schedules/${schData.id}`;
+
+        document.getElementById('detailScheduleModal').classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+    }
+
+    function closeDetailModal() {
+        document.getElementById('detailScheduleModal').classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        activeSelectedSchedule = null;
+    }
+
+    function confirmDeleteSchedule() {
+        const form = document.getElementById('deleteScheduleForm');
+        if (!form || !form.action) return;
+
+        const subj = document.getElementById('detailSubjectName')?.textContent || 'mata pelajaran ini';
+        const cls = document.getElementById('detailClassName')?.textContent || '';
+        const timeRange = document.getElementById('detailTimeRange')?.textContent || '';
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Hapus Jadwal Pelajaran?',
+                html: `Apakah Anda yakin ingin menghapus jadwal <b>${subj}</b> (${cls}) pada <b>${timeRange}</b>?<br><span class="text-xs text-slate-500 mt-1 block">Slot jam terkait akan dikosongkan.</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#FF6B6B',
+                cancelButtonColor: '#0F172A',
+                confirmButtonText: 'Ya, Hapus Jadwal!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: 'neo-box-lg border-3 border-black',
+                    confirmButton: 'neo-btn border-2 border-black font-black',
+                    cancelButton: 'neo-btn border-2 border-black font-bold'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
             });
+        } else {
+            if (confirm(`Apakah Anda yakin ingin menghapus jadwal ${subj}? Jadwal yang dihapus akan mengosongkan slot jam terkait.`)) {
+                form.submit();
+            }
         }
     }
 
-    function applyRangeSlotTime() {
-        const fromVal = document.getElementById('quick_slot_from').value;
-        const toVal = document.getElementById('quick_slot_to').value;
-        const infoBox = document.getElementById('jpCalcInfo');
-        const infoText = document.getElementById('jpCalcText');
-        const infoBadge = document.getElementById('jpCalcBadge');
-
-        if (fromVal === '') {
-            infoBox.classList.add('hidden');
-            return;
-        }
-
-        let fromIdx = parseInt(fromVal);
-        let toIdx = toVal !== '' ? parseInt(toVal) : fromIdx;
-
-        if (toIdx < fromIdx) {
-            toIdx = fromIdx;
-            document.getElementById('quick_slot_to').value = toIdx;
-        }
-
-        const startSlot = currentActiveSlots[fromIdx] || fallbackSlots[fromIdx];
-        const endSlot = currentActiveSlots[toIdx] || fallbackSlots[toIdx];
-
-        if (startSlot && endSlot) {
-            document.getElementById('form_start_time').value = startSlot.start;
-            document.getElementById('form_end_time').value = endSlot.end;
-
-            const totalJp = (toIdx - fromIdx + 1);
-            infoBox.classList.remove('hidden');
-            infoText.textContent = `✅ Terpilih: ${startSlot.label} s.d ${endSlot.label} (${startSlot.start} - ${endSlot.end})`;
-            infoBadge.textContent = `${totalJp} Jam Pelajaran (JP)`;
-        }
+    function triggerEditFromDetail() {
+        if (!activeSelectedSchedule) return;
+        const sch = activeSelectedSchedule;
+        closeDetailModal();
+        openEditScheduleModal(sch);
     }
 
-    function applyPresetBlock(fromIdx, toIdx) {
-        document.getElementById('quick_slot_from').value = fromIdx;
-        document.getElementById('quick_slot_to').value = toIdx;
-        applyRangeSlotTime();
-    }
-
-    function openCreateScheduleModal(dayOfWeek = null, startTime = null, endTime = null) {
+    // Open Create Schedule Modal
+    function openCreateScheduleModal(dayOfWeek = null, startTime = null, endTime = null, preferredJam = null) {
         document.getElementById('modalTitle').innerHTML = '<span>📅</span> Tambah Jadwal Pelajaran';
         document.getElementById('scheduleForm').action = "{{ route('admin.schedules.store') }}";
         document.getElementById('methodContainer').innerHTML = '';
-        
+
         document.getElementById('form_subject_id').value = '';
         document.getElementById('form_teacher_id').value = '';
-        document.getElementById('quick_slot_from').value = '';
-        document.getElementById('quick_slot_to').value = '';
-        document.getElementById('jpCalcInfo').classList.add('hidden');
-        
+
         if (dayOfWeek) {
             document.getElementById('form_day_of_week').value = dayOfWeek;
         } else {
             document.getElementById('form_day_of_week').value = '';
         }
 
-        refreshSlotOptions();
+        populateJamOptions(dayOfWeek, preferredJam);
 
         if (startTime && endTime) {
             document.getElementById('form_start_time').value = startTime;
             document.getElementById('form_end_time').value = endTime;
-
-            const matchedIdx = currentActiveSlots.findIndex(s => s.start === startTime);
-            if (matchedIdx !== -1) {
-                document.getElementById('quick_slot_from').value = matchedIdx;
-                document.getElementById('quick_slot_to').value = matchedIdx;
-                applyRangeSlotTime();
-            }
-        } else {
-            document.getElementById('form_start_time').value = '';
-            document.getElementById('form_end_time').value = '';
         }
 
         onTeacherChange();
-
         document.getElementById('scheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
     }
 
+    // Open Edit Schedule Modal
     function openEditScheduleModal(sch) {
         document.getElementById('modalTitle').innerHTML = '<span>✏️</span> Edit Jadwal Pelajaran';
         document.getElementById('scheduleForm').action = `/admin/schedules/${sch.id}`;
         document.getElementById('methodContainer').innerHTML = '@method("PUT")';
 
         document.getElementById('form_day_of_week').value = sch.day_of_week;
-        refreshSlotOptions();
+        populateJamOptions(sch.day_of_week);
 
         document.getElementById('form_teacher_id').value = sch.teacher_id;
         onTeacherChange();
-        document.getElementById('form_subject_id').value = sch.subject_id;
-        document.getElementById('form_start_time').value = sch.start_time.substring(0, 5);
-        document.getElementById('form_end_time').value = sch.end_time.substring(0, 5);
 
-        // Reset quick dropdowns
-        document.getElementById('quick_slot_from').value = '';
-        document.getElementById('quick_slot_to').value = '';
-        document.getElementById('jpCalcInfo').classList.add('hidden');
+        document.getElementById('form_subject_id').value = sch.subject_id;
+        document.getElementById('form_start_time').value = sch.start_time;
+        document.getElementById('form_end_time').value = sch.end_time;
+
+        syncRangeFromCustomTimes(sch.day_of_week, sch.start_time, sch.end_time);
 
         document.getElementById('scheduleModal').classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
@@ -710,19 +666,89 @@
         document.body.classList.remove('overflow-hidden');
     }
 
-    function openTemplateModal() {
-        document.getElementById('templateModal').classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
+    function onDayChange() {
+        const day = document.getElementById('form_day_of_week').value;
+        populateJamOptions(day);
     }
 
-    function closeTemplateModal() {
-        document.getElementById('templateModal').classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
+    // Populate dropdowns for Multi-Jam range
+    function populateJamOptions(day, preferredJam = null) {
+        const startSel = document.getElementById('select_jam_start');
+        const endSel = document.getElementById('select_jam_end');
+
+        startSel.innerHTML = '<option value="">-- Jam Awal --</option>';
+        endSel.innerHTML = '<option value="">-- Jam Akhir --</option>';
+
+        if (!day || !allSlotsByDay[day] || allSlotsByDay[day].length === 0) {
+            return;
+        }
+
+        // Only include KBM slots
+        const kbmSlots = allSlotsByDay[day].filter(s => parseInt(s.k_jadwal) === 0);
+
+        kbmSlots.forEach((s) => {
+            const label = `Jam ke-${s.jam_ke} (${(s.start_time||'').substring(0,5)} - ${(s.end_time||'').substring(0,5)})`;
+            startSel.innerHTML += `<option value="${s.jam_ke}" data-start="${(s.start_time||'').substring(0,5)}" data-end="${(s.end_time||'').substring(0,5)}">${label}</option>`;
+            endSel.innerHTML += `<option value="${s.jam_ke}" data-start="${(s.start_time||'').substring(0,5)}" data-end="${(s.end_time||'').substring(0,5)}">${label}</option>`;
+        });
+
+        if (preferredJam) {
+            startSel.value = preferredJam;
+            endSel.value = preferredJam;
+            onJamRangeChange();
+        } else if (kbmSlots.length > 0) {
+            startSel.value = kbmSlots[0].jam_ke;
+            endSel.value = kbmSlots[0].jam_ke;
+            onJamRangeChange();
+        }
     }
 
-    // Mapping Penugasan Mengajar Guru
-    const teacherAssignmentsMap = @json($teacherAssignmentsMap ?? []);
-    const currentClassId = {{ (int) ($selectedClassId ?? 0) }};
+    function onJamRangeChange() {
+        const day = document.getElementById('form_day_of_week').value;
+        const startSel = document.getElementById('select_jam_start');
+        const endSel = document.getElementById('select_jam_end');
+
+        const startJam = parseInt(startSel.value);
+        let endJam = parseInt(endSel.value);
+
+        if (!startJam) return;
+
+        if (!endJam || endJam < startJam) {
+            endJam = startJam;
+            endSel.value = endJam;
+        }
+
+        const daySlots = allSlotsByDay[day] || [];
+        const startSlot = daySlots.find(s => parseInt(s.jam_ke) === startJam);
+        const endSlot = daySlots.find(s => parseInt(s.jam_ke) === endJam);
+
+        if (startSlot && endSlot) {
+            const startVal = (startSlot.start_time || '07:00').substring(0, 5);
+            const endVal = (endSlot.end_time || '07:40').substring(0, 5);
+
+            document.getElementById('form_start_time').value = startVal;
+            document.getElementById('form_end_time').value = endVal;
+
+            const jpCount = (endJam - startJam + 1);
+            document.getElementById('multiJamBadge').textContent = jpCount + ' JP';
+            document.getElementById('rangeTimeDisplay').textContent = `${startVal} - ${endVal}`;
+        }
+    }
+
+    function syncRangeFromCustomTimes(day, start, end) {
+        if (!day || !allSlotsByDay[day]) return;
+        const daySlots = allSlotsByDay[day] || [];
+        const startSlot = daySlots.find(s => (s.start_time || '').substring(0, 5) === start);
+        const endSlot = daySlots.find(s => (s.end_time || '').substring(0, 5) === end);
+
+        if (startSlot) {
+            document.getElementById('select_jam_start').value = startSlot.jam_ke;
+        }
+        if (endSlot) {
+            document.getElementById('select_jam_end').value = endSlot.jam_ke;
+        }
+        onJamRangeChange();
+    }
 
     function onTeacherChange() {
         const teacherId = document.getElementById('form_teacher_id').value;
@@ -731,12 +757,7 @@
 
         if (!teacherId || !teacherAssignmentsMap[teacherId] || !teacherAssignmentsMap[teacherId].has_restrictions) {
             if (hintEl) hintEl.classList.add('hidden');
-            Array.from(subjectSelect.options).forEach(opt => {
-                opt.disabled = false;
-                if (opt.hasAttribute('data-original-text')) {
-                    opt.textContent = opt.getAttribute('data-original-text');
-                }
-            });
+            Array.from(subjectSelect.options).forEach(opt => opt.disabled = false);
             return;
         }
 
@@ -749,83 +770,38 @@
         if (hintEl) {
             hintEl.classList.remove('hidden');
             if (!isClassAllowed) {
-                hintEl.innerHTML = `⚠️ <b>Perhatian:</b> Guru ini memiliki penugasan khusus dan tidak terdaftar mengajar di rombel kelas ini.`;
-                hintEl.className = 'p-2.5 bg-[#FFE3E3] border-2 border-black rounded-sm text-[11px] font-bold text-rose-950 mb-1';
+                hintEl.className = 'mt-1 text-[11px] font-bold text-rose-900 bg-rose-100 border border-black p-2 rounded';
+                hintEl.textContent = '⚠️ Peringatan: Guru ini tidak ditugaskan pada rombel/kelas saat ini.';
             } else {
-                hintEl.innerHTML = `🎯 <b>Penugasan Khusus:</b> Guru ini memiliki penugasan mata pelajaran khusus. Pilihan mapel telah disaring otomatis.`;
-                hintEl.className = 'p-2.5 bg-[#F3D9FA] border-2 border-black rounded-sm text-[11px] font-bold text-purple-950 mb-1';
+                hintEl.className = 'mt-1 text-[11px] font-bold text-blue-900 bg-[#E7F5FF] border border-black p-2 rounded';
+                hintEl.textContent = 'ℹ️ Guru ini memiliki penugasan khusus. Hanya mata pelajaran tertentu yang diizinkan.';
             }
         }
 
         Array.from(subjectSelect.options).forEach(opt => {
             if (!opt.value) return;
-            if (!opt.hasAttribute('data-original-text')) {
-                opt.setAttribute('data-original-text', opt.textContent);
-            }
-            const subId = parseInt(opt.value);
-            if (allowedSubjects.includes(subId)) {
-                opt.disabled = false;
-                opt.textContent = '✓ ' + opt.getAttribute('data-original-text');
-            } else {
-                opt.disabled = true;
-                opt.textContent = '✕ ' + opt.getAttribute('data-original-text') + ' (Bukan Mapel Guru Ini)';
-            }
+            const isSubjAllowed = allowedSubjects.includes(parseInt(opt.value));
+            opt.disabled = (!isClassAllowed || !isSubjAllowed);
         });
-
-        if (subjectSelect.value && !allowedSubjects.includes(parseInt(subjectSelect.value))) {
-            subjectSelect.value = '';
-        }
     }
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeScheduleModal();
-            closeTemplateModal();
-        }
-    });
-
-    function confirmDeleteSchedule(e) {
-        e.preventDefault();
-        const form = e.target;
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Hapus Jadwal Pelajaran?',
-                text: 'Jadwal yang dihapus tidak dapat dipulihkan.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#FF6B6B',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Hapus',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        } else {
-            if (confirm('Hapus jadwal pelajaran ini? Jadwal yang dihapus tidak dapat dipulihkan.')) {
-                form.submit();
-            }
-        }
-        return false;
-    }
-
-    // Tampilkan SweetAlert2 jika ada error bentrok dari redirect server
-    @if(session('conflict_error'))
-    document.addEventListener('DOMContentLoaded', () => {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Jadwal Bentrok!',
-                text: @json(session('conflict_error')),
-                confirmButtonColor: '#FF6B6B',
-                confirmButtonText: 'Perbaiki Jadwal'
-            });
-        } else {
-            alert('Jadwal Bentrok: ' + @json(session('conflict_error')));
-        }
-    });
-    @endif
 </script>
-@endpush
+
+<style>
+@media print {
+    header, aside, #sidebar, .neo-btn, form, select, .breadcrumbs {
+        display: none !important;
+    }
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    .neo-box, .neo-box-lg {
+        box-shadow: none !important;
+        border-width: 1px !important;
+    }
+    table {
+        min-width: 100% !important;
+    }
+}
+</style>
+@endsection

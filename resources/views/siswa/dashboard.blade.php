@@ -24,6 +24,9 @@
 
     <!-- Tab 6: Buku Tabungan Digital -->
     @include('siswa._tab-tabungan')
+
+    <!-- Tab 7: Profil Siswa Lengkap -->
+    @include('siswa._tab-profil')
 </div>
 
 

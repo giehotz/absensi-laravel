@@ -14,175 +14,527 @@
 </style>
 @endpush
 
+@php
+    $initialTab = request()->query('tab', ($errors->has('current_password') || $errors->has('password') || $errors->has('password_confirmation')) ? 'keamanan' : 'biodata');
+    $teachingClassesCount = $schedules->pluck('school_class_id')->unique()->count();
+    $teachingSubjectsCount = $schedules->pluck('subject_id')->unique()->count();
+@endphp
+
 @section('content')
 <div class="space-y-6">
-    <!-- Header Title Card -->
-    <div class="bg-[#FFF3BF] neo-box-lg p-6 sm:p-8 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div class="space-y-1.5 z-10">
-            <div class="flex items-center gap-2">
-                <span class="neo-badge bg-[#5294FF] text-white">PORTAL GURU</span>
-                <span class="text-xs font-mono font-bold bg-white px-2 py-0.5 border border-black">
-                    NIP: {{ $teacher->nip ?? '-' }}
-                </span>
-                <span class="text-xs font-mono font-bold bg-white px-2 py-0.5 border border-black hidden sm:inline-block">
-                    {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
-                </span>
-            </div>
-            <h1 class="font-heading text-2xl sm:text-3xl font-black tracking-tight text-black uppercase">
-                PROFIL SAYA & PENUGASAN
-            </h1>
-            <p class="text-xs sm:text-sm font-semibold text-slate-800 max-w-2xl">
-                Kelola informasi biodata, perbarui kata sandi akun, serta tinjau penugasan wali kelas dan jadwal mengajar mingguan Anda.
-            </p>
+    <!-- Header Hero Profile Banner -->
+    <div class="bg-[#FFF3BF] border-3 border-black p-5 sm:p-7 neo-box relative overflow-hidden">
+        <!-- Background Decorative Watermark -->
+        <div class="absolute -right-6 -bottom-8 opacity-10 select-none pointer-events-none font-heading font-black text-8xl text-black">
+            GURU
         </div>
 
-        <div class="z-10 flex flex-wrap gap-2">
-            <a href="{{ route('guru.dashboard') }}" class="neo-btn bg-white text-black text-xs font-bold px-4 py-2.5 flex items-center gap-1.5 cursor-pointer hover:bg-slate-100">
-                ← Dashboard
-            </a>
+        <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <!-- Left Info: Avatar & Profile Details -->
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 min-w-0">
+                <!-- Avatar with Quick Photo Trigger -->
+                <div class="relative group shrink-0">
+                    <div class="w-20 h-20 sm:w-24 sm:h-24 bg-white border-3 border-black rounded-full overflow-hidden flex items-center justify-center shadow-[3px_3px_0px_0px_#000]">
+                        @if(!empty($teacher->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($teacher->photo))
+                            <img src="{{ asset('storage/' . $teacher->photo) }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
+                        @else
+                            <div class="w-full h-full bg-[#5294FF] flex items-center justify-center text-4xl sm:text-5xl">
+                                👨‍🏫
+                            </div>
+                        @endif
+                    </div>
+                    <button type="button" onclick="document.getElementById('teacherPhotoInput').click()" 
+                            class="absolute -bottom-1 -right-1 bg-[#FFD43B] hover:bg-yellow-400 border-2 border-black rounded-full p-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer"
+                            title="Ganti Foto Profil">
+                        <svg class="w-3.5 h-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Identity Text & Badges -->
+                <div class="space-y-1.5 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="neo-badge bg-[#5294FF] text-white text-[10px] font-black uppercase py-0.5">
+                            PROFIL SAYA
+                        </span>
+                        <span class="neo-badge bg-black text-white text-[10px] font-black uppercase py-0.5">
+                            DEWAN GURU
+                        </span>
+                        @if($homeroomClasses->isNotEmpty())
+                            <span class="neo-badge bg-[#20C997] text-black text-[10px] font-black uppercase py-0.5">
+                                Wali Kelas {{ $homeroomClasses->pluck('name')->implode(', ') }}
+                            </span>
+                        @endif
+                        @if($user->isSavingsOfficer())
+                            <span class="neo-badge bg-[#FFD43B] text-black text-[10px] font-black uppercase py-0.5">
+                                Pengelola Tabungan
+                            </span>
+                        @endif
+                    </div>
+
+                    <h1 class="font-heading font-black text-xl sm:text-2xl text-black truncate leading-tight">
+                        {{ $user->name }}
+                    </h1>
+
+                    <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-xs font-semibold text-slate-800">
+                        <span class="bg-white border border-black px-2 py-0.5 font-mono text-[11px] shadow-[1px_1px_0px_0px_#000]">
+                            NIP: {{ $teacher->nip ?? '-' }}
+                        </span>
+                        @if(!empty($teacher->nuptk))
+                            <span class="bg-white border border-black px-2 py-0.5 font-mono text-[11px] shadow-[1px_1px_0px_0px_#000]">
+                                NUPTK: {{ $teacher->nuptk }}
+                            </span>
+                        @endif
+                        <span class="text-slate-600 flex items-center gap-1">
+                            ✉️ {{ $user->email ?: 'Email belum diatur' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Quick Stats & CTA -->
+            <div class="flex flex-wrap md:flex-col items-start md:items-end gap-2 w-full md:w-auto shrink-0 border-t-2 md:border-t-0 border-black/15 pt-3 md:pt-0">
+                <div class="flex items-center gap-2">
+                    <div class="bg-white border-2 border-black px-3 py-1.5 text-center shadow-[2px_2px_0px_0px_#000]">
+                        <span class="text-[9px] font-black uppercase text-slate-500 block">Sesi KBM</span>
+                        <span class="font-mono font-black text-sm text-black">{{ $schedules->count() }} Jam/Mgg</span>
+                    </div>
+                    <div class="bg-white border-2 border-black px-3 py-1.5 text-center shadow-[2px_2px_0px_0px_#000]">
+                        <span class="text-[9px] font-black uppercase text-slate-500 block">Rombel</span>
+                        <span class="font-mono font-black text-sm text-black">{{ $teachingClassesCount }} Kelas</span>
+                    </div>
+                </div>
+                <a href="{{ route('guru.jadwal') }}" class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-black px-3.5 py-1.5 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000]">
+                    <span>📅</span> Buka Jadwal KBM →
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Layout 2 Kolom -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        <!-- KOLOM KIRI (5 Kolom): Kartu Identitas & Jadwal Mengajar -->
-        <div class="lg:col-span-5 space-y-6">
+    <!-- Navigation Tabs (Struktur Rapi & Terorganisir) -->
+    <div class="flex border-b-2 border-black gap-2 overflow-x-auto pb-0.5">
+        <button type="button" onclick="switchProfileTab('biodata')" id="tabBtn-biodata"
+            class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer whitespace-nowrap
+            {{ $initialTab === 'biodata' ? 'bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            👤 Biodata & Informasi Diri
+        </button>
+        <button type="button" onclick="switchProfileTab('keamanan')" id="tabBtn-keamanan"
+            class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer whitespace-nowrap
+            {{ $initialTab === 'keamanan' ? 'bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            🔐 Keamanan & Kata Sandi
+        </button>
+        <button type="button" onclick="switchProfileTab('penugasan')" id="tabBtn-penugasan"
+            class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer whitespace-nowrap
+            {{ $initialTab === 'penugasan' ? 'bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+            📋 Penugasan & Jam Mengajar ({{ $schedules->count() }})
+        </button>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: BIODATA & INFORMASI DIRI -->
+    <!-- ========================================================================= -->
+    <div id="tabContent-biodata" class="space-y-6 {{ $initialTab === 'biodata' ? '' : 'hidden' }}">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            <!-- Kartu Identitas Guru -->
-            <div class="bg-white neo-box p-6 space-y-5">
-                <div class="flex items-center gap-4">
-                    @if(!empty($teacher->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($teacher->photo))
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-white border-3 border-black neo-box-sm rounded-full overflow-hidden shrink-0 shadow-sm">
-                            <img src="{{ asset('storage/' . $teacher->photo) }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
-                        </div>
-                    @else
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 bg-[#5294FF] border-3 border-black neo-box-sm rounded-full flex items-center justify-center text-3xl sm:text-4xl shadow-sm shrink-0">
-                            👨‍🏫
-                        </div>
-                    @endif
-                    <div class="min-w-0 flex-1">
-                        <span class="neo-badge bg-black text-white text-[10px] py-0.5">DEWAN GURU</span>
-                        <h2 class="font-heading font-black text-lg sm:text-xl text-black truncate mt-1">
-                            {{ $user->name }}
+            <!-- Kolom Formulir Utama (8 Kolom) -->
+            <div class="lg:col-span-8 bg-white neo-box p-6 space-y-5">
+                <div class="border-b-2 border-black pb-3 flex items-center justify-between">
+                    <div>
+                        <h2 class="font-heading font-black text-base uppercase text-black flex items-center gap-2">
+                            <span>👤</span> Pengaturan Biodata Guru
                         </h2>
-                        <p class="text-xs font-mono font-bold text-slate-700">
-                            NIP: {{ $teacher->nip ?? '-' }}
+                        <p class="text-xs font-medium text-slate-600 mt-0.5">
+                            Perbarui nama lengkap, email login, nomor kontak, serta foto profil Anda.
                         </p>
                     </div>
                 </div>
 
-                <!-- Status Wali Kelas -->
-                <div class="p-3.5 border-2 border-black {{ $homeroomClasses->isNotEmpty() ? 'bg-[#D3F9D8]' : 'bg-slate-100' }} rounded-sm space-y-1">
-                    <div class="text-[11px] font-black uppercase text-black flex items-center justify-between">
-                        <span>🎓 Penugasan Wali Kelas</span>
-                        <span class="text-xs">{{ $homeroomClasses->isNotEmpty() ? '✅ AKTIF' : 'ℹ️' }}</span>
+                <form id="formUpdateProfile" action="{{ route('guru.profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-5" onsubmit="return confirmUpdateProfile(event)">
+                    @csrf
+                    @method('PUT')
+
+                    <!-- Grid 2 Kolom untuk Input -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Nama Lengkap -->
+                        <div class="sm:col-span-2 space-y-1.5">
+                            <label class="block text-xs font-black uppercase text-black">
+                                Nama Lengkap Guru & Gelar <span class="text-rose-600">*</span>
+                            </label>
+                            <input type="text" name="name" value="{{ old('name', $user->name) }}" required
+                                   placeholder="Contoh: Ahmad Fauzi, S.Pd.I"
+                                   class="w-full px-3.5 py-2.5 neo-input text-xs font-bold text-black bg-white focus:ring-2 focus:ring-[#FFD43B]">
+                            @error('name')
+                                <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Alamat Email -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-black uppercase text-black flex items-center justify-between">
+                                <span>Alamat Email Login <span class="text-rose-600">*</span></span>
+                                @if(empty($user->email))
+                                    <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-[9px]">Wajib Dilengkapi</span>
+                                @endif
+                            </label>
+                            @if(empty($user->email))
+                                <div class="bg-[#FFF9DB] border-2 border-black p-2.5 mb-2 text-xs font-bold text-amber-950 flex items-center gap-2">
+                                    <span>⚠️</span>
+                                    <span>Email Anda belum terdaftar. Silakan lengkapi email aktif Anda di bawah ini untuk pemulihan akun.</span>
+                                </div>
+                            @endif
+                            <input type="email" name="email" value="{{ old('email', $user->email) }}" required
+                                   placeholder="nama@sekolah.sch.id"
+                                   class="w-full px-3.5 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white focus:ring-2 focus:ring-[#FFD43B]">
+                            <p class="text-[10px] text-slate-500">Email untuk login alternatif dan pemulihan akun.</p>
+                            @error('email')
+                                <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <!-- Nomor Telepon / WhatsApp -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-black uppercase text-black">
+                                No. Telepon / WhatsApp
+                            </label>
+                            <input type="text" name="phone" value="{{ old('phone', $teacher->phone) }}"
+                                   placeholder="081234567890"
+                                   class="w-full px-3.5 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white focus:ring-2 focus:ring-[#FFD43B]">
+                            <p class="text-[10px] text-slate-500">Nomor aktif untuk koordinasi dengan sekolah.</p>
+                            @error('phone')
+                                <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                            @enderror
+                        </div>
                     </div>
+
+                    <!-- Upload & Preview Foto Profil -->
+                    <div class="p-4 bg-slate-50 border-2 border-black rounded-sm space-y-3">
+                        <label class="block text-xs font-black uppercase text-black">
+                            Foto Profil Pegawai
+                        </label>
+                        <input type="hidden" name="photo_cropped" id="photoCroppedInput">
+
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <!-- Preview Avatar Box -->
+                            <div class="w-16 h-16 bg-white border-2 border-black rounded-full overflow-hidden flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]" id="avatarPreviewContainer">
+                                @if(!empty($teacher->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($teacher->photo))
+                                    <img src="{{ asset('storage/' . $teacher->photo) }}" id="avatarPreviewImage" data-original-src="{{ asset('storage/' . $teacher->photo) }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
+                                    <span id="avatarPreviewEmoji" class="text-2xl hidden">👨‍🏫</span>
+                                @else
+                                    <span id="avatarPreviewEmoji" class="text-2xl">👨‍🏫</span>
+                                    <img src="" id="avatarPreviewImage" data-original-src="" alt="{{ $user->name }}" class="w-full h-full object-cover hidden">
+                                @endif
+                            </div>
+
+                            <div class="flex-1 min-w-0 space-y-2 w-full">
+                                <input type="file" name="photo" id="teacherPhotoInput" accept="image/jpeg,image/png,image/jpg,image/webp"
+                                       onchange="handleTeacherPhotoChange(this)"
+                                       class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-2 file:border-black file:text-xs file:font-black file:bg-[#FFD43B] hover:file:bg-[#fcc419] file:cursor-pointer file:shadow-[1px_1px_0px_#000] cursor-pointer">
+                                
+                                <div class="flex items-center justify-between flex-wrap gap-2 text-[10px] text-slate-500">
+                                    <span>Maksimal 5MB. Format: JPG, PNG, WEBP.</span>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="btnRecrop" onclick="reopenCropper()" class="hidden neo-btn bg-white hover:bg-slate-100 text-black px-2 py-0.5 text-[10px] font-bold border border-black cursor-pointer">
+                                            ✂️ Potong Ulang
+                                        </button>
+
+                                        @if(!empty($teacher->photo))
+                                            <label class="inline-flex items-center gap-1.5 cursor-pointer font-black text-rose-700 select-none">
+                                                <input type="checkbox" name="remove_photo" value="1" id="removePhotoCheckbox" onchange="toggleRemoveTeacherPhoto(this)" class="w-3.5 h-3.5 rounded border border-black text-rose-600 focus:ring-0 cursor-pointer">
+                                                <span>Hapus Foto</span>
+                                            </label>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Submit Button -->
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="neo-btn bg-[#20C997] hover:bg-emerald-400 text-black text-xs font-black px-6 py-2.5 flex items-center gap-1.5 cursor-pointer shadow-[3px_3px_0px_0px_#000]">
+                            <span>💾</span> Simpan Biodata Profil
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Kolom Data Pokok Kepegawaian (4 Kolom - Readonly Info) -->
+            <div class="lg:col-span-4 bg-white neo-box p-6 space-y-4">
+                <div class="border-b-2 border-black pb-2.5">
+                    <h3 class="font-heading font-black text-sm uppercase text-black flex items-center gap-2">
+                        <span>🏛️</span> Data Pokok Pegawai
+                    </h3>
+                    <p class="text-[11px] font-semibold text-slate-500">Data resmi dari SIMPATIKA / EMIS Madrasah</p>
+                </div>
+
+                <div class="space-y-2.5 text-xs">
+                    <div class="p-2.5 bg-slate-50 border-2 border-black rounded-sm flex items-center justify-between">
+                        <span class="font-bold text-slate-600">NIP:</span>
+                        <span class="font-mono font-black text-black">{{ $teacher->nip ?? '-' }}</span>
+                    </div>
+
+                    <div class="p-2.5 bg-slate-50 border-2 border-black rounded-sm flex items-center justify-between">
+                        <span class="font-bold text-slate-600">NUPTK:</span>
+                        <span class="font-mono font-black text-black">{{ $teacher->nuptk ?? '-' }}</span>
+                    </div>
+
+                    <div class="p-2.5 bg-slate-50 border-2 border-black rounded-sm flex items-center justify-between">
+                        <span class="font-bold text-slate-600">Jenis Kelamin:</span>
+                        <span class="font-bold text-black">
+                            {{ $teacher->gender === 'L' ? 'Laki-laki' : ($teacher->gender === 'P' ? 'Perempuan' : '-') }}
+                        </span>
+                    </div>
+
+                    <div class="p-2.5 bg-slate-50 border-2 border-black rounded-sm flex items-center justify-between">
+                        <span class="font-bold text-slate-600">Tempat, Tgl Lahir:</span>
+                        <span class="font-semibold text-black text-right">
+                            {{ $teacher->birth_place ?: '-' }}@if($teacher->birth_date), {{ $teacher->birth_date->format('d/m/Y') }}@endif
+                        </span>
+                    </div>
+
+                    <div class="p-2.5 bg-slate-50 border-2 border-black rounded-sm flex items-center justify-between">
+                        <span class="font-bold text-slate-600">Pendidikan Terakhir:</span>
+                        <span class="neo-badge bg-[#E7F5FF] text-blue-950 text-[10px] font-black">
+                            {{ $teacher->last_education ?: '-' }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="bg-[#FFF9DB] border-2 border-black p-3 rounded-sm text-[11px] font-medium text-amber-950 space-y-1">
+                    <div class="font-black flex items-center gap-1.5">
+                        <span>ℹ️</span> Catatan Sinkronisasi:
+                    </div>
+                    <p>
+                        Data NIP, NUPTK, dan riwayat pendidikan dikelola secara terpusat oleh Administrator. Hubungi Tata Usaha jika data membutuhkan penyesuaian.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: KEAMANAN & KATA SANDI -->
+    <!-- ========================================================================= -->
+    <div id="tabContent-keamanan" class="space-y-6 {{ $initialTab === 'keamanan' ? '' : 'hidden' }}">
+        <div class="max-w-3xl mx-auto bg-white neo-box p-6 sm:p-8 space-y-6">
+            <div class="border-b-2 border-black pb-3">
+                <h2 class="font-heading font-black text-base sm:text-lg uppercase text-black flex items-center gap-2">
+                    <span>🔐</span> Perbarui Kata Sandi Akun
+                </h2>
+                <p class="text-xs font-medium text-slate-600 mt-1">
+                    Ganti kata sandi secara berkala untuk menjaga keamanan akun dan kerahasiaan data siswa.
+                </p>
+            </div>
+
+            <form id="formUpdatePassword" action="{{ route('guru.profile.password') }}" method="POST" class="space-y-5" onsubmit="return confirmUpdatePassword(event)">
+                @csrf
+                @method('PUT')
+
+                <!-- Password Saat Ini -->
+                <div class="space-y-1.5">
+                    <label class="block text-xs font-black uppercase text-black">
+                        Kata Sandi Saat Ini <span class="text-rose-600">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="password" id="current_password" name="current_password" required
+                               placeholder="Masukkan kata sandi lama Anda"
+                               class="w-full pl-3.5 pr-10 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white focus:ring-2 focus:ring-[#FFD43B]">
+                        <button type="button" onclick="togglePasswordVisibility('current_password', 'icon_current')" 
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-black cursor-pointer text-xs"
+                                title="Lihat/Sembunyikan Kata Sandi">
+                            <span id="icon_current">👁️</span>
+                        </button>
+                    </div>
+                    @error('current_password')
+                        <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Password Baru -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-black uppercase text-black">
+                            Kata Sandi Baru <span class="text-rose-600">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required minlength="8"
+                                   placeholder="Minimal 8 karakter"
+                                   class="w-full pl-3.5 pr-10 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white focus:ring-2 focus:ring-[#FFD43B]">
+                            <button type="button" onclick="togglePasswordVisibility('password', 'icon_new')" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-black cursor-pointer text-xs"
+                                    title="Lihat/Sembunyikan Kata Sandi">
+                                <span id="icon_new">👁️</span>
+                            </button>
+                        </div>
+                        @error('password')
+                            <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Konfirmasi Password Baru -->
+                    <div class="space-y-1.5">
+                        <label class="block text-xs font-black uppercase text-black">
+                            Konfirmasi Kata Sandi Baru <span class="text-rose-600">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8"
+                                   placeholder="Ulangi kata sandi baru"
+                                   class="w-full pl-3.5 pr-10 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white focus:ring-2 focus:ring-[#FFD43B]">
+                            <button type="button" onclick="togglePasswordVisibility('password_confirmation', 'icon_confirm')" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-black cursor-pointer text-xs"
+                                    title="Lihat/Sembunyikan Kata Sandi">
+                                <span id="icon_confirm">👁️</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Petunjuk Keamanan -->
+                <div class="p-3.5 bg-[#E7F5FF] border-2 border-black rounded-sm text-xs text-blue-950 space-y-1">
+                    <div class="font-black flex items-center gap-1.5">
+                        <span>🛡️</span> Pedoman Kata Sandi yang Kuat:
+                    </div>
+                    <ul class="list-disc list-inside text-[11px] font-semibold text-blue-900 space-y-0.5 pl-1">
+                        <li>Minimal 8 karakter.</li>
+                        <li>Kombinasikan huruf kapital, huruf kecil, dan angka.</li>
+                        <li>Hindari menggunakan tanggal lahir atau nomor telepon pribadi.</li>
+                    </ul>
+                </div>
+
+                <!-- Tombol Submit -->
+                <div class="pt-2 flex justify-end">
+                    <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-xs font-black px-6 py-2.5 flex items-center gap-1.5 cursor-pointer shadow-[3px_3px_0px_0px_#000]">
+                        <span>🔑</span> Perbarui Kata Sandi Akun
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: PENUGASAN & JADWAL MENGAJAR -->
+    <!-- ========================================================================= -->
+    <div id="tabContent-penugasan" class="space-y-6 {{ $initialTab === 'penugasan' ? '' : 'hidden' }}">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Ringkasan Penugasan Wali Kelas (4 Kolom) -->
+            <div class="lg:col-span-4 space-y-4">
+                <div class="bg-white neo-box p-5 space-y-3.5">
+                    <div class="border-b-2 border-black pb-2.5 flex items-center justify-between">
+                        <h3 class="font-heading font-black text-sm uppercase text-black flex items-center gap-1.5">
+                            <span>🎓</span> Wali Kelas Binaan
+                        </h3>
+                        <span class="text-[10px] font-black {{ $homeroomClasses->isNotEmpty() ? 'bg-[#D3F9D8] text-emerald-950' : 'bg-slate-100 text-slate-600' }} px-2 py-0.5 rounded border border-black">
+                            {{ $homeroomClasses->isNotEmpty() ? 'AKTIF' : 'NON-WALI' }}
+                        </span>
+                    </div>
+
                     @if($homeroomClasses->isNotEmpty())
-                        @foreach($homeroomClasses as $hClass)
-                            <div class="text-xs font-black text-emerald-950 flex items-center justify-between">
-                                <span>{{ $hClass->name }} (Tingkat {{ $hClass->level }})</span>
-                                <a href="{{ route('guru.classes.binaan') }}" class="text-[10px] font-bold text-blue-800 underline hover:text-blue-900">
-                                    Buka Kelas →
-                                </a>
-                            </div>
-                            <div class="text-[10px] font-medium text-emerald-900">
-                                Tahun Ajaran: {{ $hClass->academicYear->name ?? 'Aktif' }}
-                            </div>
-                        @endforeach
+                        <div class="space-y-3">
+                            @foreach($homeroomClasses as $hClass)
+                                <div class="p-3.5 bg-[#D3F9D8] border-2 border-black rounded-sm space-y-1.5">
+                                    <div class="flex items-center justify-between">
+                                        <div class="font-heading font-black text-base text-emerald-950">
+                                            {{ $hClass->name }}
+                                        </div>
+                                        <span class="neo-badge bg-black text-white text-[9px]">Tingkat {{ $hClass->level }}</span>
+                                    </div>
+                                    <p class="text-[11px] font-medium text-emerald-900">
+                                        Tahun Ajaran: <b>{{ $hClass->academicYear->name ?? 'Aktif' }}</b>
+                                    </p>
+                                    <div class="pt-1 flex items-center gap-2">
+                                        <a href="{{ route('guru.classes.binaan') }}" class="neo-btn bg-white hover:bg-slate-100 text-black text-[11px] font-bold px-3 py-1 flex items-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                                            Buka Kelas Binaan →
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     @else
-                        <p class="text-[11px] font-medium text-slate-600">
-                            Saat ini Anda tidak ditugaskan sebagai wali kelas.
-                        </p>
+                        <div class="text-center py-6 px-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-sm space-y-1">
+                            <span class="text-2xl block">🏫</span>
+                            <div class="text-xs font-bold text-slate-700">Tidak Menjabat Wali Kelas</div>
+                            <p class="text-[11px] text-slate-500">Saat ini akun Anda tidak ditugaskan sebagai wali kelas rombel.</p>
+                        </div>
                     @endif
                 </div>
 
-                <!-- Kontak Ringkas -->
-                <div class="space-y-2 pt-2 border-t-2 border-black/10 text-xs">
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">NUPTK:</span>
-                        <span class="font-mono font-bold text-black">{{ $teacher->nuptk ?? '-' }}</span>
+                <!-- Informasi Rekap Beban Mengajar -->
+                <div class="bg-[#E7F5FF] neo-box p-5 space-y-3 border-3 border-black">
+                    <div class="font-heading font-black text-sm uppercase text-blue-950 flex items-center gap-1.5">
+                        <span>📊</span> Beban Jam Tatap Muka
                     </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">NIP:</span>
-                        <span class="font-mono font-bold text-black">{{ $teacher->nip ?? '-' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">Jenis Kelamin:</span>
-                        <span class="font-bold text-black">{{ $teacher->gender === 'L' ? 'Laki-laki' : ($teacher->gender === 'P' ? 'Perempuan' : '-') }}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">Tempat, Tgl Lahir:</span>
-                        <span class="font-semibold text-black">{{ $teacher->birth_place ?: '-' }}, {{ $teacher->birth_date ? $teacher->birth_date->format('d-m-Y') : '-' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">Pendidikan Terakhir:</span>
-                        <span class="neo-badge bg-slate-100 text-black text-[10px]">{{ $teacher->last_education ?: '-' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">Email Akun:</span>
-                        @if($user->email)
-                            <span class="font-mono font-bold text-black">{{ $user->email }}</span>
-                        @else
-                            <span class="neo-badge bg-[#FFF9DB] text-amber-950 text-[10px]">Belum Diisi</span>
-                        @endif
-                    </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">No. WhatsApp/HP:</span>
-                        <span class="font-mono font-semibold text-black">{{ $teacher->phone ?? '-' }}</span>
-                    </div>
-                    <div class="flex items-center justify-between py-0.5">
-                        <span class="font-bold text-slate-500">Total Jadwal Mengajar:</span>
-                        <span class="font-mono font-black text-black">{{ $schedules->count() }} Pertemuan/Minggu</span>
+                    <div class="space-y-2 text-xs font-semibold text-blue-950">
+                        <div class="flex items-center justify-between pb-1 border-b border-black/10">
+                            <span>Total Sesi Mingguan:</span>
+                            <span class="font-mono font-black text-sm">{{ $schedules->count() }} Jam KBM</span>
+                        </div>
+                        <div class="flex items-center justify-between pb-1 border-b border-black/10">
+                            <span>Jumlah Rombel Diampu:</span>
+                            <span class="font-mono font-black text-sm">{{ $teachingClassesCount }} Kelas</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span>Mata Pelajaran:</span>
+                            <span class="font-mono font-black text-sm">{{ $teachingSubjectsCount }} Mapel</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Ringkasan Jadwal Mengajar Mingguan -->
-            <div class="bg-white neo-box p-6 space-y-4">
-                <div class="flex items-center justify-between border-b-2 border-black pb-3">
-                    <h3 class="font-heading font-black text-sm sm:text-base uppercase flex items-center gap-2 text-black">
-                        <span>📅</span> Jadwal Mengajar
-                    </h3>
-                    <span class="text-[10px] font-mono font-bold bg-[#E7F5FF] text-blue-900 border border-black px-2 py-0.5">
-                        {{ $schedules->count() }} Sesi
-                    </span>
+            <!-- Matriks Sesi Mengajar Mingguan (8 Kolom) -->
+            <div class="lg:col-span-8 bg-white neo-box p-6 space-y-4">
+                <div class="border-b-2 border-black pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-heading font-black text-base uppercase text-black flex items-center gap-2">
+                            <span>📅</span> Jadwal Mengajar Mingguan
+                        </h2>
+                        <p class="text-xs font-medium text-slate-600 mt-0.5">
+                            Rincian jam tatap muka yang dijadwalkan untuk Anda per hari.
+                        </p>
+                    </div>
+                    <a href="{{ route('guru.jadwal') }}" class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black text-xs font-black px-3.5 py-1.5 flex items-center gap-1 self-start sm:self-auto shadow-[2px_2px_0px_0px_#000]">
+                        <span>🔍</span> Matriks KBM Lengkap →
+                    </a>
                 </div>
 
                 @if(empty($schedulesByDay))
-                    <div class="text-center py-8 px-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-sm">
-                        <span class="text-3xl block mb-2">📖</span>
-                        <p class="text-xs font-bold text-slate-600">Belum ada jadwal mengajar yang terdaftar.</p>
-                        <p class="text-[10px] text-slate-400 mt-1">Jadwal mengajar dikelola oleh administrator sekolah.</p>
+                    <div class="text-center py-12 px-4 bg-slate-50 border-2 border-dashed border-slate-300 rounded-sm space-y-2">
+                        <span class="text-4xl block">☕</span>
+                        <h4 class="font-heading font-bold text-sm text-slate-700">Belum Ada Jadwal Mengajar</h4>
+                        <p class="text-xs text-slate-500 max-w-sm mx-auto">
+                            Jadwal KBM dikelola terpusat oleh administrator sekolah. Silakan hubungi admin untuk pembagian jam mengajar.
+                        </p>
                     </div>
                 @else
-                    <div class="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         @foreach($schedulesByDay as $dayName => $daySchedules)
-                            <div class="space-y-2">
-                                <div class="text-[11px] font-black uppercase text-black bg-[#FFF9DB] border border-black px-2.5 py-1 flex items-center justify-between">
-                                    <span>{{ $dayName }}</span>
-                                    <span class="text-[10px] font-mono text-slate-600">{{ count($daySchedules) }} Kelas</span>
+                            <div class="bg-slate-50 border-2 border-black rounded-sm p-3.5 space-y-2.5">
+                                <div class="flex items-center justify-between border-b-2 border-black pb-1.5">
+                                    <span class="font-heading font-black text-xs uppercase text-black flex items-center gap-1.5">
+                                        <span class="w-2 h-2 bg-black rounded-full inline-block"></span>
+                                        {{ $dayName }}
+                                    </span>
+                                    <span class="text-[10px] font-mono font-bold bg-white border border-black px-1.5 py-0.2">
+                                        {{ count($daySchedules) }} Sesi
+                                    </span>
                                 </div>
 
-                                <div class="space-y-1.5">
+                                <div class="space-y-2">
                                     @foreach($daySchedules as $sch)
-                                        <div class="p-2.5 bg-slate-50 border-2 border-black rounded-sm flex items-center justify-between gap-2 hover:bg-amber-50 transition-colors">
-                                            <div class="min-w-0">
-                                                <div class="text-xs font-black text-black truncate">
-                                                    {{ $sch->subject->name ?? 'Mata Pelajaran' }}
-                                                </div>
-                                                <div class="text-[10px] font-semibold text-slate-600 flex items-center gap-2 mt-0.5">
-                                                    <span class="bg-white border border-black px-1.5 py-0.2 rounded font-mono">
-                                                        {{ $sch->schoolClass->name ?? '-' }}
-                                                    </span>
-                                                    <span>•</span>
-                                                    <span>{{ $sch->schoolClass->level ?? '' }}</span>
-                                                </div>
-                                            </div>
-                                            <div class="text-right shrink-0">
-                                                <span class="text-[10px] font-mono font-black bg-[#5294FF] text-white px-2 py-0.5 border border-black inline-block">
+                                        <div class="p-2.5 bg-white border-2 border-black rounded-sm space-y-1 shadow-[2px_2px_0px_0px_#000]">
+                                            <div class="flex items-center justify-between gap-1">
+                                                <span class="font-mono text-[10px] font-black bg-slate-100 border border-black px-1.5 py-0.5">
                                                     {{ substr($sch->start_time, 0, 5) }} - {{ substr($sch->end_time, 0, 5) }}
                                                 </span>
+                                                <span class="neo-badge bg-[#5294FF] text-white text-[9px] font-black">
+                                                    {{ $sch->schoolClass->name ?? 'Kelas' }}
+                                                </span>
+                                            </div>
+                                            <div class="font-heading font-black text-xs text-black leading-tight truncate">
+                                                {{ $sch->subject->name ?? 'Mata Pelajaran' }}
                                             </div>
                                         </div>
                                     @endforeach
@@ -194,241 +546,6 @@
             </div>
 
         </div>
-
-        <!-- KOLOM KANAN (7 Kolom): Formulir Ubah Biodata & Ganti Kata Sandi -->
-        <div class="lg:col-span-7 space-y-6">
-            
-            <!-- Kartu 1: Formulir Ubah Biodata Diri -->
-            <div class="bg-white neo-box p-6 space-y-5">
-                <div class="border-b-2 border-black pb-3">
-                    <h3 class="font-heading font-black text-base uppercase flex items-center gap-2 text-black">
-                        <span>👤</span> Pengaturan Biodata Guru
-                    </h3>
-                    <p class="text-xs font-medium text-slate-600 mt-1">
-                        Perbarui informasi nama lengkap, email login, dan nomor kontak Anda.
-                    </p>
-                </div>
-
-                <form id="formUpdateProfile" action="{{ route('guru.profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-4" onsubmit="return confirmUpdateProfile(event)">
-                    @csrf
-                    @method('PUT')
-
-                    <!-- NIP (Read-only) -->
-                    <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1 flex items-center justify-between">
-                            <span>Nomor Induk Pegawai (NIP)</span>
-                            <span class="text-[10px] text-slate-500 font-bold">🔒 Tidak Dapat Diubah</span>
-                        </label>
-                        <div class="relative">
-                            <input type="text" value="{{ $teacher->nip ?? '-' }}" disabled
-                                   class="w-full bg-slate-100 border-2 border-black px-3 py-2 text-xs font-mono font-bold text-slate-700 cursor-not-allowed">
-                        </div>
-                        <p class="text-[10px] text-slate-500 mt-1">
-                            NIP ditetapkan oleh administrator sistem sekolah. Hubungi admin jika terdapat kesalahan.
-                        </p>
-                    </div>
-
-                    <!-- Nama Lengkap -->
-                    <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">
-                            Nama Lengkap Guru *
-                        </label>
-                        <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                               placeholder="Nama Lengkap dengan Gelar"
-                               class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
-                        @error('name')
-                            <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Alamat Email -->
-                    <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1 flex items-center justify-between">
-                            <span>Alamat Email Pribadi (Mandiri) *</span>
-                            @if(empty($user->email))
-                                <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-[10px]">Wajib Dilengkapi</span>
-                            @endif
-                        </label>
-                        @if(empty($user->email))
-                            <div class="bg-[#FFF9DB] border-2 border-black p-2.5 mb-2 text-xs font-bold text-amber-950 flex items-center gap-2">
-                                <span>⚠️</span>
-                                <span>Email Anda belum terdaftar. Silakan lengkapi email aktif Anda di bawah ini untuk pemulihan akun.</span>
-                            </div>
-                        @endif
-                        <input type="email" name="email" value="{{ old('email', $user->email) }}" required
-                               placeholder="nama.anda@gmail.com"
-                               class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-mono font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
-                        <p class="text-[10px] text-slate-500 mt-1">
-                            Email ini dapat Anda gunakan sebagai alternatif login ke sistem presensi.
-                        </p>
-                        @error('email')
-                            <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Nomor WhatsApp / HP -->
-                    <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">
-                            Nomor Telepon / WhatsApp
-                        </label>
-                        <input type="text" name="phone" value="{{ old('phone', $teacher->phone) }}"
-                               placeholder="Contoh: 081234567890"
-                               class="w-full bg-white border-2 border-black px-3 py-2 text-xs font-mono font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
-                        <p class="text-[10px] text-slate-500 mt-1">
-                            Nomor WhatsApp untuk koordinasi kedinasan dan komunikasi dengan wali murid.
-                        </p>
-                        @error('phone')
-                            <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Foto Profil Guru -->
-                    <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">
-                            Foto Profil Guru
-                        </label>
-                        <input type="hidden" name="photo_cropped" id="photoCroppedInput">
-
-                        <div class="flex items-center gap-4 p-3 bg-slate-50 border-2 border-black rounded-sm">
-                            <!-- Preview Box -->
-                            <div class="w-16 h-16 bg-white border-2 border-black rounded-full overflow-hidden flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#000]" id="avatarPreviewContainer">
-                                @if(!empty($teacher->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($teacher->photo))
-                                    <img src="{{ asset('storage/' . $teacher->photo) }}" id="avatarPreviewImage" data-original-src="{{ asset('storage/' . $teacher->photo) }}" alt="{{ $user->name }}" class="w-full h-full object-cover">
-                                    <span id="avatarPreviewEmoji" class="text-2xl hidden">👨‍🏫</span>
-                                @else
-                                    <span id="avatarPreviewEmoji" class="text-2xl">👨‍🏫</span>
-                                    <img src="" id="avatarPreviewImage" data-original-src="" alt="{{ $user->name }}" class="w-full h-full object-cover hidden">
-                                @endif
-                            </div>
-
-                            <div class="flex-1 min-w-0 space-y-1.5">
-                                <input type="file" name="photo" id="teacherPhotoInput" accept="image/jpeg,image/png,image/jpg,image/webp"
-                                       onchange="handleTeacherPhotoChange(this)"
-                                       class="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:border-2 file:border-black file:text-xs file:font-black file:bg-[#FFD43B] hover:file:bg-[#fcc419] file:cursor-pointer file:shadow-[1px_1px_0px_#000] cursor-pointer">
-                                
-                                <div class="flex items-center justify-between flex-wrap gap-2">
-                                    <p class="text-[10px] text-slate-500 font-medium">
-                                        Maks. 5MB. Format: JPG, JPEG, PNG, WEBP.
-                                    </p>
-
-                                    <div class="flex items-center gap-2">
-                                        <button type="button" id="btnRecrop" onclick="reopenCropper()" class="hidden neo-btn bg-white hover:bg-slate-100 text-black px-2 py-0.5 text-[10px] font-bold border border-black cursor-pointer">
-                                            ✂️ Potong Ulang
-                                        </button>
-
-                                        @if(!empty($teacher->photo))
-                                            <label class="inline-flex items-center gap-1.5 cursor-pointer text-[10px] font-black text-rose-700 select-none">
-                                                <input type="checkbox" name="remove_photo" value="1" id="removePhotoCheckbox" onchange="toggleRemoveTeacherPhoto(this)" class="w-3.5 h-3.5 rounded border border-black text-rose-600 focus:ring-0 cursor-pointer">
-                                                <span>Hapus Foto</span>
-                                            </label>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @error('photo')
-                            <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                        @enderror
-                        @error('photo_cropped')
-                            <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Action Button -->
-                    <div class="pt-3 border-t-2 border-black/10 flex justify-end">
-                        <button type="submit" class="neo-btn bg-[#20C997] text-black text-xs font-black px-5 py-2.5 flex items-center gap-1.5 hover:bg-emerald-400 cursor-pointer shadow-sm">
-                            <span>💾</span> Simpan Perubahan Biodata
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Kartu 2: Formulir Ganti Kata Sandi -->
-            <div class="bg-white neo-box p-6 space-y-5">
-                <div class="border-b-2 border-black pb-3">
-                    <h3 class="font-heading font-black text-base uppercase flex items-center gap-2 text-black">
-                        <span>🔐</span> Keamanan & Kata Sandi
-                    </h3>
-                    <p class="text-xs font-medium text-slate-600 mt-1">
-                        Ganti kata sandi akun Anda secara berkala demi keamanan data presensi dan siswa.
-                    </p>
-                </div>
-
-                <form id="formUpdatePassword" action="{{ route('guru.profile.password') }}" method="POST" class="space-y-4" onsubmit="return confirmUpdatePassword(event)">
-                    @csrf
-                    @method('PUT')
-
-                    <!-- Password Saat Ini -->
-                    <div>
-                        <label class="block text-xs font-black uppercase text-black mb-1">
-                            Kata Sandi Saat Ini *
-                        </label>
-                        <div class="relative">
-                            <input type="password" id="current_password" name="current_password" required
-                                   placeholder="Masukkan kata sandi lama Anda"
-                                   class="w-full bg-white border-2 border-black px-3 py-2 pr-10 text-xs font-mono font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
-                            <button type="button" onclick="togglePasswordVisibility('current_password', 'icon_current')" 
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-black cursor-pointer text-xs">
-                                <span id="icon_current">👁️</span>
-                            </button>
-                        </div>
-                        @error('current_password')
-                            <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <!-- Password Baru -->
-                        <div>
-                            <label class="block text-xs font-black uppercase text-black mb-1">
-                                Kata Sandi Baru *
-                            </label>
-                            <div class="relative">
-                                <input type="password" id="password" name="password" required minlength="8"
-                                       placeholder="Minimal 8 karakter"
-                                       class="w-full bg-white border-2 border-black px-3 py-2 pr-10 text-xs font-mono font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
-                                <button type="button" onclick="togglePasswordVisibility('password', 'icon_new')" 
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-black cursor-pointer text-xs">
-                                    <span id="icon_new">👁️</span>
-                                </button>
-                            </div>
-                            @error('password')
-                                <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Konfirmasi Password Baru -->
-                        <div>
-                            <label class="block text-xs font-black uppercase text-black mb-1">
-                                Konfirmasi Kata Sandi Baru *
-                            </label>
-                            <div class="relative">
-                                <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8"
-                                       placeholder="Ketik ulang kata sandi baru"
-                                       class="w-full bg-white border-2 border-black px-3 py-2 pr-10 text-xs font-mono font-bold text-black focus:outline-hidden focus:ring-2 focus:ring-[#FFD43B]">
-                                <button type="button" onclick="togglePasswordVisibility('password_confirmation', 'icon_confirm')" 
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-black cursor-pointer text-xs">
-                                    <span id="icon_confirm">👁️</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="p-3 bg-[#E7F5FF] border-2 border-black rounded-sm text-[11px] font-semibold text-blue-950">
-                        🛡️ <b>Tips Keamanan:</b> Gunakan minimal 8 karakter dengan kombinasi huruf besar, kecil, angka, dan simbol untuk perlindungan akun maksimal.
-                    </div>
-
-                    <!-- Action Button -->
-                    <div class="pt-3 border-t-2 border-black/10 flex justify-end">
-                        <button type="submit" class="neo-btn bg-[#FFD43B] text-black text-xs font-black px-5 py-2.5 flex items-center gap-1.5 hover:bg-yellow-400 cursor-pointer shadow-sm">
-                            <span>🔑</span> Perbarui Kata Sandi
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-        </div>
-
     </div>
 </div>
 
@@ -492,6 +609,28 @@
 <script>
     let cropperInstance = null;
     let rawImageSource = null;
+
+    function switchProfileTab(tab) {
+        const tabs = ['biodata', 'keamanan', 'penugasan'];
+        tabs.forEach(t => {
+            const content = document.getElementById('tabContent-' + t);
+            const btn = document.getElementById('tabBtn-' + t);
+            if (content && btn) {
+                if (t === tab) {
+                    content.classList.remove('hidden');
+                    btn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm cursor-pointer whitespace-nowrap";
+                } else {
+                    content.classList.add('hidden');
+                    btn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer whitespace-nowrap";
+                }
+            }
+        });
+
+        // Update URL query tanpa reload
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url);
+    }
 
     function handleTeacherPhotoChange(input) {
         const file = input.files[0];
@@ -578,7 +717,6 @@
         }
 
         const croppedInput = document.getElementById('photoCroppedInput');
-        // Reset file input if no photo was ever cropped
         if (!croppedInput || !croppedInput.value) {
             const input = document.getElementById('teacherPhotoInput');
             if (input) input.value = '';
@@ -643,7 +781,6 @@
             if (previewEmoji) previewEmoji.classList.remove('hidden');
             if (btnRecrop) btnRecrop.classList.add('hidden');
         } else {
-            // Reset to original photo if available
             if (previewImg && previewImg.getAttribute('data-original-src')) {
                 previewImg.src = previewImg.getAttribute('data-original-src');
                 previewImg.classList.remove('hidden');
@@ -655,12 +792,13 @@
     function togglePasswordVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
         const icon = document.getElementById(iconId);
+        if (!input) return;
         if (input.type === 'password') {
             input.type = 'text';
-            icon.textContent = '🙈';
+            if (icon) icon.textContent = '🙈';
         } else {
             input.type = 'password';
-            icon.textContent = '👁️';
+            if (icon) icon.textContent = '👁️';
         }
     }
 
