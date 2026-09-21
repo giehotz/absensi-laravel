@@ -103,6 +103,19 @@
                     "{{ $transaction->description }}"
                 </div>
             @endif
+            @if($transaction->is_corrected)
+                <div class="mt-2 pt-2 border-t border-dashed border-amber-300 bg-amber-50/70 p-2 text-left rounded">
+                    <div class="text-[11px] font-bold text-amber-900 flex items-center gap-1">
+                        <span>⚠️</span> Transaksi ini telah dikoreksi
+                    </div>
+                    <div class="text-[10px] text-slate-700 mt-0.5">
+                        Semula: <span class="line-through font-mono text-rose-700 font-semibold">{{ $transaction->formatted_original_amount }}</span> • Alasan: <span class="italic">"{{ $transaction->correction_reason }}"</span>
+                    </div>
+                    <div class="text-[10px] text-slate-500">
+                        Oleh: <strong>{{ $transaction->corrector?->name ?? 'Petugas' }}</strong> ({{ $transaction->corrected_at?->format('d/m/Y H:i') }} WIB)
+                    </div>
+                </div>
+            @endif
         </div>
 
         <!-- Saldo Summary -->

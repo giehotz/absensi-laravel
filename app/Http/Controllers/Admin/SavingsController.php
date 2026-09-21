@@ -9,8 +9,11 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Services\SavingsService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SavingsController extends Controller
@@ -67,6 +70,7 @@ class SavingsController extends Controller
             'savingsAccount.student.user',
             'savingsAccount.student.schoolClass',
             'handler',
+            'corrector',
         ])->orderByDesc('id');
 
         if ($search !== '') {
@@ -173,7 +177,7 @@ class SavingsController extends Controller
      */
     public function receipt(SavingsTransaction $transaction): View
     {
-        $transaction->load(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler']);
+        $transaction->load(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler', 'corrector']);
 
         return view('guru.tabungan.receipt', compact('transaction'));
     }
@@ -189,7 +193,7 @@ class SavingsController extends Controller
         $type = $request->query('type', 'all');
         $handlerId = $request->query('handler_id', '');
 
-        $query = SavingsTransaction::with(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler'])
+        $query = SavingsTransaction::with(['savingsAccount.student.user', 'savingsAccount.student.schoolClass', 'handler', 'corrector'])
             ->orderByDesc('id');
 
         if (in_array($type, ['deposit', 'withdrawal'])) {
@@ -245,6 +249,11 @@ class SavingsController extends Controller
                 'Saldo Sesudah (Rp)',
                 'Keterangan',
                 'Petugas (Guru Pengelola)',
+                'Status Koreksi',
+                'Nominal Awal (Rp)',
+                'Alasan Koreksi',
+                'Dikoreksi Oleh',
+                'Waktu Koreksi',
             ], ';');
 
             foreach ($transactions as $index => $tx) {
@@ -264,10 +273,44 @@ class SavingsController extends Controller
                     number_format((float) $tx->balance_after, 0, ',', '.'),
                     $tx->description ?? '-',
                     $tx->handler?->name ?? '-',
+                    $tx->is_corrected ? 'Dikoreksi' : 'Normal',
+                    $tx->is_corrected ? number_format((float) $tx->original_amount, 0, ',', '.') : '-',
+                    $tx->correction_reason ?? '-',
+                    $tx->corrector?->name ?? '-',
+                    $tx->corrected_at ? $tx->corrected_at->format('d/m/Y H:i:s') : '-',
                 ], ';');
             }
 
             fclose($output);
         }, 200, $headers);
+    }
+
+    /**
+     * Koreksi nominal transaksi tabungan (Admin).
+     */
+    public function correct(Request $request, SavingsTransaction $transaction): RedirectResponse
+    {
+        $validated = $request->validate([
+            'new_amount' => ['required', 'numeric', 'min:500'],
+            'reason' => ['required', 'string', 'min:5', 'max:255'],
+        ], [
+            'new_amount.required' => 'Nominal koreksi wajib diisi.',
+            'new_amount.min' => 'Nominal transaksi minimal Rp 500.',
+            'reason.required' => 'Alasan perbaikan/koreksi wajib dicatat untuk transparansi.',
+            'reason.min' => 'Alasan koreksi minimal 5 karakter.',
+        ]);
+
+        try {
+            $this->savingsService->correctTransaction(
+                $transaction,
+                (float) $validated['new_amount'],
+                $validated['reason'],
+                Auth::user()
+            );
+
+            return back()->with('success', "Transaksi {$transaction->transaction_code} berhasil dikoreksi menjadi Rp ".number_format((float) $validated['new_amount'], 0, ',', '.').'.');
+        } catch (InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }

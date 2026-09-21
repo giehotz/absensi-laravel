@@ -87,6 +87,7 @@ Route::post('attendances/manual', [ManualAttendanceController::class, 'store'])-
 Route::get('savings', [AdminSavingsController::class, 'index'])->name('savings.index');
 Route::get('savings/export', [AdminSavingsController::class, 'exportExcel'])->name('savings.export');
 Route::get('savings/receipt/{transaction}', [AdminSavingsController::class, 'receipt'])->name('savings.receipt');
+Route::post('savings/transactions/{transaction}/correct', [AdminSavingsController::class, 'correct'])->name('savings.transactions.correct');
 Route::get('savings/classes/{class}/students', [AdminSavingsController::class, 'classStudents'])->name('savings.class-students');
 
 // Manajemen API Client & Integrasi

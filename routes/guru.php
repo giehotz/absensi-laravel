@@ -5,14 +5,16 @@ use App\Http\Controllers\Guru\AttendanceReportController;
 use App\Http\Controllers\Guru\HomeroomClassController;
 use App\Http\Controllers\Guru\LeaveRequestController;
 use App\Http\Controllers\Guru\ProfileController;
+use App\Http\Controllers\Guru\ScheduleController;
 use App\Http\Controllers\ManualAttendanceController;
 use Illuminate\Support\Facades\Route;
 
 // Dashboard Guru
 Route::get('/dashboard', [DashboardController::class, 'guru'])->name('dashboard');
 
-// Jadwal Mengajar (Dalam Pengembangan)
-Route::view('/jadwal', 'guru.jadwal')->name('jadwal');
+// Jadwal Mengajar & Jadwal Kelas
+Route::get('/jadwal', [ScheduleController::class, 'index'])->name('jadwal');
+Route::get('/jadwal/index', [ScheduleController::class, 'index'])->name('schedule');
 
 // Perizinan Siswa (Guru / Wali Kelas)
 Route::get('/perizinan', [LeaveRequestController::class, 'index'])->name('leave-requests.index');

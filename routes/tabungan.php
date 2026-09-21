@@ -21,6 +21,7 @@ Route::middleware(['auth', EnsureIsSavingsOfficer::class])
         Route::post('/reopen-account', [SavingsController::class, 'reopenAccount'])->name('reopen-account');
 
         Route::get('/transactions', [SavingsController::class, 'transactions'])->name('transactions');
+        Route::post('/transactions/{transaction}/correct', [SavingsController::class, 'correct'])->name('transactions.correct');
         Route::get('/receipt/{transaction}', [SavingsController::class, 'receipt'])->name('receipt');
         Route::get('/export', [SavingsController::class, 'exportExcel'])->name('export');
     });

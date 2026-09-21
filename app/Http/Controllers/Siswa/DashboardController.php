@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\LeaveRequest;
 use App\Models\QrToken;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
+use App\Models\SlotTemplate;
 use App\Models\Student;
 use App\Models\StudentNote;
 use App\Services\QrCodeService;
@@ -103,6 +105,31 @@ class DashboardController extends Controller
             $schedulesByDay[$sched->day_of_week][] = $sched;
         }
 
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $slotTemplates = SlotTemplate::where('academic_year_id', $academicYear?->id)
+            ->orderBy('day_of_week')
+            ->orderBy('jam_ke')
+            ->get();
+
+        $defaultPresets = SlotTemplate::getDefaultMadrasahSlots();
+        $allSlotsByDay = [];
+        foreach ($daysMap as $dayNum => $dayName) {
+            $daySlots = $slotTemplates->where('day_of_week', $dayNum)->values();
+            if ($daySlots->isEmpty() && isset($defaultPresets[$dayNum])) {
+                $daySlots = collect($defaultPresets[$dayNum])->map(function ($s) use ($dayNum) {
+                    return new SlotTemplate([
+                        'day_of_week' => $dayNum,
+                        'jam_ke' => $s['jam_ke'],
+                        'k_jadwal' => $s['k_jadwal'],
+                        'name' => $s['name'],
+                        'start_time' => $s['start'].':00',
+                        'end_time' => $s['end'].':00',
+                    ]);
+                });
+            }
+            $allSlotsByDay[$dayNum] = $daySlots;
+        }
+
         $currentDayOfWeek = (int) $now->dayOfWeekIso; // 1 = Senin ... 7 = Minggu
         $currentTimeStr = $now->format('H:i:s');
 
@@ -129,7 +156,7 @@ class DashboardController extends Controller
         // 8. Tabungan Siswa (Rekening & Mutasi Transaksi)
         $savingsService = app(SavingsService::class);
         $savingsAccount = $savingsService->getOrCreateAccount($student);
-        $savingsTransactions = $savingsAccount->transactions()->with('handler')->take(20)->get();
+        $savingsTransactions = $savingsAccount->transactions()->with(['handler', 'corrector'])->take(20)->get();
 
         return view('siswa.dashboard', compact(
             'student',
@@ -146,7 +173,8 @@ class DashboardController extends Controller
             'history',
             'studentNotes',
             'savingsAccount',
-            'savingsTransactions'
+            'savingsTransactions',
+            'allSlotsByDay'
         ));
     }
 }

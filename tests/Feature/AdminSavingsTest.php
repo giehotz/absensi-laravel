@@ -159,4 +159,37 @@ class AdminSavingsTest extends TestCase
         $response->assertViewIs('guru.tabungan.receipt');
         $response->assertSee('TRX-RCPT-001');
     }
+
+    public function test_admin_can_correct_any_savings_transaction(): void
+    {
+        $admin = $this->createAdminUser();
+        $student = $this->createStudentWithSavings('7A', 50000);
+
+        $tx = SavingsTransaction::create([
+            'savings_account_id' => $student->savingsAccount->id,
+            'transaction_code' => 'TRX-TEST-CORRECT',
+            'type' => 'deposit',
+            'amount' => 50000,
+            'balance_before' => 0,
+            'balance_after' => 50000,
+            'handled_by' => $admin->id,
+            'description' => 'Setoran awal',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.savings.transactions.correct', $tx), [
+            'new_amount' => 40000,
+            'reason' => 'Koreksi oleh administrator sekolah',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $tx->refresh();
+        $this->assertEquals(40000, (float) $tx->amount);
+        $this->assertTrue($tx->is_corrected);
+        $this->assertEquals(50000, (float) $tx->original_amount);
+        $this->assertEquals('Koreksi oleh administrator sekolah', $tx->correction_reason);
+        $this->assertEquals($admin->id, $tx->corrected_by);
+        $this->assertEquals(40000, (float) $student->fresh()->savingsAccount->balance);
+    }
 }

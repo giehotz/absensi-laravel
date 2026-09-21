@@ -19,6 +19,11 @@ class SavingsTransaction extends Model
         'balance_after',
         'description',
         'handled_by',
+        'is_corrected',
+        'original_amount',
+        'correction_reason',
+        'corrected_by',
+        'corrected_at',
     ];
 
     protected function casts(): array
@@ -27,6 +32,9 @@ class SavingsTransaction extends Model
             'amount' => 'decimal:2',
             'balance_before' => 'decimal:2',
             'balance_after' => 'decimal:2',
+            'is_corrected' => 'boolean',
+            'original_amount' => 'decimal:2',
+            'corrected_at' => 'datetime',
         ];
     }
 
@@ -38,6 +46,18 @@ class SavingsTransaction extends Model
     public function handler(): BelongsTo
     {
         return $this->belongsTo(User::class, 'handled_by');
+    }
+
+    public function corrector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'corrected_by');
+    }
+
+    public function getFormattedOriginalAmountAttribute(): ?string
+    {
+        return $this->original_amount !== null
+            ? 'Rp '.number_format((float) $this->original_amount, 0, ',', '.')
+            : null;
     }
 
     public function getFormattedAmountAttribute(): string

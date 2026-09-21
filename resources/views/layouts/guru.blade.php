@@ -161,6 +161,7 @@
                         @if(Auth::user()->isSavingsOfficer())
                         <!-- Tabungan Siswa (Bendahara Tabungan) -->
                         <a href="{{ route('guru.savings.index') }}" 
+                           onclick="try { const sc = localStorage.getItem('guru_tabungan_selected_class_{{ auth()->id() }}'); if (sc) { this.href = '{{ route('guru.savings.index') }}?class_id=' + encodeURIComponent(sc); } } catch(e) {}"
                            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.savings.*') 
                                 ? 'bg-[#20C997] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 

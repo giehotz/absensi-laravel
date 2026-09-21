@@ -205,4 +205,60 @@ class SavingsService
 
         return true;
     }
+
+    /**
+     * Koreksi nominal transaksi yang salah input dengan audit trail dan sinkronisasi saldo.
+     */
+    public function correctTransaction(SavingsTransaction|int $transaction, float $newAmount, string $reason, User $officer): SavingsTransaction
+    {
+        if ($newAmount <= 0) {
+            throw new InvalidArgumentException('Nominal transaksi baru harus lebih besar dari Rp 0.');
+        }
+
+        if (trim($reason) === '') {
+            throw new InvalidArgumentException('Alasan koreksi transaksi wajib diisi.');
+        }
+
+        $txId = $transaction instanceof SavingsTransaction ? $transaction->id : $transaction;
+
+        return DB::transaction(function () use ($txId, $newAmount, $reason, $officer) {
+            /** @var SavingsTransaction $lockedTx */
+            $lockedTx = SavingsTransaction::where('id', $txId)->lockForUpdate()->firstOrFail();
+
+            /** @var SavingsAccount $lockedAccount */
+            $lockedAccount = SavingsAccount::where('id', $lockedTx->savings_account_id)->lockForUpdate()->firstOrFail();
+
+            $oldAmount = (float) $lockedTx->amount;
+
+            // Hitung perubahan terhadap saldo rekening
+            // Jika setoran: new > old -> saldo bertambah, new < old -> saldo berkurang
+            // Jika penarikan: new > old -> saldo berkurang, new < old -> saldo bertambah
+            $delta = $lockedTx->isDeposit()
+                ? ($newAmount - $oldAmount)
+                : ($oldAmount - $newAmount);
+
+            $newBalance = (float) $lockedAccount->balance + $delta;
+
+            if ($newBalance < 0) {
+                throw new InvalidArgumentException('Koreksi transaksi ditolak karena akan mengakibatkan saldo tabungan siswa menjadi minus (Rp '.number_format($newBalance, 0, ',', '.').'). Saldo saat ini tidak mencukupi untuk pengurangan nominal tersebut.');
+            }
+
+            // Simpan nominal asli sebelum koreksi pertama kali
+            $originalAmount = $lockedTx->original_amount ?? $oldAmount;
+
+            $lockedTx->update([
+                'original_amount' => $originalAmount,
+                'amount' => $newAmount,
+                'balance_after' => (float) $lockedTx->balance_after + $delta,
+                'is_corrected' => true,
+                'correction_reason' => $reason,
+                'corrected_by' => $officer->id,
+                'corrected_at' => now(),
+            ]);
+
+            $lockedAccount->update(['balance' => $newBalance]);
+
+            return $lockedTx;
+        });
+    }
 }

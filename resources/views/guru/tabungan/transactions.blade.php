@@ -13,8 +13,9 @@
             </h2>
             <p class="text-xs text-slate-500 font-semibold">Seluruh rekam jejak setoran dan penarikan tabungan siswa</p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('guru.savings.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-bold px-3.5 py-2 flex items-center gap-1.5">
+            <a href="{{ route('guru.savings.index') }}" 
+               onclick="try { const sc = localStorage.getItem('guru_tabungan_selected_class_{{ auth()->id() }}'); if (sc) { this.href = '{{ route('guru.savings.index') }}?class_id=' + encodeURIComponent(sc); } } catch(e) {}"
+               class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-bold px-3.5 py-2 flex items-center gap-1.5">
                 <span>←</span> Form Transaksi
             </a>
             <a href="{{ route('guru.savings.export', request()->query()) }}" class="neo-btn bg-[#20C997] hover:bg-emerald-600 text-white text-xs font-bold px-3.5 py-2 flex items-center gap-1.5">
@@ -101,28 +102,39 @@
                         <th class="p-3 border-r border-black text-right">Saldo Sesudah</th>
                         <th class="p-3 border-r border-black">Keterangan</th>
                         <th class="p-3 border-r border-black">Petugas</th>
-                        <th class="p-3 text-center w-20">Aksi</th>
+                        <th class="p-3 text-center w-36">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y-2 divide-black font-medium">
                     @forelse($transactions as $idx => $t)
+                        @php
+                            $tStudent = $t->savingsAccount?->student;
+                        @endphp
                         <tr class="hover:bg-slate-50">
                             <td class="p-3 text-center font-bold border-r border-black">
                                 {{ $transactions->firstItem() + $idx }}
                             </td>
-                            <td class="p-3 border-r border-black font-mono font-bold text-black">
-                                {{ $t->transaction_code }}
+                            <td class="p-3 border-r border-black font-mono font-bold text-black whitespace-nowrap">
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <span>{{ $t->transaction_code }}</span>
+                                    @if($t->is_corrected)
+                                        <span class="neo-badge bg-[#FFE066] text-[#664D03] text-[9px] px-1.5 py-0.2 font-black border border-black inline-flex items-center gap-0.5 cursor-help shadow-[1px_1px_0px_0px_#000]"
+                                            title="Telah dikoreksi. Alasan: {{ $t->correction_reason }} (Oleh: {{ $t->corrector?->name }})">
+                                            <span>⚠️</span> Dikoreksi
+                                        </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="p-3 border-r border-black font-mono text-slate-700">
                                 {{ $t->created_at->format('d/m/Y H:i:s') }}
                             </td>
                             <td class="p-3 border-r border-black">
-                                <div class="font-bold text-black">{{ $t->savingsAccount?->student?->user?->name ?? '-' }}</div>
-                                <div class="text-[10px] text-slate-500 font-mono">NISN: {{ $t->savingsAccount?->student?->nisn ?: ($t->savingsAccount?->student?->nis ?: '-') }}</div>
+                                <div class="font-bold text-black">{{ $tStudent?->user?->name ?? '-' }}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">NISN: {{ $tStudent?->nisn ?: ($tStudent?->nis ?: '-') }}</div>
                             </td>
                             <td class="p-3 border-r border-black text-center">
                                 <span class="neo-badge bg-[#E7F5FF] text-blue-950 text-[10px] px-2 py-0.5 font-bold">
-                                    {{ $t->savingsAccount?->student?->schoolClass?->name ?? '-' }}
+                                    {{ $tStudent?->schoolClass?->name ?? '-' }}
                                 </span>
                             </td>
                             <td class="p-3 border-r border-black text-center">
@@ -133,23 +145,50 @@
                                 @endif
                             </td>
                             <td class="p-3 border-r border-black text-right font-mono font-black {{ $t->isDeposit() ? 'text-emerald-700' : 'text-rose-700' }}">
-                                {{ $t->isDeposit() ? '+' : '-' }}{{ $t->formatted_amount }}
+                                <div>{{ $t->isDeposit() ? '+' : '-' }}{{ $t->formatted_amount }}</div>
+                                @if($t->is_corrected)
+                                    <div class="text-[10px] text-slate-400 font-mono line-through font-normal" title="Nominal sebelum koreksi">
+                                        {{ $t->formatted_original_amount }}
+                                    </div>
+                                @endif
                             </td>
                             <td class="p-3 border-r border-black text-right font-mono font-bold text-slate-900">
                                 {{ $t->formatted_balance_after }}
                             </td>
                             <td class="p-3 border-r border-black text-slate-600 text-[11px]">
-                                {{ $t->description ?: '-' }}
+                                <div>{{ $t->description ?: '-' }}</div>
+                                @if($t->is_corrected)
+                                    <div class="text-[10px] text-amber-900 font-semibold mt-0.5 italic">
+                                        "{{ $t->correction_reason }}"
+                                    </div>
+                                @endif
                             </td>
                             <td class="p-3 border-r border-black text-slate-700 text-xs">
                                 {{ $t->handler?->name ?? '-' }}
                             </td>
                             <td class="p-3 text-center">
-                                <a href="{{ route('guru.savings.receipt', $t) }}" target="_blank" 
-                                    class="neo-btn bg-slate-100 hover:bg-[#FFD43B] text-black text-[10px] font-bold px-2 py-1 inline-flex items-center gap-1"
-                                    title="Cetak Kuitansi Transaksi">
-                                    <span>🖨️</span> Cetak
-                                </a>
+                                <div class="flex items-center justify-center gap-1">
+                                    <a href="{{ route('guru.savings.receipt', $t) }}" target="_blank" 
+                                        class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-bold px-2 py-1 inline-flex items-center gap-1 shadow-[1px_1px_0px_0px_#000]"
+                                        title="Cetak Kuitansi Transaksi">
+                                        <span>🖨️</span> Slip
+                                    </a>
+                                    <button type="button"
+                                        onclick="openCorrectModal({
+                                            code: '{{ $t->transaction_code }}',
+                                            student: '{{ addslashes($tStudent?->user?->name ?? 'Siswa') }}',
+                                            accountNumber: '{{ $t->savingsAccount?->account_number ?? '-' }}',
+                                            type: '{{ $t->type }}',
+                                            typeName: '{{ $t->type === 'deposit' ? 'Setoran (+)' : 'Penarikan (-)' }}',
+                                            amount: {{ (float) $t->amount }},
+                                            currentBalance: {{ (float) ($t->savingsAccount?->balance ?? 0) }},
+                                            actionUrl: '{{ route('guru.savings.transactions.correct', $t) }}'
+                                        })"
+                                        class="neo-btn bg-[#FFE066] hover:bg-yellow-400 text-black text-[10px] font-bold px-2 py-1 inline-flex items-center gap-1 shadow-[1px_1px_0px_0px_#000] cursor-pointer"
+                                        title="Koreksi nominal transaksi">
+                                        <span>✏️</span> Koreksi
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -171,4 +210,195 @@
         </div>
     </div>
 </div>
+
+<!-- ========================================================================= -->
+<!-- MODAL POPUP: KOREKSI TRANSAKSI TABUNGAN (GURU) -->
+<!-- ========================================================================= -->
+<div id="modalCorrectTransaction" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white neo-box max-w-lg w-full p-6 my-8 flex flex-col border-4 border-black shadow-[6px_6px_0px_0px_#000] relative">
+        <button type="button" onclick="closeModal('modalCorrectTransaction')" class="absolute right-4 top-4 text-black hover:text-rose-600 font-black text-xl p-1 cursor-pointer">
+            ✕
+        </button>
+
+        <div class="border-b-2 border-black pb-3 mb-4">
+            <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
+                <span>✏️</span> Koreksi Nominal Transaksi
+            </h3>
+            <p class="text-xs text-slate-600 mt-0.5">
+                Perbaikan kesalahan input nominal transaksi tabungan santri/siswa
+            </p>
+        </div>
+
+        <div class="bg-amber-50 border-2 border-black p-3 text-xs text-amber-950 mb-4 space-y-1">
+            <div class="font-bold flex items-center gap-1.5">
+                <span>⚠️</span> Ketentuan Audit Koreksi:
+            </div>
+            <p class="text-[11px] text-slate-700 leading-relaxed">
+                Perubahan nominal akan otomatis menyesuaikan saldo rekening siswa, meninggalkan tanda audit koreksi di mutasi siswa, dan mencatat nama Anda beserta alasan perbaikan.
+            </p>
+        </div>
+
+        <form id="correctTransactionForm" method="POST" action="" class="space-y-4">
+            @csrf
+
+            <!-- Info Transaksi Terpilih -->
+            <div class="bg-slate-100 border-2 border-black p-3 text-xs space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">Kode Transaksi:</span>
+                    <span id="correctModalCode" class="font-mono font-bold text-black">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">Nama Siswa:</span>
+                    <strong id="correctModalStudent" class="text-black">-</strong>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">No. Rekening:</span>
+                    <span id="correctModalAccount" class="font-mono text-slate-700">-</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-600">Jenis Transaksi:</span>
+                    <span id="correctModalType" class="font-black">-</span>
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-300 pt-1.5">
+                    <span class="text-slate-700 font-bold">Nominal Tercatat Saat Ini:</span>
+                    <span id="correctModalCurrentAmount" class="font-mono font-black text-slate-900">Rp 0</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-700 font-bold">Saldo Siswa Saat Ini:</span>
+                    <span id="correctModalCurrentBalance" class="font-mono font-black text-emerald-800">Rp 0</span>
+                </div>
+            </div>
+
+            <!-- Input Nominal Baru -->
+            <div class="space-y-1.5">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">
+                    Nominal Sebenarnya (Baru) <span class="text-rose-600">*</span>
+                </label>
+                <div class="relative">
+                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                    <input type="number" name="new_amount" id="correctModalNewAmount" min="0" step="500" required
+                        placeholder="0"
+                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-yellow-50/50">
+                </div>
+                <!-- Quick Amount Buttons -->
+                <div class="flex flex-wrap gap-1.5 pt-0.5">
+                    <button type="button" onclick="setModalCorrectAmount(1000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">1.000</button>
+                    <button type="button" onclick="setModalCorrectAmount(2000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">2.000</button>
+                    <button type="button" onclick="setModalCorrectAmount(5000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">5.000</button>
+                    <button type="button" onclick="setModalCorrectAmount(10000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">10.000</button>
+                    <button type="button" onclick="setModalCorrectAmount(20000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">20.000</button>
+                    <button type="button" onclick="setModalCorrectAmount(50000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">50.000</button>
+                    <button type="button" onclick="setModalCorrectAmount(100000)" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-[10px] font-mono font-bold px-1.5 py-0.5 cursor-pointer">100.000</button>
+                </div>
+                
+                <!-- Perhitungan Dampak Saldo -->
+                <div id="correctModalCalculation" class="bg-blue-50 border border-blue-300 p-2 text-xs space-y-0.5 text-blue-950">
+                    <div class="flex justify-between items-center text-[11px]">
+                        <span>Selisih Penyesuaian:</span>
+                        <span id="correctModalDeltaText" class="font-mono font-bold">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center font-bold">
+                        <span>Estimasi Saldo Baru Siswa:</span>
+                        <span id="correctModalNewBalanceText" class="font-mono font-black text-blue-900">Rp 0</span>
+                    </div>
+                </div>
+
+                <div id="correctModalWarningNegative" class="hidden bg-rose-100 border-2 border-rose-600 p-2.5 text-xs text-rose-950 font-bold">
+                    🚫 Peringatan: Perubahan ini menyebabkan saldo akhir siswa menjadi minus (&lt; Rp 0). Koreksi nominal tidak dapat diproses!
+                </div>
+            </div>
+
+            <!-- Input Alasan Koreksi -->
+            <div class="space-y-1">
+                <label class="block text-xs font-black uppercase tracking-wider text-black">
+                    Alasan Perubahan / Koreksi <span class="text-rose-600">*</span>
+                </label>
+                <input type="text" name="reason" id="correctModalReason" required minlength="5" maxlength="255"
+                    placeholder="Contoh: Salah ketik kelebihan nol saat melayani setoran santri"
+                    class="w-full neo-input text-xs font-medium py-2 bg-white">
+                <p class="text-[10px] text-slate-500">Minimal 5 karakter. Alasan ini akan tampil pada buku tabungan digital siswa.</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-2 pt-3 border-t-2 border-black">
+                <button type="button" onclick="closeModal('modalCorrectTransaction')" class="w-1/3 neo-btn bg-slate-200 hover:bg-slate-300 text-black font-bold text-xs py-2.5 cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" id="correctModalSubmitBtn" class="w-2/3 neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black font-black text-xs py-2.5 flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    <span>Simpan Koreksi</span>
+                    <span>✓</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 @endsection
+
+@push('scripts')
+<script>
+    let activeCorrectTx = null;
+
+    function openCorrectModal(data) {
+        activeCorrectTx = data;
+        
+        document.getElementById('correctTransactionForm').action = data.actionUrl;
+        document.getElementById('correctModalCode').textContent = data.code;
+        document.getElementById('correctModalStudent').textContent = data.student;
+        document.getElementById('correctModalAccount').textContent = data.accountNumber;
+        document.getElementById('correctModalType').textContent = data.typeName;
+        document.getElementById('correctModalCurrentAmount').textContent = 'Rp ' + Number(data.amount).toLocaleString('id-ID');
+        document.getElementById('correctModalCurrentBalance').textContent = 'Rp ' + Number(data.currentBalance).toLocaleString('id-ID');
+        
+        const inputNewAmount = document.getElementById('correctModalNewAmount');
+        inputNewAmount.value = data.amount;
+        document.getElementById('correctModalReason').value = '';
+        
+        updateCorrectCalculation();
+        openModal('modalCorrectTransaction');
+    }
+
+    function updateCorrectCalculation() {
+        if (!activeCorrectTx) return;
+        
+        const newAmount = parseFloat(document.getElementById('correctModalNewAmount').value) || 0;
+        const oldAmount = parseFloat(activeCorrectTx.amount) || 0;
+        const currentBalance = parseFloat(activeCorrectTx.currentBalance) || 0;
+        
+        let delta = 0;
+        if (activeCorrectTx.type === 'deposit') {
+            delta = newAmount - oldAmount;
+        } else {
+            delta = oldAmount - newAmount;
+        }
+        
+        const newBalance = currentBalance + delta;
+        
+        const deltaEl = document.getElementById('correctModalDeltaText');
+        const newBalanceEl = document.getElementById('correctModalNewBalanceText');
+        const warningEl = document.getElementById('correctModalWarningNegative');
+        const submitBtn = document.getElementById('correctModalSubmitBtn');
+        
+        deltaEl.textContent = (delta >= 0 ? '+' : '') + 'Rp ' + Number(delta).toLocaleString('id-ID');
+        deltaEl.className = 'font-mono font-bold ' + (delta >= 0 ? 'text-emerald-700' : 'text-rose-700');
+        
+        newBalanceEl.textContent = 'Rp ' + Number(newBalance).toLocaleString('id-ID');
+        
+        if (newBalance < 0) {
+            warningEl.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            warningEl.classList.add('hidden');
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    function setModalCorrectAmount(val) {
+        document.getElementById('correctModalNewAmount').value = val;
+        updateCorrectCalculation();
+    }
+
+    document.getElementById('correctModalNewAmount')?.addEventListener('input', updateCorrectCalculation);
+</script>
+@endpush

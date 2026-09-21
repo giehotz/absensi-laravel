@@ -96,11 +96,30 @@
                             <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 border border-slate-300 rounded">
                                 {{ $tx->transaction_code }}
                             </span>
+                            @if($tx->is_corrected)
+                                <span class="neo-badge bg-[#FFE066] text-[#664D03] text-[10px] px-2 py-0.5 font-bold border border-black inline-flex items-center gap-1 shadow-[1px_1px_0px_0px_#000]">
+                                    <span>⚠️</span> Dikoreksi
+                                </span>
+                            @endif
                         </div>
 
                         <div class="text-xs font-medium text-slate-700">
                             {{ $tx->description ?: ($tx->isDeposit() ? 'Setoran tunai' : 'Penarikan tunai') }}
                         </div>
+
+                        @if($tx->is_corrected)
+                            <div class="bg-amber-50 border-l-2 border-amber-500 p-2 text-[11px] text-amber-900 rounded-r space-y-0.5 my-1">
+                                <div class="font-semibold flex items-baseline gap-1">
+                                    <span class="shrink-0 font-bold text-amber-950">Alasan:</span>
+                                    <span class="italic text-slate-800">"{{ $tx->correction_reason }}"</span>
+                                </div>
+                                <div class="text-[10px] text-amber-800 flex items-center gap-1 flex-wrap">
+                                    <span>Semula: <span class="line-through font-semibold text-rose-700">{{ $tx->formatted_original_amount }}</span></span>
+                                    <span>•</span>
+                                    <span>Oleh: <strong>{{ $tx->corrector?->name ?? 'Petugas' }}</strong> ({{ $tx->corrected_at?->translatedFormat('d M Y, H:i') }} WIB)</span>
+                                </div>
+                            </div>
+                        @endif
 
                         <div class="text-[11px] font-mono text-slate-500 flex items-center gap-1">
                             <span>Sisa Saldo:</span>
@@ -124,6 +143,11 @@
                         <div class="text-[10px] font-bold text-slate-500 mt-1 uppercase">
                             {{ $tx->isDeposit() ? 'Setor Tunai' : 'Penarikan' }}
                         </div>
+                        @if($tx->is_corrected)
+                            <div class="text-[10px] text-slate-400 font-mono line-through mt-0.5" title="Nominal sebelum koreksi">
+                                {{ $tx->formatted_original_amount }}
+                            </div>
+                        @endif
                     </div>
                 </div>
             @empty
