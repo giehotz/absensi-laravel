@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\SchoolClassController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StudentCardController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudentPromotionController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\DashboardController;
@@ -37,6 +38,14 @@ Route::get('classes/{class}/students', [SchoolClassController::class, 'students'
 Route::get('classes/{class}/students/template', [SchoolClassController::class, 'downloadStudentsTemplate'])->name('classes.students.template');
 Route::post('classes/{class}/students/import', [SchoolClassController::class, 'importStudentsExcel'])->name('classes.students.import');
 Route::resource('classes', SchoolClassController::class)->except(['create', 'edit', 'show']);
+
+// Kenaikan Kelas & Kelulusan Siswa
+Route::prefix('students/promotion')->name('students.promotion.')->group(function () {
+    Route::get('/', [StudentPromotionController::class, 'index'])->name('index');
+    Route::post('/process', [StudentPromotionController::class, 'promote'])->name('process');
+    Route::post('/copy-classes', [StudentPromotionController::class, 'copyClasses'])->name('copy-classes');
+    Route::post('/quick-class', [StudentPromotionController::class, 'quickStoreClass'])->name('quick-class');
+});
 
 // Kartu Pelajar Siswa
 Route::get('students/cards', [StudentCardController::class, 'index'])->name('students.cards');

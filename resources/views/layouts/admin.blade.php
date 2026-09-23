@@ -133,13 +133,25 @@
                         <!-- Data Siswa & QR -->
                         <a href="{{ route('admin.students.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.students.*') 
+                           {{ (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.promotion.*'))
                                 ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
                                 : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.students.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="w-4 h-4 shrink-0 {{ (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.promotion.*')) ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a10.973 10.973 0 00-.074 1.949v2.5a1 1 0 00.553.894l4 2a1 1 0 00.894 0l4-2a1 1 0 00.553-.894V10c0-.663-.025-1.317-.074-1.949l2.644-1.131a1 1 0 000-1.84l-7-3zM4.77 7.02L10 9.26l5.23-2.24L10 4.78 4.77 7.02z"/>
                             </svg>
                             <span>Data Siswa & QR</span>
+                        </a>
+
+                        <!-- Kenaikan Kelas & Kelulusan -->
+                        <a href="{{ route('admin.students.promotion.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.students.promotion.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.students.promotion.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                            </svg>
+                            <span>Kenaikan Kelas</span>
                         </a>
 
                         <!-- Mata Pelajaran -->
