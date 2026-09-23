@@ -168,4 +168,31 @@
             reader.readAsDataURL(file);
         }
     }
+
+    // Pratinjau Favicon Aplikasi saat file dipilih
+    function previewAppFavicon(event) {
+        const input = event.target;
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewImg = document.getElementById('favicon-preview-image');
+                const placeholder = document.getElementById('favicon-preview-placeholder');
+                const filenameText = document.getElementById('favicon-filename');
+                
+                if (previewImg) {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.add('hidden');
+                }
+                if (filenameText) {
+                    filenameText.textContent = '✓ Dipilih: ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+                    filenameText.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
 </script>

@@ -63,6 +63,8 @@ class SettingController extends Controller
             'school_address' => ['nullable', 'string', 'max:500'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
+            'favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,svg,webp', 'max:1024'],
+            'remove_favicon' => ['nullable', 'boolean'],
         ], [
             'mode.required' => 'Mode absensi wajib dipilih.',
             'tolerance_minutes.required' => 'Toleransi keterlambatan wajib diisi.',
@@ -70,6 +72,9 @@ class SettingController extends Controller
             'logo.image' => 'File logo harus berupa gambar.',
             'logo.mimes' => 'Format logo harus berupa png, jpg, jpeg, svg, atau webp.',
             'logo.max' => 'Ukuran file logo maksimal adalah 2MB.',
+            'favicon.file' => 'File favicon harus berupa file yang valid.',
+            'favicon.mimes' => 'Format favicon harus berupa ico, png, jpg, jpeg, svg, atau webp.',
+            'favicon.max' => 'Ukuran file favicon maksimal adalah 1MB.',
         ]);
 
         $setting = AttendanceSetting::first() ?? new AttendanceSetting;
@@ -98,6 +103,18 @@ class SettingController extends Controller
                 Storage::disk('public')->delete($setting->logo);
             }
             $setting->logo = null;
+        }
+
+        if ($request->hasFile('favicon')) {
+            if ($setting->favicon && Storage::disk('public')->exists($setting->favicon)) {
+                Storage::disk('public')->delete($setting->favicon);
+            }
+            $setting->favicon = $request->file('favicon')->store('favicons', 'public');
+        } elseif ($request->boolean('remove_favicon')) {
+            if ($setting->favicon && Storage::disk('public')->exists($setting->favicon)) {
+                Storage::disk('public')->delete($setting->favicon);
+            }
+            $setting->favicon = null;
         }
 
         $setting->save();

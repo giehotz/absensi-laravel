@@ -98,6 +98,62 @@
             </div>
         </div>
 
+        <!-- Upload Favicon Satuan Pendidikan / Browser -->
+        <div class="border-2 border-black bg-slate-50 p-4 neo-box space-y-3">
+            <div>
+                <span class="neo-badge bg-[#FF6B6B] text-white text-[10px]">FAVICON BROWSER</span>
+                <label class="block font-heading font-black text-sm text-black mt-1">
+                    Favicon Aplikasi / Browser
+                </label>
+                <p class="text-xs text-slate-600 font-semibold">
+                    Ikon kecil yang muncul pada tab browser, shortcut bookmark, dan jendela aplikasi web.
+                </p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-1">
+                <!-- Preview Box -->
+                <div class="flex-shrink-0">
+                    <div id="favicon-preview-box" class="w-16 h-16 bg-white rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_#000] p-1.5 flex items-center justify-center overflow-hidden relative group">
+                        @if(!empty($setting->favicon) && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->favicon))
+                            <img id="favicon-preview-image" src="{{ asset('storage/' . $setting->favicon) }}" alt="Favicon Aplikasi" class="w-8 h-8 object-contain">
+                            <span id="favicon-preview-placeholder" class="hidden text-xs font-bold text-slate-400">ICO</span>
+                        @else
+                            <img id="favicon-preview-image" src="#" alt="Pratinjau Favicon" class="w-8 h-8 object-contain hidden">
+                            <div id="favicon-preview-placeholder" class="text-center text-slate-400">
+                                <span class="text-xl">🌐</span>
+                                <span class="text-[9px] font-bold uppercase tracking-wider block">Default</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Input & Controls -->
+                <div class="flex-1 w-full space-y-2">
+                    <div>
+                        <input type="file" name="favicon" id="app_favicon_input" accept=".ico,image/x-icon,image/png,image/svg+xml,image/webp,image/jpeg,image/jpg" onchange="previewAppFavicon(event)" class="block w-full text-xs text-slate-700 file:mr-3 file:py-2.5 file:px-4 file:rounded file:border-2 file:border-black file:text-xs file:font-heading file:font-bold file:bg-[#FFD43B] file:text-black hover:file:bg-[#fcc419] cursor-pointer">
+                        <span id="favicon-filename" class="text-[11px] font-mono text-emerald-700 font-bold mt-1 block hidden"></span>
+                        @error('favicon')
+                            <p class="text-xs font-bold text-red-600 mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="text-[11px] text-slate-500 font-medium space-y-0.5">
+                        <p>• Format yang didukung: <span class="font-bold text-black">ICO, PNG, SVG, WebP, JPG</span> (Maksimal 1 MB).</p>
+                        <p>• Ukuran yang disarankan: <span class="font-bold text-black">32x32 px</span> atau <span class="font-bold text-black">64x64 px</span> (persegi).</p>
+                    </div>
+
+                    @if(!empty($setting->favicon))
+                        <div class="pt-2 border-t border-slate-200">
+                            <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 px-2.5 py-1.5 rounded border border-red-200">
+                                <input type="checkbox" name="remove_favicon" value="1" class="rounded border-2 border-black text-red-600 focus:ring-0">
+                                <span>Hapus favicon kustom (kembalikan ke default)</span>
+                            </label>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
         <!-- Submit Profil -->
         <div class="flex items-center justify-end gap-3 pt-4 border-t-2 border-slate-200">
             <button type="submit" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-6 py-3 text-sm uppercase tracking-wider font-heading cursor-pointer">

@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Portal Guru') - Absensi Siswa</title>
+    @if(!empty($schoolSetting->favicon) && \Illuminate\Support\Facades\Storage::disk('public')->exists($schoolSetting->favicon))
+        <link rel="icon" href="{{ asset('storage/' . $schoolSetting->favicon) }}">
+    @elseif(!empty($schoolSetting->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($schoolSetting->logo))
+        <link rel="icon" href="{{ asset('storage/' . $schoolSetting->logo) }}">
+    @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800|space-grotesk:600,700" rel="stylesheet" />
     @vite(['resources/css/app.css'])

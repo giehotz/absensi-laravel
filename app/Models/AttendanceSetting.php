@@ -17,6 +17,7 @@ class AttendanceSetting extends Model
         'level',
         'school_address',
         'logo',
+        'favicon',
     ];
 
     protected function casts(): array
