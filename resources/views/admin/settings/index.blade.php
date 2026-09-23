@@ -23,7 +23,7 @@
     }
 </style>
 
-<div class="max-w-5xl space-y-8">
+<div class="max-w-5xl mx-auto space-y-8">
 
     <!-- Tab Navigation -->
     <div class="bg-white neo-box-lg p-2 border-2 border-black grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
