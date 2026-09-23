@@ -22,10 +22,7 @@
     <!-- Tab 5: Riwayat Presensi & Catatan Guru -->
     @include('siswa._tab-riwayat')
 
-    <!-- Tab 6: Buku Tabungan Digital -->
-    @include('siswa._tab-tabungan')
-
-    <!-- Tab 7: Profil Siswa Lengkap -->
+    <!-- Tab 6: Profil Siswa Lengkap -->
     @include('siswa._tab-profil')
 </div>
 

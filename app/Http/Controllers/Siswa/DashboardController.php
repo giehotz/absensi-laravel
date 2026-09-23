@@ -13,7 +13,6 @@ use App\Models\SlotTemplate;
 use App\Models\Student;
 use App\Models\StudentNote;
 use App\Services\QrCodeService;
-use App\Services\SavingsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -153,10 +152,8 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
-        // 8. Tabungan Siswa (Rekening & Mutasi Transaksi)
-        $savingsService = app(SavingsService::class);
-        $savingsAccount = $savingsService->getOrCreateAccount($student);
-        $savingsTransactions = $savingsAccount->transactions()->with(['handler', 'corrector'])->take(20)->get();
+        // 8. Tabungan Siswa (Status Rekening)
+        $savingsAccount = $student->savingsAccount;
 
         return view('siswa.dashboard', compact(
             'student',
@@ -173,7 +170,6 @@ class DashboardController extends Controller
             'history',
             'studentNotes',
             'savingsAccount',
-            'savingsTransactions',
             'allSlotsByDay'
         ));
     }

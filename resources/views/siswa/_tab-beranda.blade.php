@@ -88,7 +88,7 @@
     </div>
 
     <!-- Card Ringkasan Tabungan Siswa -->
-    <div onclick="switchTab('tabungan')" class="bg-[#FFF4E6] neo-box p-4 border-3 border-black flex items-center justify-between gap-3 cursor-pointer hover:translate-x-0.5 hover:bg-[#FFE8CC] transition-all group">
+    <a href="{{ route('siswa.savings.index') }}" class="bg-[#FFF4E6] neo-box p-4 border-3 border-black flex items-center justify-between gap-3 cursor-pointer hover:translate-x-0.5 hover:bg-[#FFE8CC] transition-all group block">
         <div class="flex items-center gap-3.5 min-w-0">
             <div class="w-11 h-11 rounded-lg bg-[#FF922B] text-white border-2 border-black flex items-center justify-center text-xl shadow-[2px_2px_0px_0px_#000] shrink-0 group-hover:scale-105 transition-transform">
                 💰
@@ -96,10 +96,14 @@
             <div class="min-w-0">
                 <div class="flex items-center gap-2">
                     <span class="text-[10px] font-black uppercase text-amber-950 bg-[#FFE8CC] px-2 py-0.5 border border-black rounded">Tabungan Pelajar</span>
-                    <span class="text-[10px] font-mono font-bold text-slate-600">{{ $savingsAccount->account_number ?? '-' }}</span>
+                    <span class="text-[10px] font-mono font-bold text-slate-600">{{ $savingsAccount?->account_number ?? 'Belum Aktif' }}</span>
                 </div>
                 <div class="font-mono font-black text-xl text-black mt-0.5">
-                    {{ $savingsAccount->formatted_balance ?? 'Rp 0' }}
+                    @if($savingsAccount && $savingsAccount->isActive())
+                        {{ $savingsAccount->formatted_balance }}
+                    @else
+                        <span class="text-xs text-amber-800 font-bold bg-[#FFE3E3] px-2 py-0.5 border border-black rounded">Buka Tabungan Sekarang →</span>
+                    @endif
                 </div>
             </div>
         </div>
@@ -107,7 +111,7 @@
             <span class="hidden xs:inline text-[11px] text-slate-600">Buku Tabungan</span>
             <span class="text-base group-hover:translate-x-1 transition-transform">→</span>
         </div>
-    </div>
+    </a>
 
     <!-- Monthly Attendance Statistics Grid -->
     <div class="bg-white neo-box p-4 space-y-3">
