@@ -258,8 +258,24 @@
                                             'nisn' => $student->nisn ?? '',
                                             'school_class_id' => $student->school_class_id,
                                             'gender' => $student->gender,
+                                            'birth_place' => $student->birth_place ?? '',
                                             'birth_date' => $student->birth_date ? $student->birth_date->format('Y-m-d') : '',
+                                            'religion' => $student->religion ?? '',
                                             'phone' => $student->phone ?? '',
+                                            'address' => $student->address ?? '',
+                                            'family_status' => $student->family_status ?? '',
+                                            'child_number' => $student->child_number ?? '',
+                                            'previous_school' => $student->previous_school ?? '',
+                                            'admission_date' => $student->admission_date ? $student->admission_date->format('Y-m-d') : '',
+                                            'entry_grade' => $student->entry_grade ?? '',
+                                            'father_name' => $student->father_name ?? '',
+                                            'father_job' => $student->father_job ?? '',
+                                            'mother_name' => $student->mother_name ?? '',
+                                            'mother_job' => $student->mother_job ?? '',
+                                            'parent_address' => $student->parent_address ?? '',
+                                            'guardian_name' => $student->guardian_name ?? '',
+                                            'guardian_job' => $student->guardian_job ?? '',
+                                            'guardian_address' => $student->guardian_address ?? '',
                                             'photo_url' => $student->photo ? $student->photo_url : null,
                                         ]) }})" 
                                         class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
@@ -493,100 +509,8 @@
     </div>
 </div>
 
-<!-- Modal Edit Siswa -->
-<div id="editStudentModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white neo-box-lg max-w-lg w-full p-6 space-y-5 relative max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b-2 border-black pb-3">
-            <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
-                <span>✏️</span> Edit Data Siswa
-            </h3>
-            <button onclick="closeModal('editStudentModal')" class="text-black font-black text-xl hover:opacity-75">✕</button>
-        </div>
-
-        <form id="editStudentForm" method="POST" enctype="multipart/form-data" class="space-y-4">
-            @csrf
-            @method('PUT')
-            <div>
-                <label class="block font-heading font-bold text-xs text-black mb-1">Nama Lengkap Siswa *</label>
-                <input type="text" id="edit_stu_name" name="name" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
-            </div>
-
-            <div>
-                <label class="block font-heading font-bold text-xs text-black mb-1">Foto Siswa</label>
-                <div class="flex items-start gap-3">
-                    <div id="edit_photo_preview_container" class="w-14 h-16 border-2 border-black bg-slate-100 flex items-center justify-center overflow-hidden shrink-0 shadow-[2px_2px_0px_0px_#000]">
-                        <span id="edit_photo_placeholder" class="text-[10px] text-slate-400 font-bold uppercase">Foto 3×4</span>
-                        <img id="edit_photo_preview" src="" alt="Foto Siswa" class="w-full h-full object-cover hidden">
-                    </div>
-                    <div class="flex-1 space-y-1.5">
-                        <input type="file" name="photo" id="edit_photo_input" accept="image/jpeg,image/png,image/jpg,image/webp" class="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:border-2 file:border-black file:text-xs file:font-heading file:font-bold file:bg-[#FFD43B] file:text-black hover:file:bg-[#fcc419] cursor-pointer" onchange="previewImage(this, 'edit_photo_preview', 'edit_photo_placeholder')">
-                        <div id="remove_photo_wrapper" class="hidden items-center gap-2 pt-0.5">
-                            <label class="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 cursor-pointer">
-                                <input type="checkbox" name="remove_photo" id="edit_remove_photo" value="1" class="accent-red-600 w-3.5 h-3.5">
-                                Hapus foto siswa saat ini
-                            </label>
-                        </div>
-                        <span class="text-[11px] text-slate-500 font-semibold block">Pilih file baru jika ingin mengganti foto saat ini (JPG, PNG, WEBP. Maks 2MB).</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">NIS *</label>
-                    <input type="text" id="edit_stu_nis" name="nis" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
-                </div>
-                <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">NISN</label>
-                    <input type="text" id="edit_stu_nisn" name="nisn" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">Kelas *</label>
-                    <select id="edit_stu_class" name="school_class_id" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
-                        @foreach($classes as $cls)
-                            <option value="{{ $cls->id }}">{{ $cls->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">Jenis Kelamin *</label>
-                    <select id="edit_stu_gender" name="gender" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
-                        <option value="L">Laki-laki (L)</option>
-                        <option value="P">Perempuan (P)</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">Tanggal Lahir</label>
-                    <input type="date" id="edit_stu_birth" name="birth_date" class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
-                </div>
-                <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">No. Kontak Siswa</label>
-                    <input type="text" id="edit_stu_phone" name="phone" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
-                </div>
-            </div>
-
-            <div>
-                <label class="block font-heading font-bold text-xs text-black mb-1">Alamat Email</label>
-                <input type="email" id="edit_stu_email" name="email" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
-            </div>
-
-            <div class="pt-3 border-t-2 border-slate-200 flex items-center justify-end gap-3">
-                <button type="button" onclick="closeModal('editStudentModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs">
-                    Batal
-                </button>
-                <button type="submit" class="neo-btn bg-[#5294FF] text-white px-5 py-2 text-xs font-heading">
-                    Simpan Perubahan
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
+<!-- Modal Edit Siswa Bertab -->
+@include('partials._edit-student-modal', ['isHomeroom' => false, 'classes' => $classes])
 
 <!-- Modal Preview Kartu QR Siswa -->
 <div id="qrPreviewModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
@@ -712,15 +636,60 @@
         }
     }
 
+    function switchEditTab(tabName) {
+        document.querySelectorAll('.edit-tab-pane').forEach(el => el.classList.add('hidden'));
+        const pane = document.getElementById('editTabPane-' + tabName);
+        if (pane) pane.classList.remove('hidden');
+
+        document.querySelectorAll('.edit-tab-btn').forEach(btn => {
+            btn.classList.remove('bg-black', 'text-white', 'shadow-[2px_2px_0px_#FFD43B]');
+            btn.classList.add('bg-white', 'text-black', 'hover:bg-slate-100');
+        });
+
+        const activeBtn = document.getElementById('editTabBtn-' + tabName);
+        if (activeBtn) {
+            activeBtn.classList.remove('bg-white', 'text-black', 'hover:bg-slate-100');
+            activeBtn.classList.add('bg-black', 'text-white', 'shadow-[2px_2px_0px_#FFD43B]');
+        }
+    }
+
     function editStudent(data) {
-        document.getElementById('edit_stu_name').value = data.name;
-        document.getElementById('edit_stu_nis').value = data.nis;
+        // Tab 1: Identitas & Foto
+        document.getElementById('edit_stu_name').value = data.name || '';
+        document.getElementById('edit_stu_nis').value = data.nis || '';
         document.getElementById('edit_stu_nisn').value = data.nisn || '';
-        document.getElementById('edit_stu_class').value = data.school_class_id;
-        document.getElementById('edit_stu_gender').value = data.gender;
+        document.getElementById('edit_stu_gender').value = data.gender || 'L';
+        document.getElementById('edit_stu_birth_place').value = data.birth_place || '';
         document.getElementById('edit_stu_birth').value = data.birth_date || '';
+        document.getElementById('edit_stu_religion').value = data.religion || '';
+
+        const classSelect = document.getElementById('edit_stu_class');
+        if (classSelect) classSelect.value = data.school_class_id || '';
+
+        // Tab 2: Kontak & Alamat
         document.getElementById('edit_stu_phone').value = data.phone || '';
         document.getElementById('edit_stu_email').value = data.email || '';
+        const passwordInput = document.getElementById('edit_stu_password');
+        if (passwordInput) passwordInput.value = '';
+        document.getElementById('edit_stu_address').value = data.address || '';
+
+        // Tab 3: Status & Riwayat Masuk
+        document.getElementById('edit_stu_family_status').value = data.family_status || '';
+        document.getElementById('edit_stu_child_number').value = data.child_number || '';
+        document.getElementById('edit_stu_previous_school').value = data.previous_school || '';
+        document.getElementById('edit_stu_admission_date').value = data.admission_date || '';
+        document.getElementById('edit_stu_entry_grade').value = data.entry_grade || '';
+
+        // Tab 4: Orang Tua & Wali
+        document.getElementById('edit_stu_father_name').value = data.father_name || '';
+        document.getElementById('edit_stu_father_job').value = data.father_job || '';
+        document.getElementById('edit_stu_mother_name').value = data.mother_name || '';
+        document.getElementById('edit_stu_mother_job').value = data.mother_job || '';
+        document.getElementById('edit_stu_parent_address').value = data.parent_address || '';
+        document.getElementById('edit_stu_guardian_name').value = data.guardian_name || '';
+        document.getElementById('edit_stu_guardian_job').value = data.guardian_job || '';
+        document.getElementById('edit_stu_guardian_address').value = data.guardian_address || '';
+
         document.getElementById('editStudentForm').action = '/admin/students/' + data.id;
 
         // Reset foto input & preview
@@ -751,6 +720,9 @@
                 removePhotoWrapper.classList.remove('flex');
             }
         }
+
+        // Buka tab pertama
+        switchEditTab('identitas');
 
         openModal('editStudentModal');
     }

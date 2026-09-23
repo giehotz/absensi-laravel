@@ -36,6 +36,8 @@ Route::get('/kelas-binaan', [HomeroomClassController::class, 'index'])->name('cl
 Route::get('/kelas-binaan/export', [HomeroomClassController::class, 'exportExcel'])->name('classes.binaan.export');
 Route::post('/kelas-binaan/catatan', [HomeroomClassController::class, 'storeNote'])->name('classes.binaan.notes.store');
 Route::delete('/kelas-binaan/catatan/{studentNote}', [HomeroomClassController::class, 'destroyNote'])->name('classes.binaan.notes.destroy');
+Route::put('/kelas-binaan/students/{student}', [HomeroomClassController::class, 'updateStudent'])->name('classes.binaan.students.update');
+Route::post('/kelas-binaan/students/{student}/reset-password', [HomeroomClassController::class, 'resetPassword'])->name('classes.binaan.students.reset-password');
 
 // Profil Saya (Guru)
 Route::get('/profil', [ProfileController::class, 'index'])->name('profile.index');

@@ -598,6 +598,7 @@ class StudentController extends Controller
             'birth_date' => ['nullable', 'date'],
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$student->user_id],
+            'password' => ['nullable', 'string', 'min:6'],
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'address' => ['nullable', 'string'],
             'religion' => ['nullable', 'string', 'max:50'],
@@ -641,6 +642,9 @@ class StudentController extends Controller
             $userUpdate = ['name' => $validated['name']];
             if (! empty($validated['email'])) {
                 $userUpdate['email'] = $validated['email'];
+            }
+            if (! empty($validated['password'])) {
+                $userUpdate['password'] = Hash::make($validated['password']);
             }
             $student->user()->update($userUpdate);
 

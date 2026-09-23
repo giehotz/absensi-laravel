@@ -13,6 +13,9 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -380,5 +383,139 @@ class HomeroomClassController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
             'Cache-Control' => 'max-age=0',
         ]);
+    }
+
+    /**
+     * Update data siswa binaan oleh Wali Kelas.
+     */
+    public function updateStudent(Request $request, Student $student): RedirectResponse
+    {
+        $this->authorizeHomeroomStudent($student);
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'nis' => ['required', 'string', 'max:50', 'unique:students,nis,'.$student->id],
+            'nisn' => ['nullable', 'string', 'max:50', 'unique:students,nisn,'.$student->id],
+            'gender' => ['required', 'in:L,P'],
+            'birth_place' => ['nullable', 'string', 'max:100'],
+            'birth_date' => ['nullable', 'date'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$student->user_id],
+            'password' => ['nullable', 'string', 'min:6'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+            'address' => ['nullable', 'string'],
+            'religion' => ['nullable', 'string', 'max:50'],
+            'family_status' => ['nullable', 'string', 'max:50'],
+            'child_number' => ['nullable', 'string', 'max:10'],
+            'previous_school' => ['nullable', 'string', 'max:150'],
+            'admission_date' => ['nullable', 'date'],
+            'entry_grade' => ['nullable', 'string', 'max:20'],
+            'father_name' => ['nullable', 'string', 'max:150'],
+            'mother_name' => ['nullable', 'string', 'max:150'],
+            'father_job' => ['nullable', 'string', 'max:100'],
+            'mother_job' => ['nullable', 'string', 'max:100'],
+            'parent_address' => ['nullable', 'string'],
+            'guardian_name' => ['nullable', 'string', 'max:150'],
+            'guardian_job' => ['nullable', 'string', 'max:100'],
+            'guardian_address' => ['nullable', 'string'],
+        ], [
+            'name.required' => 'Nama siswa wajib diisi.',
+            'nis.required' => 'NIS wajib diisi.',
+            'gender.required' => 'Pilih jenis kelamin.',
+            'photo.image' => 'File foto harus berupa gambar.',
+            'photo.max' => 'Ukuran file foto maksimal 2MB.',
+        ]);
+
+        $photoPath = $student->photo;
+
+        if ($request->hasFile('photo')) {
+            if ($student->photo && Storage::disk('public')->exists($student->photo)) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $photoPath = $request->file('photo')->store('students/photos', 'public');
+        } elseif ($request->boolean('remove_photo')) {
+            if ($student->photo && Storage::disk('public')->exists($student->photo)) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            $photoPath = null;
+        }
+
+        DB::transaction(function () use ($validated, $student, $photoPath) {
+            $userUpdate = ['name' => $validated['name']];
+            if (! empty($validated['email'])) {
+                $userUpdate['email'] = $validated['email'];
+            }
+            if (! empty($validated['password'])) {
+                $userUpdate['password'] = Hash::make($validated['password']);
+            }
+            $student->user()->update($userUpdate);
+
+            $student->update([
+                'nis' => $validated['nis'],
+                'nisn' => $validated['nisn'] ?? null,
+                'gender' => $validated['gender'],
+                'birth_place' => $validated['birth_place'] ?? null,
+                'birth_date' => $validated['birth_date'] ?? null,
+                'photo' => $photoPath,
+                'phone' => $validated['phone'] ?? null,
+                'address' => $validated['address'] ?? null,
+                'religion' => $validated['religion'] ?? null,
+                'family_status' => $validated['family_status'] ?? null,
+                'child_number' => $validated['child_number'] ?? null,
+                'previous_school' => $validated['previous_school'] ?? null,
+                'admission_date' => $validated['admission_date'] ?? null,
+                'entry_grade' => $validated['entry_grade'] ?? null,
+                'father_name' => $validated['father_name'] ?? null,
+                'mother_name' => $validated['mother_name'] ?? null,
+                'father_job' => $validated['father_job'] ?? null,
+                'mother_job' => $validated['mother_job'] ?? null,
+                'parent_address' => $validated['parent_address'] ?? null,
+                'guardian_name' => $validated['guardian_name'] ?? null,
+                'guardian_job' => $validated['guardian_job'] ?? null,
+                'guardian_address' => $validated['guardian_address'] ?? null,
+            ]);
+        });
+
+        return back()->with('success', "Data siswa {$student->user->name} berhasil diperbarui.");
+    }
+
+    /**
+     * Reset password akun siswa oleh Wali Kelas.
+     */
+    public function resetPassword(Request $request, Student $student): RedirectResponse
+    {
+        $this->authorizeHomeroomStudent($student);
+
+        $defaultPassword = ! empty($student->nisn) ? (string) $student->nisn : (! empty($student->nis) ? (string) $student->nis : 'password');
+        $label = ! empty($student->nisn) ? 'NISN' : (! empty($student->nis) ? 'NIS' : 'default');
+
+        $student->user()->update([
+            'password' => Hash::make($defaultPassword),
+        ]);
+
+        return back()->with('success', "Kata sandi siswa {$student->user->name} berhasil di-reset ke {$label} ({$defaultPassword}).");
+    }
+
+    /**
+     * Verifikasi bahwa siswa merupakan anggota kelas binaan guru yang sedang login.
+     */
+    protected function authorizeHomeroomStudent(Student $student): Teacher
+    {
+        $user = Auth::user();
+        $teacher = $user->teacher;
+
+        if (! $teacher) {
+            abort(403, 'Akses ditolak: Anda tidak memiliki profil guru.');
+        }
+
+        $isHomeroom = SchoolClass::where('id', $student->school_class_id)
+            ->where('homeroom_teacher_id', $teacher->id)
+            ->exists();
+
+        if (! $isHomeroom) {
+            abort(403, 'Akses ditolak: Siswa ini bukan merupakan siswa di kelas binaan Anda.');
+        }
+
+        return $teacher;
     }
 }
