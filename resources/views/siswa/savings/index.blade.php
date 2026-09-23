@@ -19,53 +19,70 @@
 
     @if(! $isEnrolled)
         <!-- ========================================================================= -->
-        <!-- STATE 1: SISWA BELUM TERDAFTAR MENABUNG -->
+        <!-- STATE 1: SISWA BELUM TERDAFTAR / BELUM MEMILIKI TABUNGAN -->
         <!-- ========================================================================= -->
-        <div class="bg-white neo-box-lg p-6 sm:p-8 space-y-6 text-center">
-            <!-- Icon Hero -->
-            <div class="w-20 h-20 mx-auto bg-[#FFF3BF] border-3 border-black rounded-2xl flex items-center justify-center text-4xl shadow-[4px_4px_0px_0px_#000]">
-                🏦
+        <div class="bg-white neo-box-lg p-6 sm:p-8 space-y-6 text-center border-4 border-black shadow-[6px_6px_0px_0px_#000]">
+            <!-- Icon Hero Gembok & Tabungan -->
+            <div class="relative w-24 h-24 mx-auto">
+                <div class="w-24 h-24 bg-[#FFF3BF] border-3 border-black rounded-2xl flex items-center justify-center text-5xl shadow-[4px_4px_0px_0px_#000]">
+                    🏦
+                </div>
+                <div class="absolute -bottom-2 -right-2 w-9 h-9 bg-[#FF6B6B] border-2 border-black rounded-full flex items-center justify-center text-lg text-white shadow-[2px_2px_0px_0px_#000]">
+                    🔒
+                </div>
             </div>
 
-            <!-- Pesan Utama -->
-            <div class="space-y-2">
-                <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-xs px-3 py-1 font-black">
-                    REKENING BELUM TERDAFTAR
+            <!-- Pesan Utama Peringatan -->
+            <div class="space-y-2.5">
+                <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-xs px-3 py-1 font-black inline-flex items-center gap-1.5 border border-black shadow-[2px_2px_0px_0px_#000]">
+                    <span>🔒</span> AKSES DIBATASI
                 </span>
                 <h2 class="font-heading font-black text-xl sm:text-2xl text-black uppercase tracking-tight">
-                    Buku Tabungan Belum Aktif
+                    Anda Belum Memiliki Tabungan
                 </h2>
-                <p class="text-xs sm:text-sm font-medium text-slate-600 max-w-md mx-auto leading-relaxed">
-                    Halo <strong>{{ $student->user->name ?? 'Siswa' }}</strong>, akun Anda saat ini belum tercatat dalam program tabungan sekolah. Buka rekening tabungan untuk melihat saldo, grafik setoran mingguan, dan riwayat mutasi digital Anda.
-                </p>
+                <div class="bg-[#FFF9DB] border-2 border-black p-4 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 max-w-lg mx-auto leading-relaxed shadow-[2px_2px_0px_0px_#000] text-left sm:text-center space-y-2">
+                    <p>
+                        Akun Anda saat ini <strong>belum terdaftar</strong> dalam sistem tabungan sekolah dan belum didaftarkan oleh <strong>Pengelola Tabungan</strong>, sehingga halaman buku tabungan dan grafik mutasi ini tidak dapat diakses.
+                    </p>
+                    <p class="text-amber-950 font-bold">
+                        👉 Jika ingin membuka tabungan, silakan hubungi pengelola tabungan sekolah melalui kontak di bawah ini.
+                    </p>
+                </div>
             </div>
 
-            <!-- Kartu Kontak Petugas Tabungan -->
-            <div class="bg-[#F8F9FA] border-2 border-black p-4 rounded-xl text-left space-y-2 shadow-[2px_2px_0px_0px_#000]">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-black uppercase text-slate-500">Petugas Pengelola Tabungan:</span>
-                    <span class="text-xs">👨‍🏫</span>
+            <!-- Kartu Kontak Pengelola Tabungan -->
+            <div class="bg-slate-50 border-2 border-black p-4 rounded-xl text-left space-y-1.5 shadow-[3px_3px_0px_0px_#000] max-w-lg mx-auto">
+                <div class="flex items-center justify-between text-[11px] font-black uppercase text-slate-600">
+                    <span>Pengelola Tabungan Sekolah:</span>
+                    <span>👨‍🏫</span>
                 </div>
                 <div class="font-heading font-black text-sm text-black">
                     {{ $officerName }}
                 </div>
-                <div class="text-xs text-slate-600 font-mono">
-                    {{ $officerPhone ?: 'Hubungi Guru Piket / Tata Usaha Sekolah' }}
+                <div class="text-xs text-slate-600 font-mono font-bold">
+                    {{ $officerPhone ? 'No. HP / WA: ' . $officerPhone : 'Hubungi Bagian Tata Usaha / Guru Piket Sekolah' }}
                 </div>
             </div>
 
             <!-- Tombol Aksi WhatsApp Langsung -->
-            @if($waUrl)
-                <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" 
-                   class="neo-btn bg-[#20C997] hover:bg-emerald-400 text-black text-xs sm:text-sm font-black px-6 py-3 w-full flex items-center justify-center gap-2.5 shadow-[4px_4px_0px_0px_#000] hover:scale-[1.01] transition-transform">
-                    <span class="text-lg">💬</span>
-                    <span>Hubungi Petugas via WhatsApp untuk Buka Tabungan</span>
+            <div class="max-w-lg mx-auto space-y-2">
+                @if($waUrl)
+                    <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" 
+                       class="neo-btn bg-[#20C997] hover:bg-emerald-400 text-black text-xs sm:text-sm font-black px-6 py-3.5 w-full flex items-center justify-center gap-2.5 shadow-[4px_4px_0px_0px_#000] hover:scale-[1.01] transition-transform cursor-pointer">
+                        <span class="text-xl">💬</span>
+                        <span>Hubungi Pengelola Tabungan via WhatsApp</span>
+                    </a>
+                @else
+                    <div class="p-3 bg-amber-100 border-2 border-black text-amber-950 text-xs font-bold rounded-lg text-center">
+                        Silakan hubungi Pengelola Tabungan secara langsung di ruang guru untuk pendaftaran buku tabungan.
+                    </div>
+                @endif
+
+                <a href="{{ route('siswa.dashboard') }}" 
+                   class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-xs font-bold px-4 py-2 w-full flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] transition-all">
+                    <span>←</span> Kembali ke Dashboard
                 </a>
-            @else
-                <div class="p-3 bg-amber-50 border-2 border-amber-400 text-amber-900 text-xs font-semibold rounded-lg">
-                    Silakan temui Petugas Pengelola Tabungan di ruang guru atau hubungi pihak sekolah untuk membuka rekening tabungan.
-                </div>
-            @endif
+            </div>
 
             <!-- Manfaat Menabung -->
             <div class="pt-4 border-t-2 border-black/10">
