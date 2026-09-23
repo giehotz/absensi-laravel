@@ -146,15 +146,10 @@
     </main>
 
     <!-- Footer Neobrutalism -->
-    <footer class="bg-white border-t-4 border-black py-6 mt-12 text-center text-xs font-semibold text-slate-700">
-        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 bg-[#FFD43B] border border-black font-mono font-bold text-[10px]">VERSI 1.0</span>
-                <span>Sistem Absensi Digital Sekolah Berbasis QR & Multi-Peran</span>
-            </div>
-            <div>
-                © {{ date('Y') }} Absensi Siswa • Didesain dengan <strong class="text-black font-bold">Neobrutalism UI</strong>
-            </div>
+    <footer class="bg-white border-t-2 border-black py-3 mt-8 text-xs font-bold text-black">
+        <div class="max-w-7xl mx-auto px-4 flex items-center justify-between text-[11px]">
+            <span>© {{ date('Y') }} {{ $schoolSetting->school_name ?? config('app.name', 'Absensi Siswa') }}</span>
+            <span class="px-1.5 py-0.5 bg-[#FFD43B] border border-black font-mono text-[10px]">v1.0</span>
         </div>
     </footer>
     @stack('scripts')
