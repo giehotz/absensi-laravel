@@ -284,7 +284,7 @@
                         <th class="p-3 border-r border-black text-center">Status</th>
                         <th class="p-3 border-r border-black text-right">Jumlah Saldo</th>
                         <th class="p-3 border-r border-black text-right">Total Ditarik</th>
-                        <th class="p-3 text-center w-40">Aksi</th>
+                        <th class="p-3 text-center w-44">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y-2 divide-black font-medium">
@@ -365,41 +365,47 @@
                                         </button>
                                     </form>
                                 @elseif($account->isActive())
-                                    <!-- Rekening Aktif: Tombol Input & Dropdown Menu Opsi -->
-                                    <div class="flex items-center gap-1">
+                                    <!-- Rekening Aktif: Tombol Input & Aksi Ber-Tooltip (Bebas Glitch) -->
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <!-- 1. Tombol Input Setor / Tarik -->
                                         <button type="button" onclick="openInputModal({{ json_encode($studentData) }})" 
-                                            class="flex-1 neo-btn bg-[#20C997] hover:bg-emerald-600 text-white font-black text-[11px] py-1 px-2 flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer"
-                                            title="Input Setor atau Tarik Tabungan untuk Siswa Ini">
+                                            class="neo-btn bg-[#20C997] hover:bg-emerald-500 text-white font-black text-[11px] py-1 px-2.5 inline-flex items-center justify-center gap-1 shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer group relative">
                                             <span>⚡</span>
                                             <span>Input</span>
+                                            <!-- Floating Tooltip -->
+                                            <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                                Setor / Tarik Saldo
+                                            </span>
                                         </button>
 
-                                        <!-- Dropdown Menu Opsi (Titik Tiga) -->
-                                        <div class="relative group">
-                                            <button type="button" class="neo-btn bg-slate-100 hover:bg-slate-200 text-black px-1.5 py-1 text-xs font-black shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer" title="Menu Opsi Rekening">
-                                                ⋮
-                                            </button>
-                                            <div class="absolute right-0 top-full mt-1 w-48 bg-white border-2 border-black shadow-[3px_3px_0px_0px_#000] z-40 hidden group-hover:block py-1 text-left">
-                                                <!-- Opsi: Tutup Buku Tabungan -->
-                                                <button type="button" onclick="openCloseAccountModal({{ json_encode($studentData) }})" 
-                                                    class="w-full px-3 py-1.5 text-xs text-rose-700 hover:bg-rose-50 font-bold flex items-center gap-1.5 cursor-pointer text-left">
-                                                    <span>🛑</span>
-                                                    <span>Tutup Buku Tabungan</span>
-                                                </button>
+                                        <!-- 2. Tombol Tutup Buku Tabungan -->
+                                        <button type="button" onclick="openCloseAccountModal({{ json_encode($studentData) }})" 
+                                            class="neo-btn bg-white hover:bg-rose-50 text-rose-600 border border-black p-1 text-xs inline-flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer group relative" 
+                                            title="Tutup Buku Tabungan" aria-label="Tutup Buku Tabungan">
+                                            <span>🛑</span>
+                                            <!-- Floating Tooltip -->
+                                            <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                                Tutup Buku
+                                            </span>
+                                        </button>
 
-                                                <!-- Opsi: Batalkan Pendaftaran (Hanya jika transaksi masih 0 dan saldo 0) -->
-                                                @if($txCount === 0 && (float)$account->balance == 0)
-                                                    <form action="{{ route('guru.savings.cancel-registration') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pendaftaran siswa {{ addslashes($studentName) }}? Rekening tabungan akan dihapus.')">
-                                                        @csrf
-                                                        <input type="hidden" name="student_id" value="{{ $student->id }}">
-                                                        <button type="submit" class="w-full px-3 py-1.5 text-xs text-slate-700 hover:bg-amber-50 font-bold flex items-center gap-1.5 cursor-pointer text-left">
-                                                            <span>↺</span>
-                                                            <span>Batalkan Pendaftaran</span>
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                        </div>
+                                        <!-- 3. Tombol Batalkan Pendaftaran (Jika Transaksi 0 & Saldo 0) -->
+                                        @if($txCount === 0 && (float)$account->balance == 0)
+                                            <form action="{{ route('guru.savings.cancel-registration') }}" method="POST" class="inline-block" 
+                                                  onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pendaftaran siswa {{ addslashes($studentName) }}? Rekening tabungan akan dihapus.')">
+                                                @csrf
+                                                <input type="hidden" name="student_id" value="{{ $student->id }}">
+                                                <button type="submit" 
+                                                    class="neo-btn bg-white hover:bg-amber-50 text-amber-700 border border-black p-1 text-xs inline-flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer group relative" 
+                                                    title="Batalkan Pendaftaran" aria-label="Batalkan Pendaftaran">
+                                                    <span>↺</span>
+                                                    <!-- Floating Tooltip -->
+                                                    <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                                                        Batal Daftar
+                                                    </span>
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 @else
                                     <!-- Rekening Ditutup: Tombol Buka Kembali -->
