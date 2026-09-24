@@ -21,6 +21,7 @@ class Attendance extends Model
         'method',
         'recorded_by',
         'notes',
+        'upload_batch_id',
     ];
 
     protected function casts(): array
@@ -45,6 +46,11 @@ class Attendance extends Model
     public function recordedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'recorded_by');
+    }
+
+    public function uploadBatch(): BelongsTo
+    {
+        return $this->belongsTo(AttendanceUploadBatch::class, 'upload_batch_id');
     }
 
     public function notificationLogs(): HasMany

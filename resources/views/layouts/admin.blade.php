@@ -364,6 +364,22 @@
             </script>
             @endif
 
+            @if(session('warning'))
+            <script>
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Perhatian!',
+                        text: @json(session('warning')),
+                        confirmButtonColor: '#FFD43B',
+                        confirmButtonTextColor: '#000000',
+                    });
+                } else {
+                    alert(@json(session('warning')));
+                }
+            </script>
+            @endif
+
             @if(session('conflict_error'))
             <script>
                 if (typeof Swal !== 'undefined') {

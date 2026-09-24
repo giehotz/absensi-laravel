@@ -38,8 +38,11 @@ class AttendanceReportController extends Controller
         $search = $request->input('search');
         $activeTab = $request->input('tab', 'summary');
 
-        // Master data kelas untuk dropdown filter
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        // Master data kelas untuk dropdown filter dengan jumlah siswa
+        $classes = SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+        $selectedClass = $schoolClassId && $schoolClassId !== 'all'
+            ? $classes->firstWhere('id', (int) $schoolClassId)
+            : null;
 
         // Query dasar absensi dengan filter rentang tanggal
         $baseQuery = Attendance::with(['student.user', 'student.schoolClass', 'schedule.subject'])
@@ -164,7 +167,17 @@ class AttendanceReportController extends Controller
             },
         ]);
 
-        $students = $studentsQuery->paginate(15, ['*'], 'student_page')->withQueryString();
+        // Pagination limit untuk Rekapitulasi per Siswa (25, 50, 100, semua)
+        $perPage = $request->input('per_page', '25');
+        if ($perPage === 'all' || $perPage === 'semua') {
+            $totalStudents = Student::count();
+            $perPageNum = max($totalStudents, 1);
+        } else {
+            $perPageNum = in_array((int) $perPage, [25, 50, 100], true) ? (int) $perPage : 25;
+            $perPage = (string) $perPageNum;
+        }
+
+        $students = $studentsQuery->paginate($perPageNum, ['*'], 'student_page')->withQueryString();
 
         // Data Tab 2: Jurnal Log Riwayat Harian
         $attendanceLogs = (clone $attendanceQuery)
@@ -177,9 +190,11 @@ class AttendanceReportController extends Controller
             'startDate' => $startDate,
             'endDate' => $endDate,
             'schoolClassId' => $schoolClassId,
+            'selectedClass' => $selectedClass,
             'status' => $status,
             'search' => $search,
             'activeTab' => $activeTab,
+            'perPage' => $perPage,
             'classes' => $classes,
             'totalRecords' => $totalRecords,
             'totalHadir' => $totalHadir,

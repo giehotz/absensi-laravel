@@ -65,6 +65,22 @@ class SettingController extends Controller
             'remove_logo' => ['nullable', 'boolean'],
             'favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,svg,webp', 'max:1024'],
             'remove_favicon' => ['nullable', 'boolean'],
+
+            // Pengaturan Kop Surat
+            'kop_government_name' => ['nullable', 'string', 'max:200'],
+            'kop_institution_name' => ['nullable', 'string', 'max:200'],
+            'kop_school_name' => ['nullable', 'string', 'max:200'],
+            'kop_address' => ['nullable', 'string', 'max:500'],
+            'kop_postal_code' => ['nullable', 'string', 'max:10'],
+            'kop_phone' => ['nullable', 'string', 'max:50'],
+            'kop_email' => ['nullable', 'string', 'max:100'],
+            'kop_website' => ['nullable', 'string', 'max:150'],
+            'kop_border_style' => ['nullable', 'in:double,single,none'],
+            'kop_is_active' => ['nullable', 'boolean'],
+            'kop_logo_left' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
+            'remove_kop_logo_left' => ['nullable', 'boolean'],
+            'kop_logo_right' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
+            'remove_kop_logo_right' => ['nullable', 'boolean'],
         ], [
             'mode.required' => 'Mode absensi wajib dipilih.',
             'tolerance_minutes.required' => 'Toleransi keterlambatan wajib diisi.',
@@ -75,6 +91,12 @@ class SettingController extends Controller
             'favicon.file' => 'File favicon harus berupa file yang valid.',
             'favicon.mimes' => 'Format favicon harus berupa ico, png, jpg, jpeg, svg, atau webp.',
             'favicon.max' => 'Ukuran file favicon maksimal adalah 1MB.',
+            'kop_logo_left.image' => 'File Logo Kiri Kop harus berupa gambar.',
+            'kop_logo_left.mimes' => 'Format Logo Kiri Kop harus berupa png, jpg, jpeg, svg, atau webp.',
+            'kop_logo_left.max' => 'Ukuran Logo Kiri Kop maksimal 2MB.',
+            'kop_logo_right.image' => 'File Logo Kanan Kop harus berupa gambar.',
+            'kop_logo_right.mimes' => 'Format Logo Kanan Kop harus berupa png, jpg, jpeg, svg, atau webp.',
+            'kop_logo_right.max' => 'Ukuran Logo Kanan Kop maksimal 2MB.',
         ]);
 
         $setting = AttendanceSetting::first() ?? new AttendanceSetting;
@@ -92,6 +114,36 @@ class SettingController extends Controller
         if (array_key_exists('school_address', $validated)) {
             $setting->school_address = $validated['school_address'];
         }
+
+        // Simpan Data Kop Surat
+        if (array_key_exists('kop_government_name', $validated)) {
+            $setting->kop_government_name = $validated['kop_government_name'];
+        }
+        if (array_key_exists('kop_institution_name', $validated)) {
+            $setting->kop_institution_name = $validated['kop_institution_name'];
+        }
+        if (array_key_exists('kop_school_name', $validated)) {
+            $setting->kop_school_name = $validated['kop_school_name'];
+        }
+        if (array_key_exists('kop_address', $validated)) {
+            $setting->kop_address = $validated['kop_address'];
+        }
+        if (array_key_exists('kop_postal_code', $validated)) {
+            $setting->kop_postal_code = $validated['kop_postal_code'];
+        }
+        if (array_key_exists('kop_phone', $validated)) {
+            $setting->kop_phone = $validated['kop_phone'];
+        }
+        if (array_key_exists('kop_email', $validated)) {
+            $setting->kop_email = $validated['kop_email'];
+        }
+        if (array_key_exists('kop_website', $validated)) {
+            $setting->kop_website = $validated['kop_website'];
+        }
+        if (isset($validated['kop_border_style'])) {
+            $setting->kop_border_style = $validated['kop_border_style'];
+        }
+        $setting->kop_is_active = $request->boolean('kop_is_active', true);
 
         if ($request->hasFile('logo')) {
             if ($setting->logo && Storage::disk('public')->exists($setting->logo)) {
@@ -117,6 +169,32 @@ class SettingController extends Controller
             $setting->favicon = null;
         }
 
+        // Upload Logo Kiri Kop Surat
+        if ($request->hasFile('kop_logo_left')) {
+            if ($setting->kop_logo_left && Storage::disk('public')->exists($setting->kop_logo_left)) {
+                Storage::disk('public')->delete($setting->kop_logo_left);
+            }
+            $setting->kop_logo_left = $request->file('kop_logo_left')->store('logos', 'public');
+        } elseif ($request->boolean('remove_kop_logo_left')) {
+            if ($setting->kop_logo_left && Storage::disk('public')->exists($setting->kop_logo_left)) {
+                Storage::disk('public')->delete($setting->kop_logo_left);
+            }
+            $setting->kop_logo_left = null;
+        }
+
+        // Upload Logo Kanan Kop Surat
+        if ($request->hasFile('kop_logo_right')) {
+            if ($setting->kop_logo_right && Storage::disk('public')->exists($setting->kop_logo_right)) {
+                Storage::disk('public')->delete($setting->kop_logo_right);
+            }
+            $setting->kop_logo_right = $request->file('kop_logo_right')->store('logos', 'public');
+        } elseif ($request->boolean('remove_kop_logo_right')) {
+            if ($setting->kop_logo_right && Storage::disk('public')->exists($setting->kop_logo_right)) {
+                Storage::disk('public')->delete($setting->kop_logo_right);
+            }
+            $setting->kop_logo_right = null;
+        }
+
         $setting->save();
 
         if (! empty($validated['level'])) {
@@ -129,6 +207,9 @@ class SettingController extends Controller
             AcademicYear::where('id', $validated['active_academic_year_id'])->update(['is_active' => true]);
         }
 
-        return redirect()->route('admin.settings.index')->with('success', 'Pengaturan sistem dan profil lembaga berhasil disimpan.');
+        $params = $request->filled('tab') ? ['tab' => $request->input('tab')] : [];
+
+        return redirect()->route('admin.settings.index', $params)
+            ->with('success', 'Pengaturan sistem, profil lembaga, dan kop surat berhasil disimpan.');
     }
 }

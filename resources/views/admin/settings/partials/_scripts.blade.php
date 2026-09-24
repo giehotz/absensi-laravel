@@ -37,7 +37,16 @@
             console.error('Gagal membaca tab aktif dari localStorage:', e);
         }
 
-        // Dukungan hash URL jika tersedia (misal: #profil, #periode, #database)
+        // Dukungan query param URL (misal: ?tab=kop)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('tab')) {
+            const queryTab = urlParams.get('tab');
+            if (document.getElementById('tab-' + queryTab)) {
+                activeTab = queryTab;
+            }
+        }
+
+        // Dukungan hash URL jika tersedia (misal: #profil, #periode, #database, #kop)
         if (window.location.hash) {
             const hashTab = window.location.hash.replace('#', '');
             if (document.getElementById('tab-' + hashTab)) {
@@ -195,4 +204,86 @@
             reader.readAsDataURL(file);
         }
     }
+
+    // Pratinjau Logo Kop Surat (Kiri / Kanan)
+    function previewKopLogo(event, previewId, placeholderId, livePreviewImgId) {
+        const input = event.target;
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewImg = document.getElementById(previewId);
+                const placeholder = document.getElementById(placeholderId);
+                const liveImg = document.getElementById(livePreviewImgId);
+
+                if (previewImg) {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.add('hidden');
+                }
+                if (liveImg) {
+                    liveImg.src = e.target.result;
+                    liveImg.classList.remove('hidden');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Live update teks kop surat di kotak pratinjau cetak
+    function updateKopPreview() {
+        const govInput = document.getElementById('input_kop_gov');
+        const instInput = document.getElementById('input_kop_inst');
+        const schoolInput = document.getElementById('input_kop_school');
+        const addressInput = document.getElementById('input_kop_address');
+        const postalInput = document.getElementById('input_kop_postal_code');
+        const phoneInput = document.getElementById('input_kop_phone');
+        const emailInput = document.getElementById('input_kop_email');
+        const websiteInput = document.getElementById('input_kop_website');
+        const borderInput = document.getElementById('input_kop_border');
+
+        const previewGov = document.getElementById('kop_preview_gov');
+        const previewInst = document.getElementById('kop_preview_inst');
+        const previewSchool = document.getElementById('kop_preview_school');
+        const previewContact = document.getElementById('kop_preview_contact');
+        const borderDouble = document.getElementById('kop_preview_border_double');
+        const borderSingle = document.getElementById('kop_preview_border_single');
+
+        if (previewGov && govInput) {
+            previewGov.textContent = govInput.value || '';
+            previewGov.style.display = govInput.value ? 'block' : 'none';
+        }
+        if (previewInst && instInput) {
+            previewInst.textContent = instInput.value || '';
+            previewInst.style.display = instInput.value ? 'block' : 'none';
+        }
+        if (previewSchool && schoolInput) {
+            previewSchool.textContent = schoolInput.value || '';
+        }
+
+        if (previewContact) {
+            let addr = addressInput ? addressInput.value : '';
+            let postal = postalInput && postalInput.value ? ' Kode Pos ' + postalInput.value : '';
+            let phone = phoneInput && phoneInput.value ? 'Telp: ' + phoneInput.value : '';
+            let email = emailInput && emailInput.value ? 'Email: ' + emailInput.value : '';
+            let web = websiteInput && websiteInput.value ? 'Website: ' + websiteInput.value : '';
+
+            let line1 = addr + postal;
+            let comms = [phone, email, web].filter(Boolean).join(' | ');
+
+            let html = '';
+            if (line1) html += line1 + '<br>';
+            if (comms) html += comms;
+            previewContact.innerHTML = html;
+        }
+
+        if (borderInput) {
+            const val = borderInput.value;
+            if (borderDouble) borderDouble.className = val === 'double' ? '' : 'hidden';
+            if (borderSingle) borderSingle.className = val === 'single' ? '' : 'hidden';
+        }
+    }
 </script>
+

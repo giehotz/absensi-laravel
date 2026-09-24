@@ -44,6 +44,7 @@
     <div class="bg-white border-2 border-black p-5 rounded-lg shadow-[4px_4px_0px_0px_#000] print:hidden">
         <form method="GET" action="{{ route('admin.reports.attendance') }}" class="space-y-4">
             <input type="hidden" name="tab" value="{{ $activeTab }}">
+            <input type="hidden" name="per_page" value="{{ $perPage }}">
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Tanggal Mulai -->
@@ -74,10 +75,10 @@
                         Kelas
                     </label>
                     <select name="school_class_id" class="w-full neo-input px-3 py-2 text-sm bg-slate-50 font-medium focus:bg-white">
-                        <option value="all" {{ $schoolClassId == 'all' || !$schoolClassId ? 'selected' : '' }}>Semua Kelas</option>
+                        <option value="all" {{ $schoolClassId == 'all' || !$schoolClassId ? 'selected' : '' }}>Semua Kelas ({{ $classes->sum('students_count') }} Siswa)</option>
                         @foreach($classes as $c)
                             <option value="{{ $c->id }}" {{ $schoolClassId == $c->id ? 'selected' : '' }}>
-                                {{ $c->name }} (Tingkat {{ $c->level }})
+                                {{ $c->name }} (Tingkat {{ $c->level }} • {{ $c->students_count }} Siswa)
                             </option>
                         @endforeach
                     </select>
@@ -313,32 +314,53 @@
                 </button>
             </div>
 
-            <!-- Search Form -->
-            <form method="GET" action="{{ route('admin.reports.attendance') }}" class="flex items-center gap-2">
+            <!-- Search & Filter Form -->
+            <form method="GET" action="{{ route('admin.reports.attendance') }}" class="flex flex-wrap items-center gap-2">
                 <input type="hidden" name="start_date" value="{{ $startDate }}">
                 <input type="hidden" name="end_date" value="{{ $endDate }}">
-                <input type="hidden" name="school_class_id" value="{{ $schoolClassId }}">
                 <input type="hidden" name="status" value="{{ $status }}">
                 <input type="hidden" name="tab" id="search-tab-input" value="{{ $activeTab }}">
+                <input type="hidden" name="per_page" value="{{ $perPage }}">
+
+                <!-- Quick Filter Kelas Dropdown -->
+                <div class="flex items-center gap-1.5">
+                    <label for="table_school_class_id" class="text-xs font-bold text-slate-700 hidden sm:inline whitespace-nowrap">
+                        Kelas:
+                    </label>
+                    <select id="table_school_class_id" 
+                            name="school_class_id" 
+                            onchange="this.form.submit()" 
+                            class="neo-input py-1.5 px-3 text-xs bg-white font-bold border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] focus:bg-white cursor-pointer">
+                        <option value="all" {{ $schoolClassId == 'all' || !$schoolClassId ? 'selected' : '' }}>
+                            Semua Kelas ({{ $classes->sum('students_count') }})
+                        </option>
+                        @foreach($classes as $c)
+                            <option value="{{ $c->id }}" {{ $schoolClassId == $c->id ? 'selected' : '' }}>
+                                {{ $c->name }} ({{ $c->students_count }} Siswa)
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
                 <div class="relative">
                     <input type="text" 
                            name="search" 
                            value="{{ $search }}"
                            placeholder="Cari nama atau NIS..." 
-                           class="neo-input pl-8 pr-3 py-1.5 text-xs bg-white focus:bg-white w-48 sm:w-60">
+                           class="neo-input pl-8 pr-3 py-1.5 text-xs bg-white focus:bg-white w-40 sm:w-56 border-2 border-black rounded shadow-[2px_2px_0px_0px_#000]">
                     <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                 </div>
 
-                <button type="submit" class="neo-btn bg-[#FFD43B] text-black px-3 py-1.5 text-xs font-bold">
+                <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-3 py-1.5 text-xs font-bold border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] cursor-pointer">
                     Cari
                 </button>
-                @if($search)
-                    <a href="{{ route('admin.reports.attendance', array_merge(request()->except('search'), ['tab' => $activeTab])) }}" 
-                       class="text-xs font-bold text-rose-600 hover:underline">
-                        Batal
+                @if($search || ($schoolClassId && $schoolClassId !== 'all'))
+                    <a href="{{ route('admin.reports.attendance', array_merge(request()->except(['search', 'school_class_id']), ['tab' => $activeTab, 'per_page' => $perPage])) }}" 
+                       class="neo-btn bg-rose-100 hover:bg-rose-200 text-rose-900 px-2.5 py-1.5 text-xs font-bold border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] cursor-pointer"
+                       title="Reset filter kelas & pencarian">
+                        Reset
                     </a>
                 @endif
             </form>
@@ -346,6 +368,30 @@
 
         <!-- Tab 1: Panel Rekapitulasi per Siswa -->
         <div id="tab-panel-summary" class="{{ $activeTab === 'summary' ? 'block' : 'hidden' }}">
+            <!-- Toolbar Tampilan Data (25, 50, 100, Semua) -->
+            <div class="p-3 sm:p-4 bg-slate-50 border-b-2 border-black flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-black uppercase tracking-wider font-heading text-black flex items-center gap-1.5">
+                        <span>👥</span> Tampilkan:
+                    </span>
+                    <div class="inline-flex items-center border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] overflow-hidden bg-white">
+                        @foreach(['25' => '25', '50' => '50', '100' => '100', 'semua' => 'Semua'] as $val => $label)
+                            <a href="{{ route('admin.reports.attendance', array_merge(request()->all(), ['per_page' => $val, 'tab' => 'summary'])) }}"
+                               class="px-3 py-1 text-xs font-bold transition-colors border-r-2 last:border-r-0 border-black cursor-pointer {{ ($perPage == $val || ($val == 'semua' && $perPage == 'all')) ? 'bg-black text-white' : 'bg-white text-black hover:bg-slate-200' }}">
+                                {{ $label }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="text-xs font-semibold text-slate-600">
+                    Menampilkan <strong class="text-black font-mono font-bold">{{ $students->count() }}</strong> dari <strong class="text-black font-mono font-bold">{{ $students->total() }}</strong> siswa
+                    @if($selectedClass)
+                        <span class="text-slate-400 mx-1">|</span> Kelas: <strong class="text-black font-bold">{{ $selectedClass->name }}</strong>
+                    @endif
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs text-slate-800">
                     <thead class="bg-slate-100 border-b-2 border-black font-bold uppercase text-[11px] text-black">

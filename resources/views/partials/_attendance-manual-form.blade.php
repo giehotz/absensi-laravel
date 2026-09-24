@@ -2,6 +2,26 @@
     $role = Auth::user()->role;
     $submitRoute = $role === 'admin' ? route('admin.attendances.manual.store') : route('guru.attendance.manual.store');
     $filterRoute = $role === 'admin' ? route('admin.attendances.manual') : route('guru.attendance.manual');
+    $templateRoute = $role === 'admin' ? route('admin.attendances.template') : route('guru.attendance.template');
+    $uploadRoute = $role === 'admin' ? route('admin.attendances.upload') : route('guru.attendance.upload');
+    $batchesRoute = $role === 'admin' ? route('admin.attendances.batches') : route('guru.attendance.batches');
+    $monthlyFillRoute = $role === 'admin' ? route('admin.attendances.monthly-fill') : '#';
+
+    $carbonDate = \Carbon\Carbon::parse($date)->locale('id');
+    $prevDate = $carbonDate->copy()->subDay()->toDateString();
+    $nextDate = $carbonDate->copy()->addDay()->toDateString();
+
+    if ($carbonDate->isToday()) {
+        $dayLabel = 'Hari ini';
+    } elseif ($carbonDate->isYesterday()) {
+        $dayLabel = 'Kemarin';
+    } elseif ($carbonDate->isTomorrow()) {
+        $dayLabel = 'Besok';
+    } else {
+        $dayLabel = $carbonDate->translatedFormat('l');
+    }
+
+    $formattedDateIndo = $carbonDate->translatedFormat('l, d F Y');
 @endphp
 
 <style>
@@ -28,14 +48,64 @@
     <div class="bg-white neo-box p-5">
         <form action="{{ $filterRoute }}" method="GET" class="flex flex-col md:flex-row items-start md:items-end gap-4 justify-between">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
-                <!-- Tanggal -->
+                <!-- Navigasi Tanggal Presensi (Neo-Brutalism) -->
                 <div class="w-full sm:w-auto">
                     <label class="block text-xs font-black uppercase text-black mb-1.5 flex items-center gap-1.5">
                         <span>📅</span> Tanggal Presensi
                     </label>
-                    <input type="date" name="date" value="{{ $date }}" 
-                           onchange="this.form.submit()"
-                           class="w-full sm:w-48 bg-white border-2 border-black px-3 py-2 text-xs font-bold font-mono focus:outline-hidden focus:ring-2 focus:ring-black">
+
+                    <div class="flex items-center gap-2 bg-slate-50 border-2 border-black px-2 py-1.5 neo-box-sm relative min-w-[280px] sm:min-w-[340px] justify-between">
+                        <!-- Tombol Hari Sebelumnya (<) -->
+                        <button type="button" 
+                                onclick="setAttendanceFilterDate('{{ $prevDate }}')"
+                                title="Hari Sebelumnya: {{ \Carbon\Carbon::parse($prevDate)->translatedFormat('d M Y') }}"
+                                class="neo-btn bg-white hover:bg-[#FFD43B] text-black border-2 border-black w-8 h-8 flex items-center justify-center font-black text-xs shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer shrink-0 transition-colors">
+                            ◀
+                        </button>
+
+                        <!-- Label & Tanggal di Tengah (Dapat diklik untuk membuka datepicker) -->
+                        <div class="text-center px-2 flex-1 cursor-pointer select-none group" 
+                             onclick="triggerAttendanceDatePicker()" 
+                             title="Klik untuk memilih tanggal melalui kalender">
+                            <div class="text-[11px] font-black text-slate-700 uppercase tracking-wider leading-tight group-hover:text-black">
+                                {{ $dayLabel }}
+                            </div>
+                            <div class="text-xs sm:text-[13px] font-black text-[#2b8a3e] font-mono leading-tight group-hover:underline">
+                                {{ $formattedDateIndo }}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <!-- Tombol Hari Selanjutnya (>) -->
+                            <button type="button" 
+                                    onclick="setAttendanceFilterDate('{{ $nextDate }}')"
+                                    title="Hari Selanjutnya: {{ \Carbon\Carbon::parse($nextDate)->translatedFormat('d M Y') }}"
+                                    class="neo-btn bg-white hover:bg-[#FFD43B] text-black border-2 border-black w-8 h-8 flex items-center justify-center font-black text-xs shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer transition-colors">
+                                ▶
+                            </button>
+
+                            <!-- Tombol Kalender (Datepicker Picker Icon) -->
+                            <button type="button" 
+                                    onclick="triggerAttendanceDatePicker()"
+                                    title="Pilih Tanggal Kalender"
+                                    class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black border-2 border-black w-8 h-8 flex items-center justify-center font-black text-sm shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Input Native Date (Tersembunyi tapi aktif) -->
+                        <input type="date" 
+                               id="attendanceDateInput" 
+                               name="date" 
+                               value="{{ $date }}" 
+                               onchange="this.form.submit()"
+                               class="absolute opacity-0 pointer-events-none w-0 h-0">
+                    </div>
                 </div>
 
                 <!-- Pilihan Kelas -->
@@ -63,15 +133,65 @@
             </div>
 
             @if($selectedClass)
-                <div class="flex items-center gap-2 pt-2 md:pt-0">
+                <div class="flex items-center gap-2 pt-2 md:pt-0 flex-wrap justify-end">
                     <span class="text-xs font-mono font-bold bg-[#E7F5FF] text-blue-900 border-2 border-black px-3 py-1.5 rounded-sm">
                         {{ $students->count() }} Siswa Terdaftar
                     </span>
                     @if($selectedClass->homeroomTeacher)
                         <span class="text-xs font-bold bg-[#D3F9D8] text-emerald-900 border-2 border-black px-3 py-1.5 rounded-sm hidden lg:inline-block">
-                            Wali Kelas: {{ $selectedClass->homeroomTeacher->user->name ?? '-' }}
+                            Wali: {{ $selectedClass->homeroomTeacher->user->name ?? '-' }}
                         </span>
                     @endif
+
+                    <!-- Tombol Aksi: Icon-Only dengan Tooltip Neo-Brutalism -->
+                    <div class="flex items-center gap-1.5">
+                        <!-- Tooltip 1: Download Template Excel -->
+                        <div class="relative group">
+                            <a href="{{ $templateRoute }}?school_class_id={{ $selectedClassId }}&date={{ $date }}" 
+                               title="Download Template Excel"
+                               class="neo-btn bg-[#FFF3BF] hover:bg-[#FFE066] text-black w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 text-sm sm:text-base">
+                                📥
+                            </a>
+                            <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 whitespace-nowrap">
+                                <span class="bg-black text-white text-[10px] font-black px-2 py-1 border border-black shadow-[2px_2px_0px_0px_#FFD43B]">
+                                    Download Template Excel
+                                </span>
+                                <div class="w-1.5 h-1.5 bg-black rotate-45 -mt-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tooltip 2: Upload Presensi Excel -->
+                        <div class="relative group">
+                            <button type="button" 
+                                    onclick="openAttendanceUploadModal()" 
+                                    title="Upload Presensi Excel"
+                                    class="neo-btn bg-[#5294FF] hover:bg-[#3b82f6] text-white w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-sm sm:text-base">
+                                📤
+                            </button>
+                            <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 whitespace-nowrap">
+                                <span class="bg-black text-white text-[10px] font-black px-2 py-1 border border-black shadow-[2px_2px_0px_0px_#5294FF]">
+                                    Upload Presensi Excel
+                                </span>
+                                <div class="w-1.5 h-1.5 bg-black rotate-45 -mt-1"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tooltip 3: Riwayat Upload Presensi -->
+                        <div class="relative group">
+                            <button type="button" 
+                                    onclick="openAttendanceBatchesModal()" 
+                                    title="Riwayat Upload Presensi"
+                                    class="neo-btn bg-white hover:bg-slate-100 text-black w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-sm sm:text-base">
+                                📋
+                            </button>
+                            <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 whitespace-nowrap">
+                                <span class="bg-black text-white text-[10px] font-black px-2 py-1 border border-black shadow-[2px_2px_0px_0px_#D3F9D8]">
+                                    Riwayat Upload
+                                </span>
+                                <div class="w-1.5 h-1.5 bg-black rotate-45 -mt-1"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             @endif
         </form>
@@ -123,6 +243,12 @@
                                     class="neo-btn bg-[#FF6B6B] text-white text-xs font-bold px-3 py-1.5 cursor-pointer hover:opacity-90">
                                 ✕ Semua Alpa
                             </button>
+                            @if($role === 'admin')
+                                <button type="button" onclick="openMonthlyFillModal('all')" 
+                                        class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-xs font-black px-3 py-1.5 cursor-pointer flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5">
+                                    <span>📅</span> Isi 1 Bulan Penuh
+                                </button>
+                            @endif
                         </div>
                     </div>
 
@@ -168,6 +294,13 @@
                                 class="neo-btn bg-[#FF6B6B] text-white text-[11px] font-bold px-2.5 py-1 cursor-pointer">
                             Alpa
                         </button>
+                        @if($role === 'admin')
+                            <div class="h-4 w-px bg-slate-400 mx-1"></div>
+                            <button type="button" onclick="openMonthlyFillModal('selected')" 
+                                    class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-[11px] font-black px-2.5 py-1 cursor-pointer flex items-center gap-1 border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5">
+                                <span>📅</span> Isi 1 Bulan
+                            </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -586,5 +719,527 @@
             }
         });
     }
+
+    // Modal Upload Excel Presensi
+    function openAttendanceUploadModal() {
+        const modal = document.getElementById('modalUploadAttendance');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeAttendanceUploadModal() {
+        const modal = document.getElementById('modalUploadAttendance');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    // Modal Riwayat Upload Batch
+    let loadedBatches = [];
+
+    function openAttendanceBatchesModal() {
+        const modal = document.getElementById('modalBatchesAttendance');
+        if (!modal) return;
+
+        modal.classList.remove('hidden');
+        loadAttendanceBatches();
+    }
+
+    function closeAttendanceBatchesModal() {
+        const modal = document.getElementById('modalBatchesAttendance');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function loadAttendanceBatches() {
+        const container = document.getElementById('batchesTableBody');
+        const emptyState = document.getElementById('batchesEmptyState');
+        const loadingState = document.getElementById('batchesLoadingState');
+
+        if (!container) return;
+
+        loadingState.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+        container.innerHTML = '';
+
+        const classId = "{{ $selectedClassId }}";
+        const url = `{{ $batchesRoute }}?school_class_id=${classId}`;
+
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(res => res.json())
+            .then(data => {
+                loadingState.classList.add('hidden');
+                loadedBatches = data.batches || [];
+
+                if (loadedBatches.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                let html = '';
+                loadedBatches.forEach((b, idx) => {
+                    let statusBadge = '';
+                    if (b.status === 'completed') {
+                        statusBadge = '<span class="px-2 py-0.5 text-[11px] font-black bg-[#D3F9D8] text-emerald-950 border border-black rounded shadow-[1px_1px_0px_0px_#000]">Sukses</span>';
+                    } else if (b.status === 'completed_with_errors') {
+                        statusBadge = '<span class="px-2 py-0.5 text-[11px] font-black bg-[#FFF3BF] text-amber-950 border border-black rounded shadow-[1px_1px_0px_0px_#000]">Sebagian Error</span>';
+                    } else {
+                        statusBadge = '<span class="px-2 py-0.5 text-[11px] font-black bg-[#FFE3E3] text-rose-950 border border-black rounded shadow-[1px_1px_0px_0px_#000]">Gagal</span>';
+                    }
+
+                    const errorBtn = (b.failed_rows > 0 && b.error_log && b.error_log.length > 0)
+                        ? `<button type="button" onclick="showBatchErrorDetail(${idx})" class="neo-btn bg-[#FFE3E3] hover:bg-[#ffc9c9] text-rose-900 border border-black text-[10px] font-bold px-2 py-1 cursor-pointer">Lihat ${b.failed_rows} Error</button>`
+                        : '<span class="text-slate-400 text-xs">-</span>';
+
+                    html += `
+                        <tr class="border-b border-slate-200 hover:bg-slate-50 text-xs">
+                            <td class="p-2.5 font-mono font-bold text-slate-700">${b.created_at}</td>
+                            <td class="p-2.5 font-bold text-black">${b.uploader_name}</td>
+                            <td class="p-2.5 font-mono text-slate-800 truncate max-w-[180px]" title="${b.original_filename}">${b.original_filename}</td>
+                            <td class="p-2.5 text-center font-bold font-mono">${b.total_rows}</td>
+                            <td class="p-2.5 text-center font-bold font-mono text-emerald-700">${b.success_rows}</td>
+                            <td class="p-2.5 text-center font-bold font-mono text-rose-700">${b.failed_rows}</td>
+                            <td class="p-2.5 text-center">${statusBadge}</td>
+                            <td class="p-2.5 text-center">${errorBtn}</td>
+                        </tr>
+                    `;
+                });
+
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                loadingState.classList.add('hidden');
+                container.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-xs font-bold text-rose-600">Gagal memuat riwayat: ${err.message}</td></tr>`;
+            });
+    }
+
+    function showBatchErrorDetail(index) {
+        const batch = loadedBatches[index];
+        if (!batch || !batch.error_log) return;
+
+        let errorListHtml = '<div class="space-y-1 text-left max-h-60 overflow-y-auto font-mono text-xs border border-slate-200 p-2 bg-slate-50">';
+        batch.error_log.forEach(err => {
+            errorListHtml += `<div class="p-1 border-b border-slate-200 text-rose-800">
+                <b>Baris ${err.row ?? '-'}:</b> ${err.error}
+            </div>`;
+        });
+        errorListHtml += '</div>';
+
+        Swal.fire({
+            title: `Rincian Error (${batch.failed_rows} Baris Gagal)`,
+            html: errorListHtml,
+            icon: 'warning',
+            confirmButtonText: 'Tutup',
+            confirmButtonColor: '#000000',
+        });
+    }
+
+    // Helper Navigasi Tanggal Presensi
+    function setAttendanceFilterDate(targetDate) {
+        const input = document.getElementById('attendanceDateInput');
+        if (input) {
+            input.value = targetDate;
+            input.form.submit();
+        }
+    }
+
+    function triggerAttendanceDatePicker() {
+        const input = document.getElementById('attendanceDateInput');
+        if (input) {
+            if (typeof input.showPicker === 'function') {
+                input.showPicker();
+            } else {
+                input.focus();
+                input.click();
+            }
+        }
+    }
+
+    // Modal Isi Absensi 1 Bulan Penuh (Khusus Admin)
+    function openMonthlyFillModal(defaultScope = 'all') {
+        const modal = document.getElementById('modalMonthlyAttendance');
+        if (!modal) return;
+
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        const checkedCount = checkedBoxes.length;
+
+        const badge = document.getElementById('monthlySelectedBadge');
+        if (badge) badge.innerText = checkedCount;
+
+        const radioAll = document.getElementById('monthlyScopeAll');
+        const radioSelected = document.getElementById('monthlyScopeSelected');
+
+        if (defaultScope === 'selected' && checkedCount > 0) {
+            if (radioSelected) {
+                radioSelected.checked = true;
+                radioSelected.disabled = false;
+            }
+        } else {
+            if (radioAll) radioAll.checked = true;
+            if (radioSelected) {
+                radioSelected.disabled = (checkedCount === 0);
+            }
+        }
+
+        modal.classList.remove('hidden');
+    }
+
+    function closeMonthlyFillModal() {
+        const modal = document.getElementById('modalMonthlyAttendance');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function confirmMonthlyFill() {
+        const form = document.getElementById('monthlyFillForm');
+        if (!form) return;
+
+        const monthSelect = document.getElementById('monthlyFillMonth');
+        const yearInput = document.getElementById('monthlyFillYear');
+        const statusRadio = form.querySelector('input[name="status"]:checked');
+        const scopeRadio = form.querySelector('input[name="scope"]:checked');
+        const overwriteCheck = document.getElementById('monthlyOverwrite');
+
+        const monthText = monthSelect.options[monthSelect.selectedIndex].text;
+        const yearVal = yearInput.value;
+        const statusVal = statusRadio ? statusRadio.value : 'hadir';
+        const scopeVal = scopeRadio ? scopeRadio.value : 'all';
+        const isOverwrite = overwriteCheck && overwriteCheck.checked;
+
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+        if (scopeVal === 'selected' && checkedBoxes.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Perhatian',
+                text: 'Pilih minimal 1 siswa dengan mencentang kotak pada tabel terlebih dahulu.',
+                confirmButtonColor: '#000000'
+            });
+            return;
+        }
+
+        const className = "{{ $selectedClass->name ?? 'Kelas' }}";
+        const totalStudents = "{{ $students->count() }}";
+        const targetLabel = scopeVal === 'all' 
+            ? `Seluruh Siswa (${totalStudents} siswa)` 
+            : `Hanya Siswa Terpilih (${checkedBoxes.length} siswa)`;
+
+        const statusNames = {
+            hadir: 'HADIR',
+            terlambat: 'TERLAMBAT',
+            izin: 'IZIN',
+            sakit: 'SAKIT',
+            alpa: 'ALPA'
+        };
+
+        const overwriteLabel = isOverwrite 
+            ? '<span class="text-rose-700">Ya, Timpa Data Lama</span>' 
+            : '<span class="text-emerald-700">Aman (Hanya Isi Hari Kosong)</span>';
+
+        const summaryHtml = `
+            <div class="text-left space-y-2.5 p-3 bg-slate-50 border-2 border-black neo-box-sm text-xs font-bold">
+                <div class="flex justify-between border-b border-slate-200 pb-1.5">
+                    <span class="text-slate-500">Kelas Target:</span>
+                    <span class="text-black">${className}</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-1.5">
+                    <span class="text-slate-500">Bulan & Tahun:</span>
+                    <span class="text-black font-mono">${monthText} ${yearVal}</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-1.5">
+                    <span class="text-slate-500">Target Siswa:</span>
+                    <span class="text-black">${targetLabel}</span>
+                </div>
+                <div class="flex justify-between border-b border-slate-200 pb-1.5">
+                    <span class="text-slate-500">Status Kehadiran:</span>
+                    <span class="font-black text-black">${statusNames[statusVal] || statusVal.toUpperCase()}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-500">Opsi Penimpaan:</span>
+                    <span>${overwriteLabel}</span>
+                </div>
+            </div>
+            <div class="p-2.5 bg-[#FFF3BF] border border-black text-[11px] text-amber-950 font-bold mt-3 text-left">
+                ⚠️ <b>Perhatian:</b> Seluruh hari aktif (Senin–Sabtu) di bulan ${monthText} ${yearVal} akan diisi. Hari Minggu otomatis dilewati. Data presensi tetap dapat diubah oleh Guru kapan saja.
+            </div>
+            <p class="text-xs text-slate-700 mt-3 font-semibold">Jalankan proses pengisian absensi 1 bulan ini sekarang?</p>
+        `;
+
+        Swal.fire({
+            title: 'Isi Absensi 1 Bulan?',
+            html: summaryHtml,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#20C997',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '🚀 Ya, Proses 1 Bulan',
+            cancelButtonText: 'Batal Periksa Kembali',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const container = document.getElementById('monthlyStudentIdsContainer');
+                if (container) {
+                    container.innerHTML = '';
+                    if (scopeVal === 'selected') {
+                        checkedBoxes.forEach(cb => {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'student_ids[]';
+                            input.value = cb.value;
+                            container.appendChild(input);
+                        });
+                    }
+                }
+                form.submit();
+            }
+        });
+    }
+
+    // Event listener tombol ESC untuk menutup modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAttendanceUploadModal();
+            closeAttendanceBatchesModal();
+            closeMonthlyFillModal();
+        }
+    });
 </script>
+
+<!-- MODAL 1: Upload Excel Presensi -->
+<div id="modalUploadAttendance" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000000] max-w-lg w-full relative">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-black">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">📤</span>
+                <h3 class="text-base font-black uppercase tracking-wider text-black">Upload Presensi Excel</h3>
+            </div>
+            <button type="button" onclick="closeAttendanceUploadModal()" class="text-black font-black text-xl hover:text-rose-600 cursor-pointer">✕</button>
+        </div>
+
+        <form action="{{ $uploadRoute }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+            @csrf
+            <input type="hidden" name="school_class_id" value="{{ $selectedClassId }}">
+            <input type="hidden" name="date" value="{{ $date }}">
+
+            <!-- Banner Info Konfirmasi -->
+            <div class="p-3 bg-[#E7F5FF] border-2 border-black neo-box-sm text-xs font-bold text-slate-800 space-y-1">
+                <div class="flex items-center justify-between">
+                    <span>Kelas Target:</span>
+                    <span class="font-black text-black">{{ $selectedClass->name ?? '-' }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span>Tanggal Presensi:</span>
+                    <span class="font-black text-black font-mono">{{ \Carbon\Carbon::parse($date)->translatedFormat('d F Y') }}</span>
+                </div>
+            </div>
+
+            <!-- Petunjuk Format Singkat -->
+            <div class="p-3 bg-[#FFF3BF] border-2 border-black neo-box-sm text-[11px] text-amber-950 font-bold space-y-1">
+                <div class="font-black uppercase">💡 Panduan Cepat:</div>
+                <p>1. Unduh template terlebih dahulu melalui tombol <b>Template Excel</b>.</p>
+                <p>2. Kolom status menerima: <b>H (Hadir), T (Terlambat), S (Sakit), I (Izin), A (Alpa)</b>.</p>
+                <p>3. Jika data pada tanggal yang sama sudah ada, sistem akan langsung <b>memperbarui (upsert)</b> data tersebut.</p>
+            </div>
+
+            <!-- Input File -->
+            <div>
+                <label class="block text-xs font-black uppercase text-black mb-1.5">
+                    Pilih File Spreadsheet (.xlsx, .xls, .csv)
+                </label>
+                <input type="file" 
+                       name="file" 
+                       accept=".xlsx,.xls,.csv" 
+                       required
+                       class="w-full bg-white border-2 border-black p-2 text-xs font-bold text-black focus:outline-hidden cursor-pointer file:mr-3 file:py-1 file:px-3 file:border-2 file:border-black file:bg-[#FFD43B] file:text-xs file:font-black file:cursor-pointer">
+                <p class="text-[10px] text-slate-500 font-semibold mt-1">Ukuran berkas maksimal 5 MB.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t-2 border-black">
+                <button type="button" 
+                        onclick="closeAttendanceUploadModal()" 
+                        class="neo-btn bg-white hover:bg-slate-100 text-black text-xs px-4 py-2 font-bold border-2 border-black cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" 
+                        class="neo-btn bg-[#5294FF] hover:bg-[#3b82f6] text-white text-xs px-5 py-2 font-black border-2 border-black shadow-[3px_3px_0px_0px_#000] cursor-pointer">
+                    🚀 Unggah & Proses
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL 2: Riwayat Upload Batch -->
+<div id="modalBatchesAttendance" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000000] max-w-4xl w-full max-h-[90vh] flex flex-col relative">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-black">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">📋</span>
+                <div>
+                    <h3 class="text-base font-black uppercase tracking-wider text-black">Riwayat Upload Presensi</h3>
+                    <p class="text-[11px] font-bold text-slate-500">Kelas: {{ $selectedClass->name ?? '-' }} (20 batch terakhir)</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeAttendanceBatchesModal()" class="text-black font-black text-xl hover:text-rose-600 cursor-pointer">✕</button>
+        </div>
+
+        <div class="overflow-y-auto flex-1 border-2 border-black neo-box-sm">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-black text-white text-[11px] uppercase font-black tracking-wider sticky top-0">
+                    <tr>
+                        <th class="p-2.5">Waktu</th>
+                        <th class="p-2.5">Pengunggah</th>
+                        <th class="p-2.5">Nama Berkas</th>
+                        <th class="p-2.5 text-center">Total</th>
+                        <th class="p-2.5 text-center">Sukses</th>
+                        <th class="p-2.5 text-center">Gagal</th>
+                        <th class="p-2.5 text-center">Status</th>
+                        <th class="p-2.5 text-center">Rincian</th>
+                    </tr>
+                </thead>
+                <tbody id="batchesTableBody" class="divide-y divide-slate-200">
+                    <!-- Dinamis via AJAX -->
+                </tbody>
+            </table>
+
+            <div id="batchesLoadingState" class="p-8 text-center text-xs font-bold text-slate-500">
+                <span class="inline-block animate-spin mr-1">⌛</span> Memuat riwayat upload...
+            </div>
+
+            <div id="batchesEmptyState" class="hidden p-8 text-center text-xs font-bold text-slate-500">
+                Belum ada riwayat berkas presensi yang diunggah untuk kelas ini.
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 mt-4 border-t-2 border-black">
+            <span class="text-[11px] font-bold text-slate-500">Klik "Lihat Error" untuk memeriksa baris yang tidak lolos validasi.</span>
+            <button type="button" 
+                    onclick="closeAttendanceBatchesModal()" 
+                    class="neo-btn bg-black text-white text-xs px-5 py-2 font-bold cursor-pointer hover:bg-slate-800">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
+@if($role === 'admin')
+<!-- MODAL 3: Isi Absensi 1 Bulan Penuh (Khusus Admin) -->
+<div id="modalMonthlyAttendance" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white border-4 border-black p-6 shadow-[8px_8px_0px_0px_#000000] max-w-lg w-full relative">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-black">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">📅</span>
+                <div>
+                    <h3 class="text-base font-black uppercase tracking-wider text-black">Isi Absensi 1 Bulan Penuh</h3>
+                    <p class="text-[11px] font-bold text-slate-500">Khusus Administrator • Kelas: {{ $selectedClass->name ?? '-' }}</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeMonthlyFillModal()" class="text-black font-black text-xl hover:text-rose-600 cursor-pointer">✕</button>
+        </div>
+
+        <form id="monthlyFillForm" action="{{ $monthlyFillRoute }}" method="POST" class="space-y-4">
+            @csrf
+            <input type="hidden" name="school_class_id" value="{{ $selectedClassId }}">
+            <div id="monthlyStudentIdsContainer"></div>
+
+            <!-- Periode Bulan & Tahun -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-black uppercase text-black mb-1.5">
+                        Pilih Bulan
+                    </label>
+                    <select name="month" id="monthlyFillMonth" class="w-full bg-white border-2 border-black p-2 text-xs font-bold text-black focus:outline-hidden">
+                        @for($m = 1; $m <= 12; $m++)
+                            @php
+                                $mName = \Carbon\Carbon::create(2026, $m, 1)->locale('id')->translatedFormat('F');
+                            @endphp
+                            <option value="{{ $m }}" {{ $carbonDate->month == $m ? 'selected' : '' }}>
+                                {{ $mName }}
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-black uppercase text-black mb-1.5">
+                        Tahun
+                    </label>
+                    <input type="number" name="year" id="monthlyFillYear" value="{{ $carbonDate->year }}" min="2020" max="2099" required
+                           class="w-full bg-white border-2 border-black p-2 text-xs font-bold font-mono text-black focus:outline-hidden">
+                </div>
+            </div>
+
+            <!-- Status Kehadiran yang Diterapkan -->
+            <div>
+                <label class="block text-xs font-black uppercase text-black mb-1.5">
+                    Status Kehadiran (Senin s/d Sabtu)
+                </label>
+                <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                    <label class="flex flex-col items-center justify-center p-2 border-2 border-black rounded cursor-pointer transition-colors bg-[#D3F9D8] has-checked:ring-2 has-checked:ring-black">
+                        <input type="radio" name="status" value="hadir" checked class="sr-only">
+                        <span class="text-xs font-black text-emerald-950">Hadir</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-2 border-2 border-black rounded cursor-pointer transition-colors bg-[#D0EBFF] has-checked:ring-2 has-checked:ring-black">
+                        <input type="radio" name="status" value="terlambat" class="sr-only">
+                        <span class="text-xs font-black text-blue-950">Terlambat</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-2 border-2 border-black rounded cursor-pointer transition-colors bg-[#E9ECEF] has-checked:ring-2 has-checked:ring-black">
+                        <input type="radio" name="status" value="izin" class="sr-only">
+                        <span class="text-xs font-black text-slate-900">Izin</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-2 border-2 border-black rounded cursor-pointer transition-colors bg-[#FFF3BF] has-checked:ring-2 has-checked:ring-black">
+                        <input type="radio" name="status" value="sakit" class="sr-only">
+                        <span class="text-xs font-black text-amber-950">Sakit</span>
+                    </label>
+                    <label class="flex flex-col items-center justify-center p-2 border-2 border-black rounded cursor-pointer transition-colors bg-[#FFE3E3] has-checked:ring-2 has-checked:ring-black">
+                        <input type="radio" name="status" value="alpa" class="sr-only">
+                        <span class="text-xs font-black text-rose-950">Alpa</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Target Siswa -->
+            <div class="space-y-1.5 bg-slate-50 border-2 border-black p-3 rounded-sm neo-box-sm">
+                <label class="block text-xs font-black uppercase text-black mb-1">
+                    Target Siswa
+                </label>
+                <div class="space-y-2 text-xs font-bold text-black">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="scope" value="all" id="monthlyScopeAll" checked class="accent-black">
+                        <span>Seluruh Siswa di Kelas ({{ $students->count() }} siswa)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="scope" value="selected" id="monthlyScopeSelected" class="accent-black">
+                        <span>Hanya Siswa Terpilih (<span id="monthlySelectedBadge" class="font-mono font-black text-blue-700">0</span> siswa dicentang)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Opsi Timpa -->
+            <div class="p-3 bg-white border-2 border-black neo-box-sm">
+                <label class="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" name="overwrite" value="1" id="monthlyOverwrite" class="mt-0.5 accent-black w-4 h-4 border-2 border-black">
+                    <div>
+                        <span class="text-xs font-black text-black">Timpa data presensi yang sudah ada</span>
+                        <p class="text-[11px] text-slate-500 font-semibold">Jika tidak dicentang, tanggal yang sudah memiliki rekaman presensi (misal izin/sakit yang diinput guru) tidak akan ditimpa.</p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Note Banner -->
+            <div class="p-2.5 bg-[#FFF9DB] border border-black text-[11px] text-amber-950 font-bold">
+                <span>ℹ️</span> Hari Minggu otomatis dikecualikan (hanya Senin s/d Sabtu yang dicatat). Seluruh rekaman presensi ini tetap dapat diedit oleh Guru kapan saja melalui halaman presensi manual.
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-3 border-t-2 border-black">
+                <button type="button" onclick="closeMonthlyFillModal()" class="neo-btn bg-white hover:bg-slate-100 text-black text-xs px-4 py-2 font-bold border-2 border-black cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="confirmMonthlyFill()" class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-xs px-5 py-2 font-black border-2 border-black shadow-[3px_3px_0px_0px_#000] cursor-pointer">
+                    Lanjutkan & Konfirmasi ➔
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 @endpush

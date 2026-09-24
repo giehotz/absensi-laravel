@@ -391,11 +391,11 @@
 
                                         <!-- 3. Tombol Batalkan Pendaftaran (Jika Transaksi 0 & Saldo 0) -->
                                         @if($txCount === 0 && (float)$account->balance == 0)
-                                            <form action="{{ route('guru.savings.cancel-registration') }}" method="POST" class="inline-block" 
-                                                  onsubmit="return confirm('Apakah Anda yakin ingin membatalkan pendaftaran siswa {{ addslashes($studentName) }}? Rekening tabungan akan dihapus.')">
+                                            <form id="cancelRegistrationForm_{{ $student->id }}" action="{{ route('guru.savings.cancel-registration') }}" method="POST" class="inline-block">
                                                 @csrf
                                                 <input type="hidden" name="student_id" value="{{ $student->id }}">
-                                                <button type="submit" 
+                                                <button type="button" 
+                                                    onclick="confirmCancelRegistration('cancelRegistrationForm_{{ $student->id }}', '{{ addslashes($studentName) }}')"
                                                     class="neo-btn bg-white hover:bg-amber-50 text-amber-700 border border-black p-1 text-xs inline-flex items-center justify-center shadow-[1.5px_1.5px_0px_0px_#000] cursor-pointer group relative" 
                                                     title="Batalkan Pendaftaran" aria-label="Batalkan Pendaftaran">
                                                     <span>↺</span>
@@ -669,11 +669,12 @@
                 <label class="block text-xs font-black uppercase tracking-wider text-black">
                     Nominal Setoran (Rp)
                 </label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                <div class="relative flex items-center">
+                    <span class="absolute left-3.5 font-mono font-black text-sm text-black select-none pointer-events-none z-10">Rp</span>
                     <input type="number" name="amount" id="modalDepositAmount" min="500" step="500" required
                         placeholder="0"
-                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-emerald-50/40">
+                        style="padding-left: 3.25rem !important;"
+                        class="w-full neo-input text-base font-mono font-black !pl-13 pr-4 py-2 bg-emerald-50/40">
                 </div>
                 <!-- Quick Amount Buttons -->
                 <div class="flex flex-wrap gap-1.5 pt-1">
@@ -718,11 +719,12 @@
                     </label>
                     <span id="modalMaxWithdrawInfo" class="text-[11px] font-mono font-bold text-slate-500">Maks: Rp 0</span>
                 </div>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                <div class="relative flex items-center">
+                    <span class="absolute left-3.5 font-mono font-black text-sm text-black select-none pointer-events-none z-10">Rp</span>
                     <input type="number" name="amount" id="modalWithdrawAmount" min="500" step="500" required
                         placeholder="0"
-                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-rose-50/40">
+                        style="padding-left: 3.25rem !important;"
+                        class="w-full neo-input text-base font-mono font-black !pl-13 pr-4 py-2 bg-rose-50/40">
                 </div>
                 <!-- Quick Amount Buttons -->
                 <div class="flex flex-wrap gap-1.5 pt-1">
@@ -882,11 +884,12 @@
                 <label class="block text-xs font-black uppercase tracking-wider text-black">
                     Nominal Sebenarnya (Baru) <span class="text-rose-600">*</span>
                 </label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                <div class="relative flex items-center">
+                    <span class="absolute left-3.5 font-mono font-black text-sm text-black select-none pointer-events-none z-10">Rp</span>
                     <input type="number" name="new_amount" id="correctModalNewAmount" min="0" step="500" required
                         placeholder="0"
-                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-yellow-50/50">
+                        style="padding-left: 3.25rem !important;"
+                        class="w-full neo-input text-base font-mono font-black !pl-13 pr-4 py-2 bg-yellow-50/50">
                 </div>
                 <!-- Quick Amount Buttons -->
                 <div class="flex flex-wrap gap-1.5 pt-0.5">
@@ -1148,6 +1151,62 @@
     }
 
     document.getElementById('correctModalNewAmount')?.addEventListener('input', updateCorrectCalculation);
+
+    // Konfirmasi Pembatalan Pendaftaran Tabungan Siswa via SweetAlert2
+    function confirmCancelRegistration(formId, studentName) {
+        if (typeof Swal === 'undefined') {
+            const promptVal = prompt(`Apakah Anda yakin ingin membatalkan pendaftaran siswa ${studentName}? Rekening tabungan akan dihapus.\n\nKetik "Batalkan" untuk konfirmasi:`);
+            if (promptVal && promptVal.trim().toLowerCase() === 'batalkan') {
+                document.getElementById(formId).submit();
+            }
+            return;
+        }
+
+        Swal.fire({
+            title: 'Batalkan Pendaftaran?',
+            html: `
+                <div class="text-left space-y-3">
+                    <p class="text-xs text-slate-700 font-semibold leading-relaxed">
+                        Apakah Anda yakin ingin membatalkan pendaftaran siswa <b class="text-black font-black font-mono underline">${studentName}</b>? Rekening tabungan akan dihapus.
+                    </p>
+                    <div class="p-3 bg-[#FFE3E3] border-2 border-black neo-box-sm text-xs text-rose-950 font-bold space-y-1">
+                        <div class="font-black uppercase flex items-center gap-1.5 text-rose-900">
+                            <span>⚠️</span> Peringatan
+                        </div>
+                        <p class="text-[11px] leading-relaxed">
+                            Rekening tabungan dan seluruh data pendaftaran siswa ini akan dihapus.
+                        </p>
+                    </div>
+                    <p class="text-xs font-bold text-slate-800">
+                        Ketik <span class="bg-[#FFD43B] px-1.5 py-0.5 border border-black font-mono font-black text-black">Batalkan</span> di bawah ini untuk mengonfirmasi:
+                    </p>
+                </div>
+            `,
+            input: 'text',
+            inputPlaceholder: 'Ketik "Batalkan"',
+            inputAttributes: {
+                autocapitalize: 'off',
+                autocorrect: 'off',
+                class: 'w-full neo-input text-center font-bold text-sm bg-white'
+            },
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#FF6B6B',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '🗑️ Ya, Batalkan Pendaftaran',
+            cancelButtonText: 'Kembali',
+            reverseButtons: true,
+            inputValidator: (value) => {
+                if (!value || value.trim().toLowerCase() !== 'batalkan') {
+                    return 'Ketik kata "Batalkan" dengan benar untuk melanjutkan.';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById(formId).submit();
+            }
+        });
+    }
 
     // Close modal on Escape key
     document.addEventListener('keydown', function(e) {

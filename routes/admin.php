@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AcademicYearController;
 use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
+use App\Http\Controllers\Admin\AttendanceUploadController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
 use App\Http\Controllers\Admin\SavingsController as AdminSavingsController;
 use App\Http\Controllers\Admin\ScheduleController;
@@ -88,9 +89,13 @@ Route::post('database-maintenance/archive', [DatabaseMaintenanceController::clas
 Route::post('database-maintenance/restore', [DatabaseMaintenanceController::class, 'restore'])->name('database.restore');
 Route::post('database-maintenance/optimize', [DatabaseMaintenanceController::class, 'optimize'])->name('database.optimize');
 
-// Presensi Manual Siswa (Admin)
+// Presensi Manual & Upload Siswa (Admin)
 Route::get('attendances/manual', [ManualAttendanceController::class, 'admin'])->name('attendances.manual');
 Route::post('attendances/manual', [ManualAttendanceController::class, 'store'])->name('attendances.manual.store');
+Route::get('attendances/template', [AttendanceUploadController::class, 'downloadTemplate'])->name('attendances.template');
+Route::post('attendances/upload', [AttendanceUploadController::class, 'upload'])->name('attendances.upload');
+Route::get('attendances/batches', [AttendanceUploadController::class, 'batches'])->name('attendances.batches');
+Route::post('attendances/monthly-fill', [ManualAttendanceController::class, 'monthlyFill'])->name('attendances.monthly-fill');
 
 // Manajemen & Monitoring Tabungan Siswa (Admin)
 Route::get('savings', [AdminSavingsController::class, 'index'])->name('savings.index');

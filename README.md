@@ -188,6 +188,9 @@ Hasil eksekusi `php artisan migrate --seed` menyediakan akun-akun pengujian beri
 | Kebutuhan | Perintah |
 | :--- | :--- |
 | **Menjalankan Dev Server Sekaligus** (PHP + Vite) | `composer run dev` |
+| **Pembaruan Kode & Migrasi Cepat** | `git pull && php artisan migrate` |
+| **Migrasi Tabel Baru (Aman untuk Data Riil)** | `php artisan migrate --force` |
+| **Menjalankan Seeder Data Tertentu** | `php artisan db:seed --class=NamaSeeder` |
 | **Reset Total Database & Seeder Ulang** | `php artisan migrate:fresh --seed` |
 | **Menjalankan Unit & Feature Test** | `php artisan test` |
 | **Format Standar Kode PHP (Laravel Pint)** | `vendor/bin/pint --format agent` |
@@ -401,6 +404,119 @@ Jika Anda menggunakan VPS (seperti DigitalOcean, Linode, AWS EC2, atau VPS lokal
    ```bash
    sudo certbot --nginx -d absensi.namasekolah.sch.id
    ```
+
+---
+
+## 🔄 Panduan Pembaruan Aplikasi (Git Update, Migrasi & Seeder)
+
+Panduan ini digunakan ketika terdapat pembaruan kode dari repositori Git, baik pada komputer **Lokal (Development)** maupun di server **Production (VPS / Shared Hosting)**.
+
+---
+
+### 1. Update pada Lingkungan Lokal (Development)
+
+Jalankan perintah berikut secara berurutan di terminal proyek:
+
+```bash
+# 1. Ambil perubahan kode terbaru dari repositori Git
+git pull origin master
+
+# 2. Perbarui paket dependensi jika ada perubahan composer.json / package.json
+composer install
+npm install
+
+# 3. Kompilasi ulang aset frontend (Vite)
+npm run build
+
+# 4. Jalankan migrasi database untuk tabel/kolom baru
+# (Aman: hanya mengeksekusi migration yang belum pernah dijalankan, tanpa menghapus data)
+php artisan migrate
+
+# 5. (Opsional) Jalankan seeder jika ada data master/pengaturan baru yang ditambahkan
+php artisan db:seed
+
+# 6. Bersihkan cache aplikasi agar konfigurasi dan rute terbaru langsung aktif
+php artisan optimize:clear
+```
+
+> 💡 **Shortcut One-Liner (Lokal):**
+> ```bash
+> git pull && composer install && npm install && npm run build && php artisan migrate && php artisan optimize:clear
+> ```
+
+---
+
+### 2. Update pada Lingkungan Server / Hosting (Production)
+
+> ⚠️ **PERINGATAN SANGAT PENTING MENGENAI DATABASE:**
+> **JANGAN PERNAH** menjalankan `php artisan migrate:fresh` di server production yang sudah digunakan, karena perintah tersebut akan **menghapus seluruh tabel dan data riil** (data siswa, guru, catatan kehadiran, dll).
+> Selalu gunakan perintah `php artisan migrate --force` untuk memperbarui skema tanpa menghapus data yang ada.
+
+#### A. Langkah Update di VPS / Cloud Server (SSH):
+
+```bash
+cd /var/www/absensi-laravel
+
+# 1. Tarik pembaruan kode dari git
+git pull origin master
+
+# 2. Pasang dependensi PHP mode produksi (tanpa paket dev)
+composer install --optimize-autoloader --no-dev
+
+# 3. Pasang & kompilasi aset frontend
+npm install && npm run build
+
+# 4. Jalankan migrasi database baru (parameter --force wajib di environment production)
+php artisan migrate --force
+
+# 5. (Opsional) Jika ada seeder data baru tertentu yang perlu dieksekusi:
+php artisan db:seed --class=NamaSeederBaru --force
+
+# 6. Refresh dan cache konfigurasi, rute, serta template Blade untuk performa optimal
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+#### B. Langkah Update di Shared Hosting (cPanel):
+- **Jika Tersedia Menu Terminal cPanel:**
+  ```bash
+  cd ~/absensi-core
+  git pull origin master
+  composer install --optimize-autoloader --no-dev
+  php artisan migrate --force
+  php artisan optimize:clear
+  php artisan config:cache
+  php artisan route:cache
+  php artisan view:cache
+  ```
+  *(Catatan: Jika `npm` tidak tersedia di cPanel, jalankan `npm run build` di komputer lokal terlebih dahulu, lalu unggah folder `public/build` ke `public_html/build` di cPanel).*
+
+- **Jika Tanpa Fitur Git di Hosting (Manual Zip):**
+  1. Kompilasi frontend di lokal (`npm run build`).
+  2. Unggah file zip pembaruan ke folder `absensi-core` dan ekstrak (timpa berkas yang lama).
+  3. Buka menu **Terminal** cPanel dan jalankan perintah migrasi:
+     ```bash
+     cd ~/absensi-core
+     php artisan migrate --force
+     php artisan optimize:clear
+     ```
+
+---
+
+### 3. Panduan Perintah Migrasi & Seeder Database
+
+Pahami perbedaan perintah database berikut agar data tidak hilang secara tidak sengaja:
+
+| Kebutuhan / Skenario | Perintah | Dampak & Keterangan |
+| :--- | :--- | :--- |
+| **Menambah Tabel/Kolom Baru (Aman)** | `php artisan migrate`<br>*(Production:* `php artisan migrate --force`*)* | **Aman untuk data riil.** Hanya menjalankan berkas migrasi baru yang belum tercatat di tabel `migrations`. Data lama tetap utuh. |
+| **Menjalankan Seluruh Seeder** | `php artisan db:seed`<br>*(Production:* `php artisan db:seed --force`*)* | Menjalankan seluruh seeder yang didefinisikan pada `DatabaseSeeder.php`. |
+| **Menjalankan Seeder Tertentu Saja** | `php artisan db:seed --class=NamaSeeder`<br>*(Production tambahkan* `--force`*)* | Sangat berguna jika Anda hanya ingin mengisi 1 tabel baru tanpa mengeksekusi seeder lainnya. |
+| **Cek Status Seluruh Migrasi** | `php artisan migrate:status` | Melihat daftar berkas migrasi beserta statusnya (`Ran` jika sudah dijalankan, `Pending` jika belum). |
+| **Rollback 1 Batch Migrasi Terakhir** | `php artisan migrate:rollback` | Membatalkan migrasi yang baru saja dieksekusi jika terjadi kesalahan struktur kolom. |
+| **Reset Total Database (Khusus Dev)** | `php artisan migrate:fresh --seed` | ⚠️ **BAHAYA:** Menghapus SEMUA tabel dan data riil, membuat ulang dari awal, dan mengisinya dengan data contoh (dummy). **Hanya untuk lingkungan lokal!** |
 
 ---
 

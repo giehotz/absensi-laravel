@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Attendance;
+use App\Models\AttendanceSetting;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -11,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ManualAttendanceController extends Controller
@@ -158,5 +160,140 @@ class ManualAttendanceController extends Controller
             $user->role === 'admin' ? 'admin.attendances.manual' : 'guru.attendance.manual',
             ['date' => $date, 'school_class_id' => $classId]
         )->with('success', "Presensi {$className} tanggal {$formattedDate} berhasil disimpan ({$savedCount} siswa).");
+    }
+
+    /**
+     * Isi presensi 1 bulan penuh untuk hari aktif (Senin - Sabtu) khusus Administrator.
+     */
+    public function monthlyFill(Request $request): RedirectResponse
+    {
+        $user = Auth::user();
+        if ($user->role !== 'admin') {
+            abort(403, 'Hanya Administrator yang memiliki akses untuk mengisi absensi 1 bulan penuh.');
+        }
+
+        $validated = $request->validate([
+            'school_class_id' => 'required|exists:school_classes,id',
+            'month' => 'required|integer|between:1,12',
+            'year' => 'required|integer|between:2020,2099',
+            'status' => 'required|in:hadir,terlambat,izin,sakit,alpa',
+            'scope' => 'required|in:all,selected',
+            'student_ids' => 'nullable|array',
+            'student_ids.*' => 'exists:students,id',
+            'overwrite' => 'nullable|boolean',
+        ], [
+            'school_class_id.required' => 'Pilih kelas tujuan presensi.',
+            'month.between' => 'Bulan tidak valid.',
+            'year.between' => 'Tahun tidak valid.',
+            'status.required' => 'Pilih status kehadiran.',
+        ]);
+
+        $classId = (int) $validated['school_class_id'];
+        $schoolClass = SchoolClass::findOrFail($classId);
+        $month = (int) $validated['month'];
+        $year = (int) $validated['year'];
+        $status = $validated['status'];
+        $scope = $validated['scope'];
+        $overwrite = (bool) ($validated['overwrite'] ?? false);
+
+        // Ambil daftar siswa target
+        $studentQuery = Student::where('school_class_id', $classId);
+        if ($scope === 'selected' && ! empty($validated['student_ids'])) {
+            $studentQuery->whereIn('id', $validated['student_ids']);
+        }
+        $students = $studentQuery->get();
+
+        if ($students->isEmpty()) {
+            return back()->with('error', 'Tidak ada siswa yang dipilih atau terdaftar di kelas ini.');
+        }
+
+        // Ambil setting jam mulai sekolah
+        $attendanceSetting = AttendanceSetting::first();
+        $startTimeStr = $attendanceSetting?->school_start_time ?? '07:00:00';
+
+        // Hitung seluruh tanggal dalam bulan tersebut (kecualikan hari Minggu)
+        $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $daysInMonth = $startOfMonth->daysInMonth;
+        $activeDates = [];
+
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $currentDate = Carbon::createFromDate($year, $month, $day);
+            // Lewati hari Minggu (dayOfWeek === 0)
+            if ($currentDate->dayOfWeek === Carbon::SUNDAY) {
+                continue;
+            }
+            $activeDates[] = $currentDate->toDateString();
+        }
+
+        if (empty($activeDates)) {
+            return back()->with('error', 'Tidak ada hari efektif (Senin-Sabtu) pada bulan yang dipilih.');
+        }
+
+        $processedCount = 0;
+        $skippedCount = 0;
+
+        DB::transaction(function () use (
+            $students,
+            $activeDates,
+            $status,
+            $overwrite,
+            $startTimeStr,
+            $user,
+            &$processedCount,
+            &$skippedCount
+        ) {
+            foreach ($activeDates as $dateStr) {
+                $checkInTime = in_array($status, ['hadir', 'terlambat'])
+                    ? Carbon::parse($dateStr.' '.$startTimeStr)
+                    : null;
+
+                foreach ($students as $student) {
+                    $existing = Attendance::where('student_id', $student->id)
+                        ->whereDate('date', $dateStr)
+                        ->first();
+
+                    if ($existing) {
+                        if ($overwrite) {
+                            $existing->update([
+                                'status' => $status,
+                                'method' => 'manual',
+                                'recorded_by' => $user->id,
+                                'check_in_time' => $checkInTime,
+                            ]);
+                            $processedCount++;
+                        } else {
+                            $skippedCount++;
+                        }
+                    } else {
+                        Attendance::create([
+                            'student_id' => $student->id,
+                            'date' => $dateStr,
+                            'status' => $status,
+                            'method' => 'manual',
+                            'recorded_by' => $user->id,
+                            'check_in_time' => $checkInTime,
+                            'notes' => 'Diisi massal bulanan oleh Admin',
+                        ]);
+                        $processedCount++;
+                    }
+                }
+            }
+        });
+
+        $monthName = Carbon::createFromDate($year, $month, 1)->locale('id')->translatedFormat('F Y');
+        $studentCount = $students->count();
+        $activeDaysCount = count($activeDates);
+
+        $msg = "Presensi bulan {$monthName} untuk {$studentCount} siswa ({$activeDaysCount} hari aktif Senin-Sabtu) berhasil diproses. Sebanyak {$processedCount} rekaman disimpan.";
+        if ($skippedCount > 0) {
+            $msg .= " ({$skippedCount} rekaman dilewati karena sudah ada data sebelumnya).";
+        }
+
+        $targetDate = $activeDates[0] ?? Carbon::createFromDate($year, $month, 1)->toDateString();
+
+        return redirect()->route('admin.attendances.manual', [
+            'school_class_id' => $classId,
+            'date' => $targetDate,
+        ])->with('success', $msg);
     }
 }

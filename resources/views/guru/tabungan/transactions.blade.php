@@ -274,11 +274,12 @@
                 <label class="block text-xs font-black uppercase tracking-wider text-black">
                     Nominal Sebenarnya (Baru) <span class="text-rose-600">*</span>
                 </label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 font-mono font-bold text-sm text-black">Rp</span>
+                <div class="relative flex items-center">
+                    <span class="absolute left-3.5 font-mono font-black text-sm text-black select-none pointer-events-none z-10">Rp</span>
                     <input type="number" name="new_amount" id="correctModalNewAmount" min="0" step="500" required
                         placeholder="0"
-                        class="w-full neo-input text-base font-mono font-black pl-10 pr-4 py-2 bg-yellow-50/50">
+                        style="padding-left: 3.25rem !important;"
+                        class="w-full neo-input text-base font-mono font-black !pl-13 pr-4 py-2 bg-yellow-50/50">
                 </div>
                 <!-- Quick Amount Buttons -->
                 <div class="flex flex-wrap gap-1.5 pt-0.5">

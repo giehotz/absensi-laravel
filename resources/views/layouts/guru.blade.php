@@ -317,6 +317,22 @@
             </script>
             @endif
 
+            @if(session('warning'))
+            <script>
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Perhatian!',
+                        text: @json(session('warning')),
+                        confirmButtonColor: '#FFD43B',
+                        confirmButtonTextColor: '#000000',
+                    });
+                } else {
+                    alert(@json(session('warning')));
+                }
+            </script>
+            @endif
+
             @if($errors->any())
             <div class="mb-6 bg-[#FFE3E3] border-3 border-black p-4 neo-box text-rose-950 space-y-1">
                 <div class="font-black flex items-center gap-2 text-sm">

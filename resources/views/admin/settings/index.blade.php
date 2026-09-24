@@ -26,7 +26,7 @@
 <div class="max-w-5xl mx-auto space-y-8">
 
     <!-- Tab Navigation -->
-    <div class="bg-white neo-box-lg p-2 border-2 border-black grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+    <div class="bg-white neo-box-lg p-2 border-2 border-black grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
         <button type="button" data-tab="absensi" onclick="switchTab('absensi')"
                 class="settings-tab neo-btn bg-white hover:bg-[#FFF9DB] text-black px-3 py-3 text-[11px] sm:text-xs font-heading font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer border-2 border-black tab-active">
             <span class="tab-icon">⚙️</span> Konfigurasi Absensi
@@ -34,6 +34,10 @@
         <button type="button" data-tab="profil" onclick="switchTab('profil')"
                 class="settings-tab neo-btn bg-white hover:bg-[#FFF9DB] text-black px-3 py-3 text-[11px] sm:text-xs font-heading font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer border-2 border-black">
             <span class="tab-icon">🏫</span> Profil Lembaga
+        </button>
+        <button type="button" data-tab="kop" onclick="switchTab('kop')"
+                class="settings-tab neo-btn bg-white hover:bg-[#FFF9DB] text-black px-3 py-3 text-[11px] sm:text-xs font-heading font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer border-2 border-black">
+            <span class="tab-icon">📜</span> Kop Surat
         </button>
         <button type="button" data-tab="periode" onclick="switchTab('periode')"
                 class="settings-tab neo-btn bg-white hover:bg-[#FFF9DB] text-black px-3 py-3 text-[11px] sm:text-xs font-heading font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer border-2 border-black">
@@ -46,7 +50,7 @@
     </div>
 
     <!-- ============================================================ -->
-    <!-- TAB 1: KONFIGURASI ABSENSI + TAB 2: PROFIL LEMBAGA (1 form) -->
+    <!-- TAB 1: ABSENSI + TAB 2: PROFIL + TAB 3: KOP SURAT (1 form)   -->
     <!-- ============================================================ -->
     <form action="{{ route('admin.settings.update') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
         @csrf
@@ -54,6 +58,7 @@
 
         @include('admin.settings.partials._tab-absensi')
         @include('admin.settings.partials._tab-profil')
+        @include('admin.settings.partials._tab-kop-surat')
     </form>
 
     <!-- ============================================================ -->

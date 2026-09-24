@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Guru\AttendanceReportController;
+use App\Http\Controllers\Guru\AttendanceUploadController;
 use App\Http\Controllers\Guru\HomeroomClassController;
 use App\Http\Controllers\Guru\LeaveRequestController;
 use App\Http\Controllers\Guru\ProfileController;
@@ -23,9 +24,12 @@ Route::get('/perizinan/export', [LeaveRequestController::class, 'exportExcel'])-
 Route::patch('/leave-requests/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('leave-requests.approve');
 Route::patch('/leave-requests/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('leave-requests.reject');
 
-// Presensi Manual Siswa (Guru)
+// Presensi Manual & Upload Siswa (Guru)
 Route::get('/presensi/manual', [ManualAttendanceController::class, 'guru'])->name('attendance.manual');
 Route::post('/presensi/manual', [ManualAttendanceController::class, 'store'])->name('attendance.manual.store');
+Route::get('/presensi/template', [AttendanceUploadController::class, 'downloadTemplate'])->name('attendance.template');
+Route::post('/presensi/upload', [AttendanceUploadController::class, 'upload'])->name('attendance.upload');
+Route::get('/presensi/batches', [AttendanceUploadController::class, 'batches'])->name('attendance.batches');
 
 // Rekap Presensi Siswa (Guru)
 Route::get('/rekap', [AttendanceReportController::class, 'index'])->name('reports.attendance');
