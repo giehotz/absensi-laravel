@@ -123,7 +123,7 @@
                                         ]) }})" 
                                         class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
                                         title="Kartu & QR" aria-label="Lihat Kartu & QR">
-                                    <span class="text-sm leading-none block">🪪</span>
+                                    <span class="text-sm leading-none block">💳</span>
                                     <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
                                         Kartu & QR
                                     </span>
