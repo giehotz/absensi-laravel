@@ -6,6 +6,7 @@ use App\Http\Controllers\Guru\AttendanceUploadController;
 use App\Http\Controllers\Guru\HomeroomClassController;
 use App\Http\Controllers\Guru\LeaveRequestController;
 use App\Http\Controllers\Guru\ProfileController;
+use App\Http\Controllers\Guru\QrGeneratorController;
 use App\Http\Controllers\Guru\ScheduleController;
 use App\Http\Controllers\ManualAttendanceController;
 use Illuminate\Support\Facades\Route;
@@ -47,3 +48,7 @@ Route::post('/kelas-binaan/students/{student}/reset-password', [HomeroomClassCon
 Route::get('/profil', [ProfileController::class, 'index'])->name('profile.index');
 Route::put('/profil', [ProfileController::class, 'update'])->name('profile.update');
 Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+// QR Generator (Guru)
+Route::get('/qr-generator/{qrGenerator}/download/{format}', [QrGeneratorController::class, 'download'])->name('qr-generator.download');
+Route::resource('/qr-generator', QrGeneratorController::class);

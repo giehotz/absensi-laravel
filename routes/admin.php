@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\AttendanceUploadController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
+use App\Http\Controllers\Admin\QrGeneratorController;
 use App\Http\Controllers\Admin\SavingsController as AdminSavingsController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\ScheduleSlotController;
@@ -111,3 +112,7 @@ Route::put('api-clients/{client}', [ApiClientController::class, 'update'])->name
 Route::post('api-clients/{client}/regenerate', [ApiClientController::class, 'regenerateKey'])->name('api-clients.regenerate');
 Route::patch('api-clients/{client}/toggle', [ApiClientController::class, 'toggle'])->name('api-clients.toggle');
 Route::delete('api-clients/{client}', [ApiClientController::class, 'destroy'])->name('api-clients.destroy');
+
+// QR Generator
+Route::get('qr-generator/{qrGenerator}/download/{format}', [QrGeneratorController::class, 'download'])->name('qr-generator.download');
+Route::resource('qr-generator', QrGeneratorController::class);

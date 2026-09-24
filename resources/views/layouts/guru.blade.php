@@ -201,6 +201,29 @@
                         </a>
                     </div>
                 </div>
+
+                <!-- Group: Alat & Utilitas -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                        Alat & Utilitas
+                    </div>
+                    <div class="space-y-1">
+                        <!-- QR Generator -->
+                        <a href="{{ route('guru.qr-generator.index') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.qr-generator.*') 
+                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.qr-generator.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                                </svg>
+                                <span>QR Generator</span>
+                            </div>
+                            <span class="text-[9px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
+                        </a>
+                    </div>
+                </div>
             </nav>
 
             <!-- Sidebar Footer: High Contrast User Profile Card & Logout -->
