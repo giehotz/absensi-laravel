@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\SubjectReferenceController;
+use App\Http\Controllers\PublicVerificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -35,3 +36,6 @@ Route::middleware(['auth', 'role:orangtua'])->prefix('orangtua')->name('orangtua
 
 // Modul Terisolasi: Pengelolaan Tabungan Siswa
 require base_path('routes/tabungan.php');
+
+// Rute Publik: Verifikasi Keabsahan Kartu Tanda Pelajar (Scan QR Depan)
+Route::get('validasi/siswa/{identifier}', [PublicVerificationController::class, 'verifyStudent'])->name('public.verify.student');

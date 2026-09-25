@@ -183,85 +183,86 @@
             <button onclick="closeModal('qrPreviewModal')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer">✕</button>
         </div>
 
-        <!-- Kartu Pelajar Format Resmi (Diambil dari /admin/students/cards) -->
-        <div class="border-2 border-black rounded bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden text-black font-sans select-none">
+        <!-- Kartu Pelajar Format Resmi (Sesuai Desain Baru) -->
+        <div class="border-2 border-black rounded-xl bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden text-black font-sans select-none">
             <!-- Kop Sekolah -->
-            <div class="bg-slate-900 text-white px-2.5 py-1.5 flex items-center justify-between border-b-2 border-black">
-                <div class="flex items-center gap-2">
-                    <div class="w-7 h-7 rounded-full bg-[#FFD43B] border border-black flex items-center justify-center font-black text-xs text-black font-heading shrink-0">
-                        🎓
+            <div class="px-3 pt-2.5 pb-1.5 border-b-2 border-black bg-white flex items-center gap-2.5">
+                @if(!empty($setting->card_logo_url))
+                    <div class="w-8 h-8 rounded-md bg-white border border-black flex items-center justify-center p-0.5 shrink-0 overflow-hidden shadow-[1px_1px_0px_#000]">
+                        <img src="{{ $setting->card_logo_url }}" alt="Logo" class="w-full h-full object-contain">
                     </div>
-                    <div class="leading-tight truncate">
-                        <div class="font-heading font-black text-[11px] uppercase tracking-tight truncate text-[#FFD43B]">
-                            {{ $setting->school_name ?? 'SMP NEGERI 1 GARUDA' }}
-                        </div>
-                        <div class="text-[8px] font-mono text-slate-300">
-                            NPSN: {{ $setting->npsn ?? '-' }} • {{ $setting->level ?? 'SMP' }}
-                        </div>
+                @else
+                    <div class="w-8 h-8 rounded-md bg-[#20C997] border border-black flex items-center justify-center font-heading font-black text-xs text-black shrink-0 shadow-[1px_1px_0px_#000]">
+                        🏫
+                    </div>
+                @endif
+                <div class="min-w-0 flex-1 leading-none">
+                    <div class="font-heading font-black text-xs uppercase tracking-tight truncate text-black">
+                        {{ $setting->resolved_card_school_name }}
+                    </div>
+                    <div class="font-heading font-black text-[9px] tracking-wider uppercase mt-0.5" style="color: {{ $setting->card_theme_color ?: '#20C997' }};">
+                        {{ $setting->resolved_card_title }}
                     </div>
                 </div>
-                <span class="text-[8px] font-mono font-bold bg-[#20C997] text-black px-1.5 py-0.5 rounded border border-black uppercase shrink-0">
+                <span class="text-[7.5px] font-mono font-black bg-black text-white px-1.5 py-0.5 rounded uppercase shrink-0">
                     RESMI
                 </span>
             </div>
 
-            <!-- Pita Judul Kartu -->
-            <div class="bg-[#FFD43B] text-black border-b border-black text-center py-0.5 font-heading font-black text-[9px] uppercase tracking-widest">
-                KARTU TANDA PELAJAR & PRESENSI
-            </div>
-
-            <!-- Badan Kartu: Foto, Identitas, & Real QR Code dari /admin/students/cards -->
-            <div class="p-3 flex items-center justify-between gap-2.5 bg-gradient-to-br from-white to-slate-50 min-h-[120px]">
-                <!-- Foto Siswa -->
-                <div class="w-16 h-20 bg-slate-100 border-2 border-black rounded shadow-[1.5px_1.5px_0px_#000] flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
+            <!-- Konten Biodata Siswa & Real QR Code -->
+            <div class="px-3 py-2 flex items-center justify-between gap-2.5 bg-gradient-to-br from-white via-white to-slate-50 min-h-[120px]">
+                <!-- Pas Foto Siswa -->
+                <div class="w-16 h-20 bg-rose-600 border-2 border-black rounded-md flex flex-col items-center justify-center shrink-0 relative overflow-hidden shadow-[1.5px_1.5px_0px_#000]">
                     <img id="qr_preview_photo" src="" alt="Foto" class="w-full h-full object-cover hidden">
-                    <div id="qr_preview_placeholder" class="flex flex-col items-center justify-center">
+                    <div id="qr_preview_placeholder" class="flex flex-col items-center justify-center text-white">
                         <span class="text-xl">👤</span>
-                        <span class="text-[7px] font-bold text-slate-500 uppercase mt-0.5">FOTO 3×4</span>
+                        <span class="text-[6.5px] font-bold uppercase mt-0.5">3×4</span>
                     </div>
-                    <span id="qr_preview_gender_badge" class="absolute bottom-0 inset-x-0 bg-black text-white text-[7px] font-bold text-center py-0.2 uppercase">
+                    <span id="qr_preview_gender_badge" class="absolute bottom-0 inset-x-0 bg-black text-white text-[6.5px] font-bold text-center py-0.2 uppercase">
                         LAKI-LAKI
                     </span>
                 </div>
 
                 <!-- Data Diri Siswa -->
-                <div class="flex-1 min-w-0 space-y-0.5 text-[10px]">
-                    <div id="qr_preview_name" class="font-heading font-black text-xs text-black truncate leading-snug">
+                <div class="flex-1 min-w-0 leading-tight space-y-0.5 text-black">
+                    <div id="qr_preview_name" class="font-heading font-black text-[9.5px] sm:text-[10px] uppercase line-clamp-2 break-words leading-tight pb-0.5 text-slate-900 border-b border-slate-200">
                         Nama Siswa
                     </div>
-                    <div class="grid grid-cols-3 gap-0.5 font-medium text-[9px] text-slate-700">
-                        <span class="text-slate-500">NIS</span>
-                        <span id="qr_preview_nis" class="col-span-2 font-mono font-bold text-black">: -</span>
+                    <div class="grid grid-cols-[45px_auto] gap-x-1 gap-y-0.5 text-[8px] font-bold text-slate-800 leading-tight pt-0.5">
+                        <span class="text-slate-600 font-semibold">NISM</span>
+                        <span id="qr_preview_nis" class="font-mono text-black truncate">: -</span>
                         
-                        <span class="text-slate-500">NISN</span>
-                        <span id="qr_preview_nisn" class="col-span-2 font-mono font-bold text-black">: -</span>
+                        <span class="text-slate-600 font-semibold">NISN</span>
+                        <span id="qr_preview_nisn" class="font-mono text-black truncate">: -</span>
 
-                        <span class="text-slate-500">Kelas</span>
-                        <span id="qr_preview_class" class="col-span-2 font-bold text-black">: -</span>
+                        <span class="text-slate-600 font-semibold">LAHIR</span>
+                        <span id="qr_preview_birth" class="font-mono text-black truncate">: -</span>
 
-                        <span class="text-slate-500">Lahir</span>
-                        <span id="qr_preview_birth" class="col-span-2 font-mono text-black">: -</span>
+                        <span id="qr_preview_class" class="hidden">: -</span>
                     </div>
                 </div>
 
-                <!-- Real QR Code Scanner Absensi (Diambil dari /admin/students/cards) -->
-                <div class="flex flex-col items-center justify-center shrink-0">
-                    <div class="bg-white p-1.5 border-2 border-black rounded shadow-[1.5px_1.5px_0px_#000]">
+                <!-- Real QR Code Scanner Absensi (Ukuran Diperkecil) -->
+                <div class="flex flex-col items-center justify-center shrink-0 text-center pl-1 border-l border-slate-200">
+                    <div class="bg-white p-0.5 border-1.5 border-black rounded shadow-[1px_1px_0px_#000]">
                         <img id="qr_preview_image" 
                              src="" 
                              alt="QR Code Absensi" 
-                             class="w-16 h-16 object-contain">
+                             class="w-12 h-12 object-contain">
                     </div>
-                    <span class="text-[7px] font-black uppercase text-black mt-0.5 tracking-wider">
+                    <span class="text-[5.5px] font-mono font-bold text-slate-600 uppercase mt-0.5 tracking-tight">
                         SCAN PRESENSI
                     </span>
                 </div>
             </div>
 
             <!-- Footer Kartu -->
-            <div class="bg-slate-100 px-2.5 py-1 border-t border-black flex items-center justify-between text-[8px] font-medium text-slate-600">
-                <span>Berlaku Selama Menjadi Siswa Aktif</span>
-                <span id="qr_preview_code" class="font-mono font-bold text-black">-</span>
+            <div class="px-3 py-1 border-t-2 border-black flex items-center justify-between text-[8px] font-bold" style="background-color: {{ ($setting->card_theme_color ?: '#20C997') }}20;">
+                <div class="inline-flex items-center gap-1 text-black font-black uppercase tracking-wider text-[7px] px-1.5 py-0.5 rounded-full border border-black shadow-[1px_1px_0px_#000]" style="background-color: {{ $setting->card_theme_color ?: '#20C997' }};">
+                    <span>●</span>
+                    <span>{{ $setting->resolved_card_validity_text }}</span>
+                </div>
+                <span id="qr_preview_code" class="font-mono text-[7px] text-slate-600 font-semibold">-</span>
             </div>
         </div>
 

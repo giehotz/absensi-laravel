@@ -7,6 +7,7 @@ use App\Models\AttendanceSetting;
 use App\Models\CustomQrCode;
 use App\Models\User;
 use App\Services\CustomQrGeneratorService;
+use App\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +16,8 @@ use Symfony\Component\HttpFoundation\Response;
 class QrGeneratorController extends Controller
 {
     public function __construct(
-        protected CustomQrGeneratorService $qrService
+        protected CustomQrGeneratorService $qrService,
+        protected ImageUploadService $imageUploadService
     ) {}
 
     /**
@@ -74,7 +76,13 @@ class QrGeneratorController extends Controller
 
         $customLogoPath = null;
         if ($validated['logo_type'] === 'custom' && $request->hasFile('custom_logo')) {
-            $customLogoPath = $request->file('custom_logo')->store('qr-logos', 'public');
+            $customLogoPath = $this->imageUploadService->uploadAsWebp(
+                $request->file('custom_logo'),
+                'qr-logos',
+                quality: 85,
+                maxWidth: 500,
+                maxHeight: 500
+            );
         }
 
         $qrCode = CustomQrCode::create([
@@ -150,13 +158,8 @@ class QrGeneratorController extends Controller
     {
         $qrCode = $qrGenerator;
 
-        if (! empty($qrCode->custom_logo_path) && Storage::disk('public')->exists($qrCode->custom_logo_path)) {
-            Storage::disk('public')->delete($qrCode->custom_logo_path);
-        }
-
-        if (! empty($qrCode->png_path) && Storage::disk('public')->exists($qrCode->png_path)) {
-            Storage::disk('public')->delete($qrCode->png_path);
-        }
+        $this->imageUploadService->deleteOldFile($qrCode->custom_logo_path);
+        $this->imageUploadService->deleteOldFile($qrCode->png_path);
 
         $qrCode->delete();
 

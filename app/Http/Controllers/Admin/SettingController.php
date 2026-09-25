@@ -8,13 +8,17 @@ use App\Models\Attendance;
 use App\Models\AttendanceArchive;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
+use App\Services\ImageUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class SettingController extends Controller
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     public function index(): View
     {
         $setting = AttendanceSetting::first() ?? AttendanceSetting::create([
@@ -146,52 +150,36 @@ class SettingController extends Controller
         $setting->kop_is_active = $request->boolean('kop_is_active', true);
 
         if ($request->hasFile('logo')) {
-            if ($setting->logo && Storage::disk('public')->exists($setting->logo)) {
-                Storage::disk('public')->delete($setting->logo);
-            }
-            $setting->logo = $request->file('logo')->store('logos', 'public');
+            $this->imageUploadService->deleteOldFile($setting->logo);
+            $setting->logo = $this->imageUploadService->uploadAsWebp($request->file('logo'), 'logos');
         } elseif ($request->boolean('remove_logo')) {
-            if ($setting->logo && Storage::disk('public')->exists($setting->logo)) {
-                Storage::disk('public')->delete($setting->logo);
-            }
+            $this->imageUploadService->deleteOldFile($setting->logo);
             $setting->logo = null;
         }
 
         if ($request->hasFile('favicon')) {
-            if ($setting->favicon && Storage::disk('public')->exists($setting->favicon)) {
-                Storage::disk('public')->delete($setting->favicon);
-            }
-            $setting->favicon = $request->file('favicon')->store('favicons', 'public');
+            $this->imageUploadService->deleteOldFile($setting->favicon);
+            $setting->favicon = $this->imageUploadService->uploadAsWebp($request->file('favicon'), 'favicons');
         } elseif ($request->boolean('remove_favicon')) {
-            if ($setting->favicon && Storage::disk('public')->exists($setting->favicon)) {
-                Storage::disk('public')->delete($setting->favicon);
-            }
+            $this->imageUploadService->deleteOldFile($setting->favicon);
             $setting->favicon = null;
         }
 
         // Upload Logo Kiri Kop Surat
         if ($request->hasFile('kop_logo_left')) {
-            if ($setting->kop_logo_left && Storage::disk('public')->exists($setting->kop_logo_left)) {
-                Storage::disk('public')->delete($setting->kop_logo_left);
-            }
-            $setting->kop_logo_left = $request->file('kop_logo_left')->store('logos', 'public');
+            $this->imageUploadService->deleteOldFile($setting->kop_logo_left);
+            $setting->kop_logo_left = $this->imageUploadService->uploadAsWebp($request->file('kop_logo_left'), 'logos');
         } elseif ($request->boolean('remove_kop_logo_left')) {
-            if ($setting->kop_logo_left && Storage::disk('public')->exists($setting->kop_logo_left)) {
-                Storage::disk('public')->delete($setting->kop_logo_left);
-            }
+            $this->imageUploadService->deleteOldFile($setting->kop_logo_left);
             $setting->kop_logo_left = null;
         }
 
         // Upload Logo Kanan Kop Surat
         if ($request->hasFile('kop_logo_right')) {
-            if ($setting->kop_logo_right && Storage::disk('public')->exists($setting->kop_logo_right)) {
-                Storage::disk('public')->delete($setting->kop_logo_right);
-            }
-            $setting->kop_logo_right = $request->file('kop_logo_right')->store('logos', 'public');
+            $this->imageUploadService->deleteOldFile($setting->kop_logo_right);
+            $setting->kop_logo_right = $this->imageUploadService->uploadAsWebp($request->file('kop_logo_right'), 'logos');
         } elseif ($request->boolean('remove_kop_logo_right')) {
-            if ($setting->kop_logo_right && Storage::disk('public')->exists($setting->kop_logo_right)) {
-                Storage::disk('public')->delete($setting->kop_logo_right);
-            }
+            $this->imageUploadService->deleteOldFile($setting->kop_logo_right);
             $setting->kop_logo_right = null;
         }
 

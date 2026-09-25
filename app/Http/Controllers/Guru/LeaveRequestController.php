@@ -9,6 +9,7 @@ use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Services\ImageUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LeaveRequestController extends Controller
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     /**
      * Halaman Utama Pengelolaan Perizinan Siswa (Guru / Wali Kelas).
      */
@@ -135,7 +140,7 @@ class LeaveRequestController extends Controller
             'date_from' => 'required|date',
             'date_to' => 'required|date|after_or_equal:date_from',
             'reason' => 'required|string|max:1000',
-            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'attachment' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:2048',
         ]);
 
         $student = Student::findOrFail($validated['student_id']);
@@ -145,7 +150,13 @@ class LeaveRequestController extends Controller
 
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
-            $attachmentPath = $request->file('attachment')->store('leave-attachments', 'public');
+            $attachmentPath = $this->imageUploadService->uploadAsWebp(
+                $request->file('attachment'),
+                'leave-attachments',
+                quality: 80,
+                maxWidth: 1920,
+                maxHeight: 1920
+            );
         }
 
         $leaveRequest = LeaveRequest::create([

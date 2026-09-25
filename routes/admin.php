@@ -51,6 +51,8 @@ Route::prefix('students/promotion')->name('students.promotion.')->group(function
 });
 
 // Kartu Pelajar Siswa
+Route::get('students/cards/settings', [StudentCardController::class, 'settings'])->name('students.cards.settings');
+Route::match(['put', 'post'], 'students/cards/settings', [StudentCardController::class, 'updateSettings'])->name('students.cards.settings.update');
 Route::get('students/cards', [StudentCardController::class, 'index'])->name('students.cards');
 Route::match(['get', 'post'], 'students/cards/print', [StudentCardController::class, 'print'])->name('students.cards.print');
 Route::get('students/{student}/card', [StudentCardController::class, 'single'])->name('students.card.single');

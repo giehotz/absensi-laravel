@@ -5,16 +5,20 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\Schedule;
 use App\Models\Teacher;
+use App\Services\ImageUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     /**
      * Tampilkan halaman Profil Guru beserta penugasan & jadwal mengajar.
      */
@@ -91,25 +95,26 @@ class ProfileController extends Controller
         ]);
 
         if ($request->boolean('remove_photo')) {
-            if ($teacher->photo && Storage::disk('public')->exists($teacher->photo)) {
-                Storage::disk('public')->delete($teacher->photo);
-            }
+            $this->imageUploadService->deleteOldFile($teacher->photo);
             $teacher->photo = null;
         } elseif ($request->filled('photo_cropped') && str_starts_with($request->input('photo_cropped'), 'data:image/')) {
-            if ($teacher->photo && Storage::disk('public')->exists($teacher->photo)) {
-                Storage::disk('public')->delete($teacher->photo);
-            }
-            $base64String = $request->input('photo_cropped');
-            $data = substr($base64String, strpos($base64String, ',') + 1);
-            $decoded = base64_decode($data);
-            $fileName = 'teachers/crop_'.uniqid().'.jpg';
-            Storage::disk('public')->put($fileName, $decoded);
-            $teacher->photo = $fileName;
+            $this->imageUploadService->deleteOldFile($teacher->photo);
+            $teacher->photo = $this->imageUploadService->uploadBase64AsWebp(
+                $request->input('photo_cropped'),
+                'teachers',
+                82,
+                800,
+                1000
+            );
         } elseif ($request->hasFile('photo')) {
-            if ($teacher->photo && Storage::disk('public')->exists($teacher->photo)) {
-                Storage::disk('public')->delete($teacher->photo);
-            }
-            $teacher->photo = $request->file('photo')->store('teachers', 'public');
+            $this->imageUploadService->deleteOldFile($teacher->photo);
+            $teacher->photo = $this->imageUploadService->uploadAsWebp(
+                $request->file('photo'),
+                'teachers',
+                82,
+                800,
+                1000
+            );
         }
 
         $teacher->phone = $validated['phone'];

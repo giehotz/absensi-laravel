@@ -297,10 +297,12 @@
                 <!-- Date & Live Clock (Waktu Indonesia) -->
                 @include('partials._header-clock')
                 
-                <!-- Online Badge -->
-                <div class="neo-badge bg-[#20C997] text-white flex items-center gap-1.5 px-2.5 py-1">
-                    <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
-                    <span class="hidden xs:inline">Aktif</span>
+                <!-- Online Status Indicator (Perfect Square) -->
+                <div class="w-8 h-8 sm:w-9 sm:h-9 aspect-square rounded-lg border-2 border-black bg-[#20C997] text-white flex items-center justify-center shadow-[2px_2px_0px_0px_#000] shrink-0" title="Status: Aktif" aria-label="Status: Aktif">
+                    <span class="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-white"></span>
+                    </span>
                 </div>
             </div>
         </header>

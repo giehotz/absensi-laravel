@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
+use App\Services\ImageUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LeaveRequestController extends Controller
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     /**
      * Simpan pengajuan izin atau sakit dari siswa.
      */
@@ -42,7 +47,13 @@ class LeaveRequestController extends Controller
 
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
-            $attachmentPath = $request->file('attachment')->store('leave-attachments', 'public');
+            $attachmentPath = $this->imageUploadService->uploadAsWebp(
+                $request->file('attachment'),
+                'leave-attachments',
+                quality: 80,
+                maxWidth: 1920,
+                maxHeight: 1920
+            );
         }
 
         LeaveRequest::create([

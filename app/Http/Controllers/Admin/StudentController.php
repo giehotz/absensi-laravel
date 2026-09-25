@@ -7,6 +7,7 @@ use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\User;
+use App\Services\ImageUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentController extends Controller
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     public function index(Request $request): View
     {
         $selectedClassId = $request->query('class_id');
@@ -535,10 +540,16 @@ class StudentController extends Controller
         // Generate QR code identifier permanen
         $qrCodeIdentifier = 'QR-'.$validated['nis'].'-'.strtoupper(bin2hex(random_bytes(3)));
 
-        // Handle upload foto jika ada
+        // Handle upload foto jika ada (otomatis dikonversi ke WebP)
         $photoPath = null;
         if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('students/photos', 'public');
+            $photoPath = $this->imageUploadService->uploadAsWebp(
+                $request->file('photo'),
+                'students/photos',
+                82,
+                800,
+                1000
+            );
         }
 
         DB::transaction(function () use ($validated, $email, $qrCodeIdentifier, $photoPath) {
@@ -627,14 +638,16 @@ class StudentController extends Controller
         $photoPath = $student->photo;
 
         if ($request->hasFile('photo')) {
-            if ($student->photo && Storage::disk('public')->exists($student->photo)) {
-                Storage::disk('public')->delete($student->photo);
-            }
-            $photoPath = $request->file('photo')->store('students/photos', 'public');
+            $this->imageUploadService->deleteOldFile($student->photo);
+            $photoPath = $this->imageUploadService->uploadAsWebp(
+                $request->file('photo'),
+                'students/photos',
+                82,
+                800,
+                1000
+            );
         } elseif ($request->boolean('remove_photo')) {
-            if ($student->photo && Storage::disk('public')->exists($student->photo)) {
-                Storage::disk('public')->delete($student->photo);
-            }
+            $this->imageUploadService->deleteOldFile($student->photo);
             $photoPath = null;
         }
 

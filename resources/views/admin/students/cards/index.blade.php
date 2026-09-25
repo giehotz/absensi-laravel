@@ -22,7 +22,10 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-2.5">
-            <a href="{{ route('admin.students.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-black px-3.5 py-2 text-xs font-bold flex items-center gap-1.5">
+            <a href="{{ route('admin.students.cards.settings') }}" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000]">
+                <span>⚙️</span> Pengaturan Kartu
+            </a>
+            <a href="{{ route('admin.students.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-black px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000]">
                 <span>←</span> Kembali ke Data Siswa
             </a>
         </div>
@@ -115,92 +118,9 @@
                     </div>
                 </div>
 
-                <!-- DESAIN FISIK KARTU PELAJAR (STANDAR CR80: 85.6mm x 54mm rasio) -->
-                <div class="border-2 border-black rounded bg-white shadow-[2px_2px_0px_0px_#000] overflow-hidden text-black font-sans select-none">
-                    <!-- Kop Sekolah -->
-                    <div class="bg-slate-900 text-white px-2.5 py-1.5 flex items-center justify-between border-b-2 border-black">
-                        <div class="flex items-center gap-2">
-                            @if(!empty($setting->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($setting->logo))
-                                <div class="w-7 h-7 rounded-full bg-white border border-black flex items-center justify-center overflow-hidden shrink-0 p-0.5">
-                                    <img src="{{ asset('storage/' . $setting->logo) }}" alt="Logo" class="w-full h-full object-contain">
-                                </div>
-                            @else
-                                <div class="w-7 h-7 rounded-full bg-[#FFD43B] border border-black flex items-center justify-center font-black text-xs text-black font-heading shrink-0">
-                                    🎓
-                                </div>
-                            @endif
-                            <div class="leading-tight truncate">
-                                <div class="font-heading font-black text-[11px] uppercase tracking-tight truncate text-[#FFD43B]">
-                                    {{ $setting->school_name ?? 'SMP NEGERI 1 GARUDA' }}
-                                </div>
-                                <div class="text-[8px] font-mono text-slate-300">
-                                    NPSN: {{ $setting->npsn ?? '-' }} • {{ $setting->level ?? 'SMP' }}
-                                </div>
-                            </div>
-                        </div>
-                        <span class="text-[8px] font-mono font-bold bg-[#20C997] text-black px-1 py-0.2 rounded border border-black uppercase shrink-0">
-                            RESMI
-                        </span>
-                    </div>
-
-                    <!-- Pita Judul Kartu -->
-                    <div class="bg-[#FFD43B] text-black border-b border-black text-center py-0.5 font-heading font-black text-[9px] uppercase tracking-widest">
-                        KARTU TANDA PELAJAR & PRESENSI
-                    </div>
-
-                    <!-- Badan Kartu: Foto, Identitas, & Real QR Code -->
-                    <div class="p-2.5 flex items-center justify-between gap-2.5 bg-gradient-to-br from-white to-slate-50 min-h-[120px]">
-                        <!-- Foto Siswa -->
-                        <div class="w-16 h-20 bg-slate-100 border-2 border-black rounded shadow-[1.5px_1.5px_0px_#000] flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
-                            @if($student->photo)
-                                <img src="{{ $student->photo_url }}" alt="Foto {{ $student->user?->name }}" class="w-full h-full object-cover">
-                            @else
-                                <span class="text-2xl">👤</span>
-                                <span class="text-[7px] font-bold text-slate-500 uppercase mt-1">FOTO 3×4</span>
-                            @endif
-                            <span class="absolute bottom-0 inset-x-0 bg-black text-white text-[7px] font-bold text-center py-0.2 uppercase">
-                                {{ $student->gender == 'L' ? 'LAKI-LAKI' : 'PEREMPUAN' }}
-                            </span>
-                        </div>
-
-                        <!-- Data Diri Siswa -->
-                        <div class="flex-1 min-w-0 space-y-0.5 text-[10px]">
-                            <div class="font-heading font-black text-xs text-black truncate leading-snug">
-                                {{ $student->user?->name ?? '-' }}
-                            </div>
-                            <div class="grid grid-cols-3 gap-0.5 font-medium text-[9px] text-slate-700">
-                                <span class="text-slate-500">NIS</span>
-                                <span class="col-span-2 font-mono font-bold text-black">: {{ $student->nis }}</span>
-                                
-                                <span class="text-slate-500">NISN</span>
-                                <span class="col-span-2 font-mono font-bold text-black">: {{ $student->nisn ?? '-' }}</span>
-
-                                <span class="text-slate-500">Kelas</span>
-                                <span class="col-span-2 font-bold text-black">: {{ $student->schoolClass?->name ?? '-' }}</span>
-
-                                <span class="text-slate-500">Lahir</span>
-                                <span class="col-span-2 font-mono text-black">: {{ $student->birth_date ? $student->birth_date->format('d/m/Y') : '-' }}</span>
-                            </div>
-                        </div>
-
-                        <!-- QR Code Scanner Absensi -->
-                        <div class="flex flex-col items-center justify-center shrink-0">
-                            <div class="bg-white p-1 border-2 border-black rounded shadow-[1.5px_1.5px_0px_#000]">
-                                <img src="{{ $student->qr_data_uri }}" 
-                                     alt="QR Code Absensi" 
-                                     class="w-16 h-16 object-contain">
-                            </div>
-                            <span class="text-[7px] font-black uppercase text-black mt-0.5 tracking-wider">
-                                SCAN PRESENSI
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Footer Kartu -->
-                    <div class="bg-slate-100 px-2.5 py-1 border-t border-black flex items-center justify-between text-[8px] font-medium text-slate-600">
-                        <span>Berlaku Selama Menjadi Siswa Aktif</span>
-                        <span class="font-mono font-bold text-black">{{ $student->qr_code_identifier }}</span>
-                    </div>
+                <!-- KOMPONEN KARTU SISWA (SINGLE SOURCE OF TRUTH: FRONT & BACK 3D FLIP) -->
+                <div class="flex justify-center py-1">
+                    <x-student-card :student="$student" :setting="$setting" side="both" :interactive="true" />
                 </div>
             </div>
             @empty
