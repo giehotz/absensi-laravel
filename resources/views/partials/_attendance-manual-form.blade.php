@@ -208,6 +208,118 @@
             </p>
         </div>
     @else
+        {{-- Banner Peringatan Hari Libur Nasional / Cuti Bersama (Neo-Brutalism) --}}
+        @if(isset($holiday) && $holiday && $holiday->is_active)
+            <div class="bg-[#FFF4E6] border-2 border-black p-4 sm:p-5 neo-box flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-[4px_4px_0px_0px_#000]">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl sm:text-3xl shrink-0">🏖️</span>
+                    <div class="space-y-1">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="font-heading font-black text-xs sm:text-sm text-black tracking-wide uppercase px-2 py-0.5 bg-[#FF6B6B] text-white border border-black shadow-[1px_1px_0px_0px_#000]">
+                                HARI LIBUR: {{ strtoupper($holiday->name) }}
+                            </span>
+                            <span class="text-xs font-mono font-bold text-amber-900 bg-white/80 border border-black/30 px-2 py-0.5">
+                                {{ $holiday->is_cuti_bersama ? '📌 Cuti Bersama Resmi' : ($holiday->is_national ? '🇮🇩 Libur Nasional SKB 3 Menteri' : '🏫 Libur Internal Sekolah') }}
+                            </span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-amber-950 font-medium leading-relaxed">
+                            Tanggal <strong>{{ $formattedDateIndo }}</strong> terdaftar sebagai hari libur. KBM dan presensi reguler tidak diwajibkan.
+                        </p>
+                        <p class="text-[11px] text-amber-900 font-semibold italic">
+                            * Anda tetap dapat mencatat dan menyimpan presensi jika sekolah mengadakan agenda ekstrakurikuler, pembinaan, atau perayaan khusus.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Banner Status Pengisian Presensi Kelas (Neo-Brutalism) --}}
+        @if(isset($attendanceMeta) && $attendanceMeta)
+            @if($attendanceMeta['is_complete'])
+                {{-- STATUS 1: LENGKAP DIISI (HIJAU NEO-BRUTALISM) --}}
+                <div class="bg-[#D3F9D8] border-2 border-black p-4 sm:p-5 neo-box flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl sm:text-3xl shrink-0">✅</span>
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-heading font-black text-xs sm:text-sm text-black tracking-wide uppercase px-2 py-0.5 bg-black text-[#D3F9D8] rounded-xs">
+                                    PRESENSI SUDAH DIISI
+                                </span>
+                                <span class="text-xs font-mono font-bold text-slate-800">
+                                    ({{ $attendanceMeta['recorded_count'] }}/{{ $attendanceMeta['total_students'] }} Siswa)
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-900 font-semibold leading-relaxed">
+                                Presensi kelas <strong>{{ $selectedClass->name }}</strong> untuk tanggal <strong>{{ $formattedDateIndo }}</strong> {{ $attendanceMeta['is_updated'] ? 'terakhir diperbarui' : 'telah dicatat' }} oleh <strong>{{ $attendanceMeta['recorder_name'] }}</strong> pada pukul <strong>{{ $attendanceMeta['recorded_at'] ? \Carbon\Carbon::parse($attendanceMeta['recorded_at'])->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i') . ' WIB' : '-' }}</strong>.
+                            </p>
+                            <div class="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] font-bold font-mono text-slate-800">
+                                <span class="text-emerald-800 font-black">Status:</span>
+                                <span class="bg-white/80 border border-black/30 px-1.5 py-0.5 rounded-xs text-emerald-900">{{ $attendanceMeta['status_counts']['hadir'] }} Hadir</span>
+                                @if($attendanceMeta['status_counts']['terlambat'] > 0)
+                                    <span class="bg-white/80 border border-black/30 px-1.5 py-0.5 rounded-xs text-blue-900">{{ $attendanceMeta['status_counts']['terlambat'] }} Terlambat</span>
+                                @endif
+                                @if($attendanceMeta['status_counts']['sakit'] > 0)
+                                    <span class="bg-white/80 border border-black/30 px-1.5 py-0.5 rounded-xs text-amber-900">{{ $attendanceMeta['status_counts']['sakit'] }} Sakit</span>
+                                @endif
+                                @if($attendanceMeta['status_counts']['izin'] > 0)
+                                    <span class="bg-white/80 border border-black/30 px-1.5 py-0.5 rounded-xs text-slate-800">{{ $attendanceMeta['status_counts']['izin'] }} Izin</span>
+                                @endif
+                                @if($attendanceMeta['status_counts']['alpa'] > 0)
+                                    <span class="bg-white/80 border border-black/30 px-1.5 py-0.5 rounded-xs text-rose-900">{{ $attendanceMeta['status_counts']['alpa'] }} Alpa</span>
+                                @endif
+                            </div>
+                            <p class="text-[11px] text-slate-600 font-medium italic pt-0.5">
+                                * Catatan: Anda tetap dapat memperbarui status siswa jika ada perubahan di tengah jam pelajaran.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @elseif($attendanceMeta['is_partial'])
+                {{-- STATUS 2: SEBAGIAN TERISI (KUNING / BIRU NEO-BRUTALISM) --}}
+                <div class="bg-[#FFF3BF] border-2 border-black p-4 sm:p-5 neo-box flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl sm:text-3xl shrink-0">ℹ️</span>
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-heading font-black text-xs sm:text-sm text-black tracking-wide uppercase px-2 py-0.5 bg-black text-[#FFF3BF] rounded-xs">
+                                    PRESENSI SEBAGIAN TERISI
+                                </span>
+                                <span class="text-xs font-mono font-bold text-slate-800">
+                                    ({{ $attendanceMeta['recorded_count'] }} dari {{ $attendanceMeta['total_students'] }} Siswa Terdata)
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-900 font-semibold leading-relaxed">
+                                Baru sebagian siswa pada kelas <strong>{{ $selectedClass->name }}</strong> yang tercatat presensinya untuk tanggal <strong>{{ $formattedDateIndo }}</strong> (misal dari persetujuan surat izin/sakit). {{ $attendanceMeta['is_updated'] ? 'Terakhir diperbarui' : 'Dicatat' }} oleh <strong>{{ $attendanceMeta['recorder_name'] }}</strong> pada pukul <strong>{{ $attendanceMeta['recorded_at'] ? \Carbon\Carbon::parse($attendanceMeta['recorded_at'])->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i') . ' WIB' : '-' }}</strong>.
+                            </p>
+                            <p class="text-[11px] text-amber-900 font-bold pt-0.5">
+                                ⚠️ Silakan lengkapi presensi seluruh siswa kelas ini kemudian klik Simpan Presensi.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @else
+                {{-- STATUS 3: BELUM DIISI (KUNING SOFT / MERAH SOFT NEO-BRUTALISM) --}}
+                <div class="bg-[#FFF9DB] border-2 border-black p-4 sm:p-5 neo-box flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3">
+                        <span class="text-2xl sm:text-3xl shrink-0">⚠️</span>
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-heading font-black text-xs sm:text-sm text-black tracking-wide uppercase px-2 py-0.5 bg-[#FF6B6B] text-white border border-black rounded-xs">
+                                    PRESENSI BELUM DIISI
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-900 font-semibold leading-relaxed">
+                                Presensi untuk kelas <strong>{{ $selectedClass->name }}</strong> pada tanggal <strong>{{ $formattedDateIndo }}</strong> belum dicatat oleh siapapun.
+                            </p>
+                            <p class="text-[11px] text-slate-600 font-medium">
+                                Silakan gunakan tombol aksi cepat (misal: <em>✓ Semua Hadir</em>) atau pilih status per-siswa di bawah, lalu klik <strong>Simpan Presensi</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endif
+
         <!-- Main Form Presensi Manual -->
         <form id="attendanceManualForm" action="{{ $submitRoute }}" method="POST" class="space-y-6">
             @csrf

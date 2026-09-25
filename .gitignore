@@ -28,4 +28,5 @@ Thumbs.db
 /.factory
 /.claude
 /.agents
+/.codegraph/
 /tests

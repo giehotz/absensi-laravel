@@ -193,9 +193,12 @@
         @if($errors->has('current_password') || $errors->has('password'))
             switchTab('profil');
             switchProfileSubTab('keamanan');
-        @elseif($errors->any() && (old('phone') || old('email')))
+        @elseif($errors->has('photo') || $errors->has('phone') || $errors->has('email') || (old('phone') || old('email')))
             switchTab('profil');
             switchProfileSubTab('biodata');
+        @elseif($errors->has('type') || $errors->has('date_from') || $errors->has('date_to') || $errors->has('reason') || $errors->has('attachment'))
+            switchTab('izin');
+            openModal('modalLeaveRequest');
         @elseif((session('status') && str_contains(session('status'), 'Kata sandi')) || (session('success') && str_contains(session('success'), 'Kata sandi')))
             switchTab('profil');
             switchProfileSubTab('keamanan');

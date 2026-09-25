@@ -9,7 +9,7 @@
             <h3 class="font-heading font-black text-base text-black">Permohonan Izin / Sakit</h3>
             <p class="text-xs font-semibold text-slate-700">Ajukan surat izin atau bukti sakit ke wali kelas.</p>
         </div>
-        <button onclick="openModal('modalLeaveRequest')" class="neo-btn bg-[#FF6B6B] text-white px-3.5 py-2 text-xs font-black uppercase flex items-center gap-1.5 shrink-0 shadow-[2px_2px_0px_0px_#000]">
+        <button type="button" onclick="openModal('modalLeaveRequest')" class="neo-btn bg-[#FF6B6B] text-white px-3.5 py-2 text-xs font-black uppercase flex items-center gap-1.5 shrink-0 shadow-[2px_2px_0px_0px_#000]">
             <span>➕</span> Ajukan Izin
         </button>
     </div>
@@ -30,9 +30,9 @@
                                 {{ strtoupper($lr->type) }}
                             </span>
                             <span class="text-xs font-mono font-bold text-slate-700">
-                                {{ \Carbon\Carbon::parse($lr->date_from)->format('d/m/Y') }} 
+                                {{ $lr->date_from?->format('d/m/Y') }} 
                                 @if($lr->date_from != $lr->date_to)
-                                    s/d {{ \Carbon\Carbon::parse($lr->date_to)->format('d/m/Y') }}
+                                    s/d {{ $lr->date_to?->format('d/m/Y') }}
                                 @endif
                             </span>
                         </div>

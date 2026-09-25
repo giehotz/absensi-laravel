@@ -81,7 +81,7 @@
 
                 <!-- Header Kartu -->
                 <div class="bg-white p-3 border-b-2 border-black flex items-center gap-2.5">
-                    @if(!empty($schoolSetting->logo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($schoolSetting->logo))
+                    @if(!empty($schoolSetting->logo))
                         <div class="w-10 h-10 bg-white border-2 border-black rounded p-0.5 shrink-0 flex items-center justify-center">
                             <img src="{{ asset('storage/' . $schoolSetting->logo) }}" alt="Logo" class="w-full h-full object-contain">
                         </div>
@@ -109,8 +109,8 @@
                 <div class="p-3.5 flex items-center justify-between gap-3 bg-gradient-to-br from-white to-slate-50 min-h-[135px]">
                     <!-- Pas Foto Siswa -->
                     <div class="w-20 h-24 bg-slate-100 border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] flex flex-col items-center justify-center shrink-0 relative overflow-hidden">
-                        @if(!empty($student->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($student->photo))
-                            <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->user->name }}" class="w-full h-full object-cover">
+                        @if($student->photo_url)
+                            <img src="{{ $student->photo_url }}" alt="{{ $student->user->name }}" class="w-full h-full object-cover">
                         @else
                             <div class="flex flex-col items-center justify-center text-slate-400">
                                 <span class="text-2xl">👤</span>
@@ -206,10 +206,10 @@
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-slate-50 border-2 border-black p-3 rounded">
                         <div class="w-16 h-20 bg-white border-2 border-black rounded overflow-hidden flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#000]">
                             <img id="siswaPhotoPreview" 
-                                 src="{{ !empty($student->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($student->photo) ? asset('storage/' . $student->photo) : '' }}" 
+                                 src="{{ $student->photo_url ?? '' }}" 
                                  alt="Pratinjau" 
-                                 class="w-full h-full object-cover {{ !empty($student->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($student->photo) ? '' : 'hidden' }}">
-                            <span id="siswaPhotoPlaceholder" class="text-2xl {{ !empty($student->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($student->photo) ? 'hidden' : '' }}">👤</span>
+                                 class="w-full h-full object-cover {{ $student->photo_url ? '' : 'hidden' }}">
+                            <span id="siswaPhotoPlaceholder" class="text-2xl {{ $student->photo_url ? 'hidden' : '' }}">👤</span>
                         </div>
                         <div class="flex-1 space-y-1.5 w-full">
                             <input type="file" name="photo" id="siswaPhotoInput" accept="image/jpeg,image/png,image/jpg,image/webp"
@@ -224,6 +224,9 @@
                                     </label>
                                 @endif
                             </div>
+                            @error('photo')
+                                <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </div>
@@ -237,7 +240,10 @@
                         <input type="text" name="phone" id="student_phone" value="{{ old('phone', $student->phone) }}"
                                placeholder="Contoh: 081234567890"
                                class="w-full px-3.5 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white">
-                        <span class="text-[10px] text-slate-500 font-semibold">Nomor aktif untuk informasi absensi sekolah.</span>
+                        @error('phone')
+                            <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                        @enderror
+                        <span class="text-[10px] text-slate-500 font-semibold block">Nomor aktif untuk informasi absensi sekolah.</span>
                     </div>
 
                     <!-- Email Login -->
@@ -248,7 +254,10 @@
                         <input type="email" name="email" id="student_email" value="{{ old('email', $student->user->email) }}"
                                placeholder="nama@domain.com"
                                class="w-full px-3.5 py-2.5 neo-input text-xs font-mono font-bold text-black bg-white">
-                        <span class="text-[10px] text-slate-500 font-semibold">Digunakan untuk login alternatif & pemulihan akun.</span>
+                        @error('email')
+                            <p class="text-[11px] font-bold text-rose-600 mt-0.5">{{ $message }}</p>
+                        @enderror
+                        <span class="text-[10px] text-slate-500 font-semibold block">Digunakan untuk login alternatif & pemulihan akun.</span>
                     </div>
                 </div>
 

@@ -56,27 +56,36 @@
                 <label class="block text-xs font-black uppercase text-black mb-1.5">Jenis Permohonan <span class="text-red-500">*</span></label>
                 <div class="grid grid-cols-2 gap-3">
                     <label class="border-2 border-black p-3 flex items-center gap-2 cursor-pointer has-[:checked]:bg-[#FFE3E3] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
-                        <input type="radio" name="type" value="sakit" required checked class="accent-black">
+                        <input type="radio" name="type" value="sakit" required {{ old('type', 'sakit') === 'sakit' ? 'checked' : '' }} class="accent-black">
                         <span class="text-xs font-black uppercase">🤒 Sakit</span>
                     </label>
                     <label class="border-2 border-black p-3 flex items-center gap-2 cursor-pointer has-[:checked]:bg-[#E7F5FF] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
-                        <input type="radio" name="type" value="izin" required class="accent-black">
+                        <input type="radio" name="type" value="izin" required {{ old('type') === 'izin' ? 'checked' : '' }} class="accent-black">
                         <span class="text-xs font-black uppercase">📝 Izin Penting</span>
                     </label>
                 </div>
+                @error('type')
+                    <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Rentang Tanggal -->
             <div class="grid grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-black uppercase text-black mb-1">Mulai Tanggal <span class="text-red-500">*</span></label>
-                    <input type="date" name="date_from" value="{{ date('Y-m-d') }}" required
+                    <input type="date" name="date_from" value="{{ old('date_from', date('Y-m-d')) }}" required
                         class="w-full neo-input text-xs font-mono font-bold bg-white">
+                    @error('date_from')
+                        <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
                 <div>
                     <label class="block text-xs font-black uppercase text-black mb-1">Sampai Tanggal <span class="text-red-500">*</span></label>
-                    <input type="date" name="date_to" value="{{ date('Y-m-d') }}" required
+                    <input type="date" name="date_to" value="{{ old('date_to', date('Y-m-d')) }}" required
                         class="w-full neo-input text-xs font-mono font-bold bg-white">
+                    @error('date_to')
+                        <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
@@ -84,7 +93,10 @@
             <div>
                 <label class="block text-xs font-black uppercase text-black mb-1">Alasan / Keterangan <span class="text-red-500">*</span></label>
                 <textarea name="reason" rows="3" required placeholder="Tuliskan keterangan sakit atau alasan izin secara jelas..."
-                    class="w-full neo-input text-xs font-medium"></textarea>
+                    class="w-full neo-input text-xs font-medium">{{ old('reason') }}</textarea>
+                @error('reason')
+                    <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
+                @enderror
             </div>
 
             <!-- Lampiran Foto / Surat Dokter -->
@@ -94,6 +106,9 @@
                 </label>
                 <input type="file" name="attachment" accept="image/jpeg,image/png,image/webp,application/pdf"
                     class="w-full text-xs font-bold file:mr-3 file:py-2 file:px-3 file:border-2 file:border-black file:bg-[#FFD43B] file:text-xs file:font-black file:uppercase file:cursor-pointer border-2 border-black p-1 bg-white">
+                @error('attachment')
+                    <p class="text-[11px] font-bold text-rose-600 mt-1">{{ $message }}</p>
+                @enderror
                 <p class="text-[10px] text-slate-500 font-semibold mt-1">Format: JPG, PNG, WEBP, atau PDF (Maks. 3MB)</p>
             </div>
 

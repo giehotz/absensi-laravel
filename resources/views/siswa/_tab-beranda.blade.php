@@ -56,7 +56,7 @@
                         Pindai QR Token ke scanner di gerbang madrasah/sekolah saat tiba.
                     </p>
                 </div>
-                <button onclick="switchTab('qr')" class="neo-btn bg-[#FFD43B] text-black px-3.5 py-2 text-xs font-black uppercase shrink-0 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000]">
+                <button type="button" onclick="switchTab('qr')" class="neo-btn bg-[#FFD43B] text-black px-3.5 py-2 text-xs font-black uppercase shrink-0 flex items-center gap-1.5 shadow-[2px_2px_0px_0px_#000]">
                     <span>Buka QR</span> →
                 </button>
             </div>
@@ -120,7 +120,7 @@
             <h3 class="font-heading font-black text-sm uppercase text-black flex items-center gap-1.5">
                 <span>📊</span> Kehadiran Bulan Ini ({{ \Carbon\Carbon::now()->translatedFormat('F Y') }})
             </h3>
-            <button onclick="switchTab('riwayat')" class="text-xs font-bold text-blue-600 hover:underline">
+            <button type="button" onclick="switchTab('riwayat')" class="text-xs font-bold text-blue-600 hover:underline">
                 Lihat Riwayat →
             </button>
         </div>
@@ -151,13 +151,13 @@
 
     <!-- Quick Shortcut Actions -->
     <div class="grid grid-cols-2 gap-3">
-        <button onclick="openModal('modalLeaveRequest')" class="neo-btn bg-[#FF6B6B] text-white p-3.5 flex items-center justify-center gap-2 text-xs uppercase font-black tracking-wider">
+        <button type="button" onclick="openModal('modalLeaveRequest')" class="neo-btn bg-[#FF6B6B] text-white p-3.5 flex items-center justify-center gap-2 text-xs uppercase font-black tracking-wider">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
             <span>Ajukan Izin/Sakit</span>
         </button>
-        <button onclick="switchTab('jadwal')" class="neo-btn bg-[#20C997] text-white p-3.5 flex items-center justify-center gap-2 text-xs uppercase font-black tracking-wider">
+        <button type="button" onclick="switchTab('jadwal')" class="neo-btn bg-[#20C997] text-white p-3.5 flex items-center justify-center gap-2 text-xs uppercase font-black tracking-wider">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
@@ -171,7 +171,7 @@
             <h3 class="font-heading font-black text-sm uppercase text-black flex items-center gap-1.5">
                 <span>📖</span> Jadwal Pelajaran Hari Ini ({{ $daysMap[$currentDayOfWeek] ?? 'Hari Ini' }})
             </h3>
-            <button onclick="switchTab('jadwal')" class="text-xs font-bold text-blue-600 hover:underline">
+            <button type="button" onclick="switchTab('jadwal')" class="text-xs font-bold text-blue-600 hover:underline">
                 Semua Hari →
             </button>
         </div>

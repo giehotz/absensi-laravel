@@ -2,6 +2,7 @@
 <!-- TAB 6: BUKU TABUNGAN DIGITAL SISWA -->
 <!-- ========================================================================= -->
 <div id="tabContent-tabungan" class="tab-pane hidden space-y-4">
+@if($savingsAccount)
     <!-- Kartu Buku Tabungan (ATM/Passbook Style) -->
     <div class="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border-4 border-black p-5 text-white shadow-[4px_4px_0px_0px_#000] relative overflow-hidden">
         <!-- Background Pattern Decor -->
@@ -42,8 +43,9 @@
 
     <!-- Ringkasan Akumulasi Tabungan -->
     @php
-        $totalSetor = $savingsTransactions->where('type', 'deposit')->sum('amount');
-        $totalTarik = $savingsTransactions->where('type', 'withdrawal')->sum('amount');
+        $txList = $savingsTransactions ?? collect();
+        $totalSetor = $txList->where('type', 'deposit')->sum('amount');
+        $totalTarik = $txList->where('type', 'withdrawal')->sum('amount');
     @endphp
     <div class="grid grid-cols-2 gap-3">
         <div class="bg-[#EBFBEE] border-3 border-black p-3 shadow-[3px_3px_0px_0px_#000]">
@@ -81,12 +83,12 @@
                 <span>📜</span> Riwayat Mutasi Transaksi
             </h4>
             <span class="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 border border-slate-300 rounded">
-                {{ count($savingsTransactions) }} Transaksi Terakhir
+                {{ count($txList) }} Transaksi Terakhir
             </span>
         </div>
 
         <div class="space-y-2.5">
-            @forelse($savingsTransactions as $tx)
+            @forelse($txList as $tx)
                 <div class="bg-white neo-box p-3.5 flex items-start justify-between gap-3 hover:translate-x-0.5 transition-transform">
                     <div class="min-w-0 space-y-1">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -161,4 +163,16 @@
             @endforelse
         </div>
     </div>
+@else
+    <div class="bg-white neo-box p-8 text-center text-slate-500 space-y-3">
+        <div class="text-4xl">🏦</div>
+        <div class="font-heading font-black text-base text-black">Buku Tabungan Belum Aktif</div>
+        <p class="text-xs text-slate-600 max-w-sm mx-auto">
+            Akun Anda belum memiliki rekening tabungan aktif. Silakan hubungi Guru Pengelola Tabungan di sekolah untuk membuka tabungan siswa.
+        </p>
+        <a href="{{ route('siswa.savings.index') }}" class="neo-btn bg-[#FFD43B] text-black px-4 py-2 text-xs font-black inline-block uppercase">
+            Buka Halaman Tabungan →
+        </a>
+    </div>
+@endif
 </div>

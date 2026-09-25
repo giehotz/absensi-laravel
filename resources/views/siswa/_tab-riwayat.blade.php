@@ -70,7 +70,7 @@
                             {{ strtoupper($sn->category) }}
                         </span>
                         <span class="text-xs font-mono font-bold text-slate-600 ml-2">
-                            {{ \Carbon\Carbon::parse($sn->date)->translatedFormat('d F Y') }}
+                            {{ $sn->date?->translatedFormat('d F Y') }}
                         </span>
                         <h4 class="font-heading font-black text-base text-black mt-1">{{ $sn->title ?? 'Catatan Guru' }}</h4>
                     </div>

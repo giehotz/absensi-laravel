@@ -46,7 +46,7 @@ class CustomQrGeneratorService
      *
      * @return array{qrCode: QrCode, logo: ?Logo, label: ?Label}
      */
-    protected function buildComponents(CustomQrCode $qrCodeModel): array
+    protected function buildComponents(CustomQrCode $qrCodeModel, bool $punchoutBackground = false): array
     {
         $fgColor = $this->hexToColor($qrCodeModel->qr_color, new Color(0, 0, 0));
         $bgColor = $this->hexToColor($qrCodeModel->bg_color, new Color(255, 255, 255));
@@ -77,7 +77,7 @@ class CustomQrGeneratorService
                 path: $logoPath,
                 resizeToWidth: $logoWidth,
                 resizeToHeight: $logoWidth,
-                punchoutBackground: true
+                punchoutBackground: $punchoutBackground
             );
         }
 
@@ -103,7 +103,8 @@ class CustomQrGeneratorService
      */
     public function renderSvgString(CustomQrCode $qrCodeModel): string
     {
-        $components = $this->buildComponents($qrCodeModel);
+        // SvgWriter Endroid tidak mendukung punchoutBackground: true, sehingga harus bernilai false
+        $components = $this->buildComponents($qrCodeModel, punchoutBackground: false);
         $writer = new SvgWriter;
 
         $result = $writer->write(
@@ -112,7 +113,50 @@ class CustomQrGeneratorService
             $components['label']
         );
 
-        return $result->getString();
+        $svgString = $result->getString();
+
+        // Jika terdapat logo, sisipkan background rect di belakang logo agar modul QR tidak bertumpuk jika logo transparan
+        if ($components['logo'] !== null) {
+            $svgString = $this->injectLogoBackgroundInSvg($svgString, $qrCodeModel);
+        }
+
+        return $svgString;
+    }
+
+    /**
+     * Sisipkan background rect di belakang logo SVG agar modul QR tidak bertumpuk jika logo memiliki transparansi.
+     */
+    protected function injectLogoBackgroundInSvg(string $svgString, CustomQrCode $qrCodeModel): string
+    {
+        $bgColor = $qrCodeModel->bg_color ?: '#ffffff';
+
+        // Cari tag <image ...> yang disisipkan oleh SvgWriter
+        if (preg_match('/<image\s+([^>]*?)x="([^"]+)"\s+y="([^"]+)"\s+width="([^"]+)"\s+height="([^"]+)"/i', $svgString, $matches)) {
+            $x = (float) $matches[2];
+            $y = (float) $matches[3];
+            $w = (float) $matches[4];
+            $h = (float) $matches[5];
+
+            // Beri margin padding kecil 2px di sekitar logo
+            $pad = 2.0;
+            $rectX = $x - $pad;
+            $rectY = $y - $pad;
+            $rectW = $w + ($pad * 2);
+            $rectH = $h + ($pad * 2);
+
+            $rectTag = sprintf(
+                '<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s" rx="4" ry="4"/>',
+                $rectX,
+                $rectY,
+                $rectW,
+                $rectH,
+                htmlspecialchars($bgColor, ENT_QUOTES, 'UTF-8')
+            );
+
+            $svgString = preg_replace('/(<image\s)/i', $rectTag.'$1', $svgString, 1) ?? $svgString;
+        }
+
+        return $svgString;
     }
 
     /**
@@ -120,7 +164,8 @@ class CustomQrGeneratorService
      */
     public function renderPngBinary(CustomQrCode $qrCodeModel): string
     {
-        $components = $this->buildComponents($qrCodeModel);
+        // PngWriter mendukung punchoutBackground: true untuk mengosongkan modul QR di belakang logo
+        $components = $this->buildComponents($qrCodeModel, punchoutBackground: true);
         $writer = new PngWriter;
 
         $result = $writer->write(

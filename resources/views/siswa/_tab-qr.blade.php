@@ -19,8 +19,8 @@
 
         <!-- Student Bio Card Row -->
         <div class="flex items-center gap-3.5">
-            @if(!empty($student->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($student->photo))
-                <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->user->name }}" class="w-18 h-22 object-cover border-2 border-black shadow-[2px_2px_0px_0px_#000] shrink-0">
+            @if($student->photo_url)
+                <img src="{{ $student->photo_url }}" alt="{{ $student->user->name }}" class="w-18 h-22 object-cover border-2 border-black shadow-[2px_2px_0px_0px_#000] shrink-0">
             @else
                 <div class="w-18 h-22 bg-[#FFF3BF] border-2 border-black shadow-[2px_2px_0px_0px_#000] shrink-0 flex flex-col items-center justify-center text-slate-700">
                     <span class="text-2xl">👤</span>
@@ -68,7 +68,7 @@
                 </div>
             </div>
 
-            <button onclick="openModal('modalFullscreenQr')" class="neo-btn bg-[#FFD43B] text-black w-full py-2.5 text-xs font-black uppercase flex items-center justify-center gap-2">
+            <button type="button" onclick="openModal('modalFullscreenQr')" class="neo-btn bg-[#FFD43B] text-black w-full py-2.5 text-xs font-black uppercase flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
                 </svg>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
+use App\Models\Holiday;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -11,6 +12,7 @@ use App\Models\Teacher;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -44,16 +46,14 @@ class ManualAttendanceController extends Controller
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 
         $students = collect();
+        $attendanceMeta = null;
         if ($selectedClassId) {
-            $students = Student::with(['user', 'attendances' => function ($q) use ($date) {
-                $q->whereDate('date', $date);
-            }])
-                ->where('school_class_id', $selectedClassId)
-                ->get()
-                ->sortBy(fn ($s) => $s->user->name ?? '');
+            [$students, $attendanceMeta] = $this->getStudentsAndAttendanceMeta($selectedClassId, $date);
         }
 
-        return view('guru.attendance-manual', compact('classes', 'selectedClass', 'selectedClassId', 'date', 'students'));
+        $holiday = Holiday::getHolidayFor($date);
+
+        return view('guru.attendance-manual', compact('classes', 'selectedClass', 'selectedClassId', 'date', 'students', 'attendanceMeta', 'holiday'));
     }
 
     /**
@@ -68,16 +68,67 @@ class ManualAttendanceController extends Controller
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 
         $students = collect();
+        $attendanceMeta = null;
         if ($selectedClassId) {
-            $students = Student::with(['user', 'attendances' => function ($q) use ($date) {
-                $q->whereDate('date', $date);
-            }])
-                ->where('school_class_id', $selectedClassId)
-                ->get()
-                ->sortBy(fn ($s) => $s->user->name ?? '');
+            [$students, $attendanceMeta] = $this->getStudentsAndAttendanceMeta($selectedClassId, $date);
         }
 
-        return view('admin.attendance-manual', compact('classes', 'selectedClass', 'selectedClassId', 'date', 'students'));
+        $holiday = Holiday::getHolidayFor($date);
+
+        return view('admin.attendance-manual', compact('classes', 'selectedClass', 'selectedClassId', 'date', 'students', 'attendanceMeta', 'holiday'));
+    }
+
+    /**
+     * Dapatkan daftar siswa dan metadata status pengisian presensi kelas.
+     *
+     * @return array{Collection<int, Student>, array<string, mixed>|null}
+     */
+    protected function getStudentsAndAttendanceMeta(int $classId, string $date): array
+    {
+        $students = Student::with([
+            'user',
+            'attendances' => function ($q) use ($date) {
+                $q->whereDate('date', $date)->with('recordedByUser');
+            },
+        ])
+            ->where('school_class_id', $classId)
+            ->get()
+            ->sortBy(fn ($s) => $s->user->name ?? '')
+            ->values();
+
+        $attendances = $students->flatMap->attendances;
+        $totalStudents = $students->count();
+        $recordedCount = $attendances->count();
+
+        $attendanceMeta = null;
+        if ($totalStudents > 0) {
+            $latestAttendance = $attendances->sortByDesc('updated_at')->first();
+            $isUpdated = $latestAttendance && $latestAttendance->updated_at && $latestAttendance->created_at
+                && $latestAttendance->updated_at->diffInSeconds($latestAttendance->created_at) > 1;
+
+            $statusCounts = [
+                'hadir' => $attendances->where('status', 'hadir')->count(),
+                'terlambat' => $attendances->where('status', 'terlambat')->count(),
+                'sakit' => $attendances->where('status', 'sakit')->count(),
+                'izin' => $attendances->where('status', 'izin')->count(),
+                'alpa' => $attendances->where('status', 'alpa')->count(),
+            ];
+
+            $attendanceMeta = [
+                'total_students' => $totalStudents,
+                'recorded_count' => $recordedCount,
+                'is_complete' => $recordedCount >= $totalStudents && $totalStudents > 0,
+                'is_partial' => $recordedCount > 0 && $recordedCount < $totalStudents,
+                'is_empty' => $recordedCount === 0,
+                'latest_attendance' => $latestAttendance,
+                'recorder_name' => $latestAttendance?->recordedByUser?->name ?? 'Sistem / Guru',
+                'recorded_at' => $latestAttendance?->updated_at ?? $latestAttendance?->created_at,
+                'is_updated' => $isUpdated,
+                'status_counts' => $statusCounts,
+            ];
+        }
+
+        return [$students, $attendanceMeta];
     }
 
     /**
@@ -211,15 +262,23 @@ class ManualAttendanceController extends Controller
         $attendanceSetting = AttendanceSetting::first();
         $startTimeStr = $attendanceSetting?->school_start_time ?? '07:00:00';
 
-        // Hitung seluruh tanggal dalam bulan tersebut (kecualikan hari Minggu)
+        // Hitung seluruh tanggal dalam bulan tersebut (kecualikan hari Minggu & hari libur)
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
+        $endOfMonth = $startOfMonth->copy()->endOfMonth();
         $daysInMonth = $startOfMonth->daysInMonth;
+
+        $holidayDates = Holiday::active()
+            ->whereBetween('holiday_date', [$startOfMonth->toDateString(), $endOfMonth->toDateString()])
+            ->pluck('holiday_date')
+            ->map(fn ($d) => Carbon::parse($d)->toDateString())
+            ->toArray();
+
         $activeDates = [];
 
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $currentDate = Carbon::createFromDate($year, $month, $day);
-            // Lewati hari Minggu (dayOfWeek === 0)
-            if ($currentDate->dayOfWeek === Carbon::SUNDAY) {
+            // Lewati hari Minggu (dayOfWeek === 0) dan hari libur aktif
+            if ($currentDate->dayOfWeek === Carbon::SUNDAY || in_array($currentDate->toDateString(), $holidayDates, true)) {
                 continue;
             }
             $activeDates[] = $currentDate->toDateString();

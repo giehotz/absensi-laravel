@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\AttendanceUploadController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
+use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QrGeneratorController;
 use App\Http\Controllers\Admin\SavingsController as AdminSavingsController;
 use App\Http\Controllers\Admin\ScheduleController;
@@ -75,6 +76,13 @@ Route::post('academic-years', [AcademicYearController::class, 'store'])->name('a
 Route::put('academic-years/{academicYear}', [AcademicYearController::class, 'update'])->name('academic-years.update');
 Route::delete('academic-years/{academicYear}', [AcademicYearController::class, 'destroy'])->name('academic-years.destroy');
 Route::patch('academic-years/{academicYear}/toggle', [AcademicYearController::class, 'toggleStatus'])->name('academic-years.toggle');
+
+// Manajemen Kalender Hari Libur
+Route::get('holidays', [HolidayController::class, 'index'])->name('holidays.index');
+Route::post('holidays/sync', [HolidayController::class, 'sync'])->name('holidays.sync');
+Route::post('holidays', [HolidayController::class, 'store'])->name('holidays.store');
+Route::patch('holidays/{holiday}/toggle', [HolidayController::class, 'toggleActive'])->name('holidays.toggle');
+Route::delete('holidays/{holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
 
 // Laporan Presensi Siswa
 Route::get('reports/attendance', [AttendanceReportController::class, 'index'])->name('reports.attendance');
