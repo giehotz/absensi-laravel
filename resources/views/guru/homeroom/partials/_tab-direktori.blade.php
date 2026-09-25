@@ -36,8 +36,14 @@
                             </td>
                             <td class="p-3 border-r-2 border-black">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-full bg-[#5294FF] text-white font-black text-xs flex items-center justify-center border-2 border-black shrink-0">
-                                        {{ strtoupper(substr($stu->user->name ?? 'S', 0, 2)) }}
+                                    <div class="w-10 h-12 rounded-sm border-2 border-black overflow-hidden shrink-0 bg-slate-100 flex items-center justify-center shadow-[1.5px_1.5px_0px_#000]">
+                                        @if($stu->photo)
+                                            <img src="{{ $stu->photo_url }}" alt="{{ $stu->user->name ?? 'Foto Siswa' }}" class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full bg-[#5294FF] text-white font-black text-xs flex items-center justify-center">
+                                                {{ strtoupper(substr($stu->user->name ?? 'S', 0, 2)) }}
+                                            </div>
+                                        @endif
                                     </div>
                                     <div>
                                         <div class="font-black text-black text-sm">{{ $stu->user->name ?? '-' }}</div>
@@ -124,6 +130,8 @@
                                                 'm_sakit' => $stu->month_sakit,
                                                 'm_alpa' => $stu->month_alpa,
                                                 'm_total' => $stu->month_total,
+                                                'photo_url' => $stu->photo ? $stu->photo_url : null,
+                                                'initials' => strtoupper(substr($stu->user->name ?? 'S', 0, 2)),
                                             ]) }})"
                                             class="neo-btn bg-white hover:bg-slate-100 text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
                                             title="Lihat Detail Profil Siswa" aria-label="Lihat Detail Profil Siswa">

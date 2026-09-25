@@ -164,6 +164,21 @@
         document.getElementById('modal-student-class').innerText = data.class_name;
         document.getElementById('modal-student-phone').innerText = data.phone;
 
+        const photoEl = document.getElementById('modal-student-photo');
+        const photoPlaceholderEl = document.getElementById('modal-student-photo-placeholder');
+        if (photoEl && photoPlaceholderEl) {
+            if (data.photo_url) {
+                photoEl.src = data.photo_url;
+                photoEl.classList.remove('hidden');
+                photoPlaceholderEl.classList.add('hidden');
+            } else {
+                photoEl.src = '';
+                photoEl.classList.add('hidden');
+                photoPlaceholderEl.innerText = data.initials || 'S';
+                photoPlaceholderEl.classList.remove('hidden');
+            }
+        }
+
         document.getElementById('modal-parent-name').innerText = data.parent_name;
         document.getElementById('modal-parent-relation').innerText = data.parent_relation;
         document.getElementById('modal-parent-phone').innerText = data.parent_phone || '-';

@@ -13,15 +13,23 @@
         <!-- Modal Body -->
         <div class="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
             <!-- Profil Singkat Siswa -->
-            <div class="bg-slate-50 border-2 border-black p-3 rounded-sm space-y-2">
-                <div class="font-heading font-black text-base text-black" id="modal-student-name">Nama Siswa</div>
-                <div class="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-700">
-                    <div>NIS: <span class="font-mono font-bold text-black" id="modal-student-nis">-</span></div>
-                    <div>NISN: <span class="font-mono font-bold text-black" id="modal-student-nisn">-</span></div>
-                    <div>Jenis Kelamin: <span class="font-bold text-black" id="modal-student-gender">-</span></div>
-                    <div>Tanggal Lahir: <span class="font-bold text-black" id="modal-student-birth">-</span></div>
-                    <div>Kelas: <span class="font-bold text-black" id="modal-student-class">-</span></div>
-                    <div>No HP Siswa: <span class="font-mono font-bold text-black" id="modal-student-phone">-</span></div>
+            <div class="bg-slate-50 border-2 border-black p-3 rounded-sm flex items-start gap-4">
+                <div class="w-20 h-24 border-2 border-black overflow-hidden bg-white shrink-0 shadow-[2px_2px_0px_#000] flex items-center justify-center">
+                    <img id="modal-student-photo" src="" alt="Foto Siswa" class="w-full h-full object-cover hidden">
+                    <div id="modal-student-photo-placeholder" class="w-full h-full bg-[#5294FF] text-white font-black text-xl flex items-center justify-center">
+                        -
+                    </div>
+                </div>
+                <div class="flex-1 min-w-0 space-y-2">
+                    <div class="font-heading font-black text-base text-black truncate" id="modal-student-name">Nama Siswa</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs font-semibold text-slate-700">
+                        <div>NIS: <span class="font-mono font-bold text-black" id="modal-student-nis">-</span></div>
+                        <div>NISN: <span class="font-mono font-bold text-black" id="modal-student-nisn">-</span></div>
+                        <div>Jenis Kelamin: <span class="font-bold text-black" id="modal-student-gender">-</span></div>
+                        <div>Tanggal Lahir: <span class="font-bold text-black" id="modal-student-birth">-</span></div>
+                        <div>Kelas: <span class="font-bold text-black" id="modal-student-class">-</span></div>
+                        <div>No HP Siswa: <span class="font-mono font-bold text-black" id="modal-student-phone">-</span></div>
+                    </div>
                 </div>
             </div>
 
