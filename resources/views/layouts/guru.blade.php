@@ -78,9 +78,20 @@
                 <button onclick="toggleSidebar()" class="lg:hidden text-white font-black text-lg p-1.5 hover:bg-white/10 rounded border border-slate-600 transition-colors">✕</button>
             </div>
 
+            <!-- Quick Action CTA: Input Presensi Cepat -->
+            <div class="px-4 pt-3 pb-1 shrink-0">
+                <a href="{{ route('guru.attendance.manual') }}" 
+                   class="w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black font-heading font-black text-xs uppercase tracking-wide shadow-[3px_3px_0px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all cursor-pointer group">
+                    <svg class="w-4 h-4 text-black shrink-0 group-hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>+ Input Presensi</span>
+                </a>
+            </div>
+
             <!-- Navigation Links -->
             <nav class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
-                <!-- Group: Menu Utama -->
+                <!-- Group 1: Menu Utama -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
                         Menu Utama
@@ -88,42 +99,63 @@
                     <div class="space-y-1">
                         <!-- Dashboard -->
                         <a href="{{ route('guru.dashboard') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.dashboard') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.dashboard') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                            </svg>
-                            <span>Dashboard</span>
-                        </a>
-
-                        <!-- Presensi Manual -->
-                        <a href="{{ route('guru.attendance.manual') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('guru.attendance.manual*') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.attendance.manual*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 2l3 3h-3V4zm-4 7a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Presensi Manual</span>
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.dashboard') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                                </svg>
+                                <span>Dashboard</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.dashboard') ? 'bg-black text-yellow-300' : 'bg-slate-700 text-slate-300' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Utama</span>
                         </a>
                     </div>
                 </div>
 
-                <!-- Group: Aktivitas & Kelas -->
+                <!-- Group 2: KBM & Presensi -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Aktivitas & Kelas
+                        KBM & Presensi
                     </div>
                     <div class="space-y-1">
+                        <!-- Presensi Manual -->
+                        <a href="{{ route('guru.attendance.manual') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.attendance.manual*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.attendance.manual*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 2l3 3h-3V4zm-4 7a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Presensi Manual</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.attendance.manual*') ? 'bg-black text-yellow-300' : 'bg-[#D3F9D8] text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Input</span>
+                        </a>
+
+                        <!-- Jurnal Mengajar -->
+                        <a href="{{ route('guru.teaching-journals.index') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.teaching-journals.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.teaching-journals.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
+                                <span>Jurnal Mengajar</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.teaching-journals.*') ? 'bg-black text-yellow-300' : 'bg-[#E7F5FF] text-blue-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Harian</span>
+                        </a>
+
                         <!-- Jadwal Mengajar -->
                         <a href="{{ route('guru.jadwal') }}" 
                            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.jadwal') 
                                 ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
                             <div class="flex items-center gap-3">
                                 <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.jadwal') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
@@ -133,34 +165,42 @@
                             <span class="text-[10px] font-black {{ request()->routeIs('guru.jadwal') ? 'bg-black text-yellow-300' : 'bg-[#FFF3BF] text-amber-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">KBM</span>
                         </a>
 
-                        <!-- Kelas Binaan (Wali Kelas) -->
-                        <a href="{{ route('guru.classes.binaan') }}" 
-                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('guru.classes.*') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <div class="flex items-center gap-3">
-                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.classes.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
-                                </svg>
-                                <span>Kelas Binaan</span>
-                            </div>
-                            <span class="text-[10px] font-black bg-[#D3F9D8] text-emerald-950 px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Wali</span>
-                        </a>
-
                         <!-- Perizinan Siswa -->
                         <a href="{{ route('guru.leave-requests.index') }}" 
                            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.leave-requests.*') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
                             <div class="flex items-center gap-3">
-                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.leave-requests.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.leave-requests.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
                                 </svg>
                                 <span>Perizinan Siswa</span>
                             </div>
-                            <span class="text-[10px] font-black bg-[#FFE3E3] text-rose-950 px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Izin</span>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.leave-requests.*') ? 'bg-black text-yellow-300' : 'bg-[#FFE3E3] text-rose-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Izin</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Group 3: Wali & Binaan -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                        Wali & Binaan
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Kelas Binaan (Wali Kelas) -->
+                        <a href="{{ route('guru.classes.binaan') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.classes.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.classes.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                                </svg>
+                                <span>Kelas Binaan</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.classes.*') ? 'bg-black text-yellow-300' : 'bg-[#D3F9D8] text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Wali</span>
                         </a>
 
                         @if(Auth::user()->isSavingsOfficer())
@@ -169,20 +209,22 @@
                            onclick="try { const sc = localStorage.getItem('guru_tabungan_selected_class_{{ auth()->id() }}'); if (sc) { this.href = '{{ route('guru.savings.index') }}?class_id=' + encodeURIComponent(sc); } } catch(e) {}"
                            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.savings.*') 
-                                ? 'bg-[#20C997] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
                             <div class="flex items-center gap-3">
-                                <span class="text-sm">💰</span>
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.savings.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                                    <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                                </svg>
                                 <span>Tabungan Siswa</span>
                             </div>
-                            <span class="text-[10px] font-black {{ request()->routeIs('guru.savings.*') ? 'bg-black text-emerald-300' : 'bg-[#D3F9D8] text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Kas</span>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.savings.*') ? 'bg-black text-yellow-300' : 'bg-[#D3F9D8] text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Kas</span>
                         </a>
                         @endif
                     </div>
                 </div>
 
-
-                <!-- Group: Laporan -->
+                <!-- Group 4: Laporan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
                         Laporan
@@ -190,19 +232,37 @@
                     <div class="space-y-1">
                         <!-- Rekap Kehadiran -->
                         <a href="{{ route('guru.reports.attendance') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.reports.*') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.reports.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                            </svg>
-                            <span>Rekap Kehadiran</span>
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.reports.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                                </svg>
+                                <span>Rekap Kehadiran</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.reports.*') ? 'bg-black text-yellow-300' : 'bg-[#E7F5FF] text-blue-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Rekap</span>
+                        </a>
+
+                        <!-- Kalender Sekolah -->
+                        <a href="{{ route('guru.calendar.index') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.calendar.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.calendar.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <span>Kalender Sekolah</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.calendar.*') ? 'bg-black text-yellow-300' : 'bg-[#FFF9DB] text-amber-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Akademik</span>
                         </a>
                     </div>
                 </div>
 
-                <!-- Group: Alat & Utilitas -->
+                <!-- Group 5: Alat & Utilitas -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
                         Alat & Utilitas
@@ -212,15 +272,15 @@
                         <a href="{{ route('guru.qr-generator.index') }}" 
                            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('guru.qr-generator.*') 
-                                ? 'bg-[#5294FF] text-white border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
                             <div class="flex items-center gap-3">
-                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.qr-generator.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.qr-generator.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
                                 </svg>
                                 <span>QR Generator</span>
                             </div>
-                            <span class="text-[9px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
+                            <span class="text-[9px] font-black {{ request()->routeIs('guru.qr-generator.*') ? 'bg-black text-yellow-300' : 'bg-[#FFD43B] text-black' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
                         </a>
                     </div>
                 </div>
@@ -232,7 +292,7 @@
                 <a href="{{ route('guru.profile.index') }}" 
                    class="flex items-center gap-2.5 p-2 border-2 border-black rounded-lg transition-all duration-150 cursor-pointer group
                    {{ request()->routeIs('guru.profile.*') 
-                        ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000000] translate-x-0.5' 
+                        ? 'bg-[#FFD43B] text-black shadow-[3px_3px_0px_0px_#000000] translate-x-0.5' 
                         : 'bg-[#0F172A] text-slate-200 hover:bg-slate-800/90 hover:border-slate-600 shadow-[2px_2px_0px_0px_#000]' }}"
                    title="Buka Profil Saya">
                     @if(!empty(Auth::user()->teacher?->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists(Auth::user()->teacher->photo))
@@ -240,20 +300,20 @@
                             <img src="{{ asset('storage/' . Auth::user()->teacher->photo) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
                         </div>
                     @else
-                        <div class="w-8 h-8 rounded-md {{ request()->routeIs('guru.profile.*') ? 'bg-black text-white' : 'bg-[#5294FF] text-white' }} border-2 border-black flex items-center justify-center font-bold text-xs shrink-0 shadow-[1px_1px_0px_0px_#000]">
+                        <div class="w-8 h-8 rounded-md {{ request()->routeIs('guru.profile.*') ? 'bg-black text-[#FFD43B]' : 'bg-[#5294FF] text-white' }} border-2 border-black flex items-center justify-center font-bold text-xs shrink-0 shadow-[1px_1px_0px_0px_#000]">
                             👨‍🏫
                         </div>
                     @endif
                     <div class="min-w-0 flex-1">
-                        <div class="text-xs font-bold text-white truncate group-hover:text-yellow-300 transition-colors">
+                        <div class="text-xs font-bold {{ request()->routeIs('guru.profile.*') ? 'text-black' : 'text-white group-hover:text-yellow-300' }} truncate transition-colors">
                             {{ Auth::user()->name }}
                         </div>
-                        <div class="text-[10px] font-semibold {{ request()->routeIs('guru.profile.*') ? 'text-white' : 'text-[#5294FF]' }} flex items-center gap-1">
-                            <span class="w-1.5 h-1.5 rounded-full bg-[#20C997]"></span>
+                        <div class="text-[10px] font-semibold {{ request()->routeIs('guru.profile.*') ? 'text-black font-black' : 'text-[#5294FF]' }} flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('guru.profile.*') ? 'bg-black' : 'bg-[#20C997]' }}"></span>
                             <span>Dewan Guru</span>
                         </div>
                     </div>
-                    <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-3.5 h-3.5 {{ request()->routeIs('guru.profile.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }} group-hover:translate-x-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
                     </svg>
                 </a>

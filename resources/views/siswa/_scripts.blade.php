@@ -114,9 +114,9 @@
             }
             if (btn) {
                 if (tab === subTabId) {
-                    btn.className = 'profile-subtab-btn bg-[#FFD43B] text-black border-2 border-black p-2 rounded text-xs font-black flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer';
+                    btn.className = 'profile-subtab-btn bg-[#FFD43B] text-black border-2 border-black py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] cursor-pointer transition-all';
                 } else {
-                    btn.className = 'profile-subtab-btn bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-transparent p-2 rounded text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer';
+                    btn.className = 'profile-subtab-btn bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-transparent hover:border-black py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all';
                 }
             }
         });
@@ -161,30 +161,8 @@
         }
     }
 
-    // Keep floating bottom nav bounded above footer
-    function adjustFloatingNavPosition() {
-        var nav = document.getElementById('floatingBottomNav');
-        var footer = document.querySelector('footer');
-        if (!nav || !footer) return;
-
-        var footerRect = footer.getBoundingClientRect();
-        var windowHeight = window.innerHeight;
-
-        // When footer enters viewport, push nav above footer with 16px margin
-        if (footerRect.top < windowHeight) {
-            var overlap = windowHeight - footerRect.top;
-            nav.style.bottom = (overlap + 16) + 'px';
-        } else {
-            nav.style.bottom = '';
-        }
-    }
-
-    window.addEventListener('scroll', adjustFloatingNavPosition, { passive: true });
-    window.addEventListener('resize', adjustFloatingNavPosition, { passive: true });
-
     // Initialize tab from URL or session on page load
     document.addEventListener('DOMContentLoaded', function() {
-        adjustFloatingNavPosition();
 
         var urlParams = new URLSearchParams(window.location.search);
         var tabParam = urlParams.get('tab');

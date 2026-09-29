@@ -128,4 +128,9 @@ class Teacher extends Model
 
         return $this->managedSavingsClasses()->pluck('school_classes.id')->all();
     }
+
+    public function teachingJournals(): HasMany
+    {
+        return $this->hasMany(TeachingJournal::class);
+    }
 }

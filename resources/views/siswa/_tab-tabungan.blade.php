@@ -1,23 +1,22 @@
 <!-- ========================================================================= -->
-<!-- TAB 6: BUKU TABUNGAN DIGITAL SISWA -->
+<!-- TAB 6 (ALT): BUKU TABUNGAN DIGITAL SISWA (PLAYFUL NEO-BRUTALISM) -->
 <!-- ========================================================================= -->
-<div id="tabContent-tabungan" class="tab-pane hidden space-y-4">
+<div id="tabContent-tabungan" class="tab-pane hidden space-y-4 sm:space-y-5">
 @if($savingsAccount)
     <!-- Kartu Buku Tabungan (ATM/Passbook Style) -->
-    <div class="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border-4 border-black p-5 text-white shadow-[4px_4px_0px_0px_#000] relative overflow-hidden">
-        <!-- Background Pattern Decor -->
+    <div class="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-2xl border-3 border-black p-5 sm:p-6 text-white shadow-[5px_5px_0px_0px_#000] relative overflow-hidden">
         <div class="absolute -right-6 -bottom-6 w-36 h-36 bg-[#5294FF]/10 rounded-full blur-xl pointer-events-none"></div>
         <div class="absolute right-4 top-4 text-4xl opacity-20">💰</div>
 
         <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2.5">
                 <span class="text-2xl">🏦</span>
                 <div>
                     <h3 class="font-heading font-black text-sm tracking-wider uppercase text-[#FFD43B]">Buku Tabungan Siswa</h3>
                     <p class="text-[10px] text-slate-400 font-mono">SIMPANAN PELAJAR (SIMPEL)</p>
                 </div>
             </div>
-            <span class="neo-badge bg-[#20C997] text-white text-[10px] px-2.5 py-0.5 font-bold shadow-[2px_2px_0px_0px_#000]">
+            <span class="bg-[#20C997] text-white text-[10px] px-3 py-0.5 rounded-full font-black border border-black shadow-[2px_2px_0px_0px_#000]">
                 ● {{ strtoupper($savingsAccount->status) }}
             </span>
         </div>
@@ -48,69 +47,69 @@
         $totalTarik = $txList->where('type', 'withdrawal')->sum('amount');
     @endphp
     <div class="grid grid-cols-2 gap-3">
-        <div class="bg-[#EBFBEE] border-3 border-black p-3 shadow-[3px_3px_0px_0px_#000]">
+        <div class="bg-[#EBFBEE] border-2 border-black rounded-xl p-3.5 shadow-[2.5px_2.5px_0px_0px_#000]">
             <div class="flex items-center gap-1.5 text-xs font-black text-emerald-950 uppercase mb-1">
                 <span>📥</span> Total Setor
             </div>
-            <div class="font-mono font-black text-sm sm:text-base text-emerald-700">
+            <div class="font-mono font-black text-base sm:text-lg text-emerald-700">
                 +Rp {{ number_format($totalSetor, 0, ',', '.') }}
             </div>
         </div>
-        <div class="bg-[#FFF5F5] border-3 border-black p-3 shadow-[3px_3px_0px_0px_#000]">
+        <div class="bg-[#FFF5F5] border-2 border-black rounded-xl p-3.5 shadow-[2.5px_2.5px_0px_0px_#000]">
             <div class="flex items-center gap-1.5 text-xs font-black text-rose-950 uppercase mb-1">
                 <span>📤</span> Total Tarik
             </div>
-            <div class="font-mono font-black text-sm sm:text-base text-rose-700">
+            <div class="font-mono font-black text-base sm:text-lg text-rose-700">
                 -Rp {{ number_format($totalTarik, 0, ',', '.') }}
             </div>
         </div>
     </div>
 
     <!-- Informasi Prosedur -->
-    <div class="bg-[#FFF9DB] border-3 border-black p-3 neo-box text-amber-950 text-xs font-medium space-y-1">
-        <div class="font-bold flex items-center gap-1.5 text-black">
-            <span>ℹ</span> Ketentuan Tabungan Sekolah:
+    <div class="bg-[#FFF9DB] border-2 border-black p-4 rounded-xl text-amber-950 text-xs font-medium space-y-1 shadow-[2px_2px_0px_0px_#000]">
+        <div class="font-black flex items-center gap-1.5 text-black">
+            <span>ℹ️</span> Ketentuan Tabungan Sekolah:
         </div>
-        <p class="text-[11px] leading-relaxed text-amber-900">
+        <p class="text-xs leading-relaxed text-amber-900">
             Setoran dan penarikan tabungan dapat dilakukan secara langsung di sekolah melalui <strong>Guru Pengelola Tabungan (Bendahara)</strong>. Harap selalu memeriksa mutasi setelah melakukan transaksi.
         </p>
     </div>
 
     <!-- Daftar Riwayat Mutasi Tabungan -->
     <div class="space-y-3">
-        <div class="flex items-center justify-between">
-            <h4 class="font-heading font-black text-sm text-black uppercase flex items-center gap-1.5">
+        <div class="flex items-center justify-between px-1">
+            <h4 class="font-heading font-black text-xs sm:text-sm text-black uppercase flex items-center gap-1.5">
                 <span>📜</span> Riwayat Mutasi Transaksi
             </h4>
-            <span class="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 border border-slate-300 rounded">
+            <span class="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 border border-black rounded-full shadow-[1px_1px_0px_0px_#000]">
                 {{ count($txList) }} Transaksi Terakhir
             </span>
         </div>
 
         <div class="space-y-2.5">
             @forelse($txList as $tx)
-                <div class="bg-white neo-box p-3.5 flex items-start justify-between gap-3 hover:translate-x-0.5 transition-transform">
+                <div class="bg-white rounded-xl border-2 border-black p-3.5 sm:p-4 flex items-start justify-between gap-3 shadow-[2.5px_2.5px_0px_0px_#000] hover:translate-x-0.5 transition-transform">
                     <div class="min-w-0 space-y-1">
-                        <div class="flex items-center gap-2 flex-wrap">
+                        <div class="flex items-center gap-1.5 flex-wrap">
                             <span class="font-heading font-black text-xs text-black">
                                 {{ $tx->created_at->translatedFormat('d M Y, H:i') }} WIB
                             </span>
-                            <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 border border-slate-300 rounded">
+                            <span class="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.2 border border-black rounded">
                                 {{ $tx->transaction_code }}
                             </span>
                             @if($tx->is_corrected)
-                                <span class="neo-badge bg-[#FFE066] text-[#664D03] text-[10px] px-2 py-0.5 font-bold border border-black inline-flex items-center gap-1 shadow-[1px_1px_0px_0px_#000]">
+                                <span class="bg-[#FFE066] text-[#664D03] text-[9px] px-2 py-0.5 font-bold border border-black rounded inline-flex items-center gap-1 shadow-[1px_1px_0px_0px_#000]">
                                     <span>⚠️</span> Dikoreksi
                                 </span>
                             @endif
                         </div>
 
-                        <div class="text-xs font-medium text-slate-700">
+                        <div class="text-xs font-semibold text-slate-700">
                             {{ $tx->description ?: ($tx->isDeposit() ? 'Setoran tunai' : 'Penarikan tunai') }}
                         </div>
 
                         @if($tx->is_corrected)
-                            <div class="bg-amber-50 border-l-2 border-amber-500 p-2 text-[11px] text-amber-900 rounded-r space-y-0.5 my-1">
+                            <div class="bg-amber-50 border-l-2 border-amber-500 p-2.5 text-xs text-amber-900 rounded-r space-y-0.5 my-1">
                                 <div class="font-semibold flex items-baseline gap-1">
                                     <span class="shrink-0 font-bold text-amber-950">Alasan:</span>
                                     <span class="italic text-slate-800">"{{ $tx->correction_reason }}"</span>
@@ -134,11 +133,11 @@
 
                     <div class="shrink-0 text-right">
                         @if($tx->isDeposit())
-                            <span class="neo-badge bg-[#20C997] text-white text-xs font-mono font-black px-2.5 py-1 inline-block">
+                            <span class="bg-[#20C997] text-white text-xs font-mono font-black px-2.5 py-0.5 rounded-full border border-black inline-block shadow-[1px_1px_0px_0px_#000]">
                                 +{{ $tx->formatted_amount }}
                             </span>
                         @else
-                            <span class="neo-badge bg-[#FF6B6B] text-white text-xs font-mono font-black px-2.5 py-1 inline-block">
+                            <span class="bg-[#FF6B6B] text-white text-xs font-mono font-black px-2.5 py-0.5 rounded-full border border-black inline-block shadow-[1px_1px_0px_0px_#000]">
                                 -{{ $tx->formatted_amount }}
                             </span>
                         @endif
@@ -153,9 +152,9 @@
                     </div>
                 </div>
             @empty
-                <div class="bg-white neo-box p-8 text-center text-slate-500 space-y-2">
+                <div class="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center text-slate-500 space-y-2">
                     <div class="text-4xl">🪙</div>
-                    <div class="font-heading font-bold text-sm text-black">Belum Ada Transaksi</div>
+                    <div class="font-heading font-black text-sm text-black">Belum Ada Transaksi</div>
                     <p class="text-xs text-slate-600 max-w-sm mx-auto">
                         Anda belum memiliki mutasi setoran atau penarikan tabungan. Mari mulai menabung sejak dini bersama Guru Pengelola Tabungan!
                     </p>
@@ -164,13 +163,13 @@
         </div>
     </div>
 @else
-    <div class="bg-white neo-box p-8 text-center text-slate-500 space-y-3">
+    <div class="bg-white rounded-2xl border-2 sm:border-[2.5px] border-black p-8 text-center text-slate-500 space-y-3 shadow-[4px_4px_0px_0px_#000]">
         <div class="text-4xl">🏦</div>
         <div class="font-heading font-black text-base text-black">Buku Tabungan Belum Aktif</div>
         <p class="text-xs text-slate-600 max-w-sm mx-auto">
             Akun Anda belum memiliki rekening tabungan aktif. Silakan hubungi Guru Pengelola Tabungan di sekolah untuk membuka tabungan siswa.
         </p>
-        <a href="{{ route('siswa.savings.index') }}" class="neo-btn bg-[#FFD43B] text-black px-4 py-2 text-xs font-black inline-block uppercase">
+        <a href="{{ route('siswa.savings.index') }}" class="bg-[#FFD43B] text-black px-5 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] text-xs font-black inline-block uppercase hover:translate-x-0.5 hover:translate-y-0.5 transition-all">
             Buka Halaman Tabungan →
         </a>
     </div>

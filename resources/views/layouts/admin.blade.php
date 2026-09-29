@@ -178,17 +178,50 @@
                             <span>Jadwal Pelajaran</span>
                         </a>
 
-                        <!-- Kalender Libur -->
-                        <a href="{{ route('admin.holidays.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.holidays.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.holidays.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                            </svg>
-                            <span>Kalender Libur</span>
-                        </a>
+                        <!-- Menu Kalender (Accordion Dropdown) -->
+                        @php
+                            $isCalendarActive = request()->routeIs('admin.holidays.*') || request()->routeIs('admin.academic-calendar.*');
+                        @endphp
+                        <div class="space-y-1">
+                            <button type="button" 
+                                    onclick="toggleCalendarMenu()" 
+                                    id="calendarMenuBtn"
+                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                                    {{ $isCalendarActive 
+                                        ? 'bg-slate-800 text-white font-black border-2 border-slate-700' 
+                                        : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-4 h-4 shrink-0 {{ $isCalendarActive ? 'text-[#FFD43B]' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span class="font-heading">Kalender</span>
+                                </div>
+                                <svg id="calendarChevron" class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 text-slate-400 group-hover:text-white {{ $isCalendarActive ? 'rotate-180 text-[#FFD43B]' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                            <div id="calendarSubmenu" class="pl-3 pr-1 py-1 space-y-1 {{ $isCalendarActive ? '' : 'hidden' }}">
+                                <!-- Sub-menu 1: Kalender Libur -->
+                                <a href="{{ route('admin.holidays.index') }}" 
+                                   class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                                   {{ request()->routeIs('admin.holidays.*') 
+                                        ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' 
+                                        : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('admin.holidays.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Kalender Libur</span>
+                                </a>
+
+                                <!-- Sub-menu 2: Kalender Pendidikan -->
+                                <a href="{{ route('admin.academic-calendar.index') }}" 
+                                   class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                                   {{ request()->routeIs('admin.academic-calendar.*') 
+                                        ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' 
+                                        : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('admin.academic-calendar.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Kalender Pendidikan</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -221,6 +254,18 @@
                                 <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z"/>
                             </svg>
                             <span>Laporan Presensi</span>
+                        </a>
+
+                        <!-- Jurnal Kegiatan Guru -->
+                        <a href="{{ route('admin.teaching-journals.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.teaching-journals.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.teaching-journals.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            <span>Jurnal Guru</span>
                         </a>
                     </div>
                 </div>
@@ -526,6 +571,17 @@
             if (modal) {
                 modal.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
+            }
+        }
+
+        function toggleCalendarMenu() {
+            const submenu = document.getElementById('calendarSubmenu');
+            const chevron = document.getElementById('calendarChevron');
+            if (submenu) {
+                submenu.classList.toggle('hidden');
+            }
+            if (chevron) {
+                chevron.classList.toggle('rotate-180');
             }
         }
     </script>

@@ -3,7 +3,7 @@
 @section('title', 'Portal Siswa - ' . ($student->user->name ?? 'Dashboard'))
 
 @section('content')
-<div class="max-w-2xl mx-auto pb-28 space-y-4">
+<div class="max-w-2xl mx-auto pb-16 sm:pb-20 space-y-4 sm:space-y-5">
     <!-- Header Profil Siswa -->
     @include('siswa._header-profile')
 
@@ -25,7 +25,6 @@
     <!-- Tab 6: Profil Siswa Lengkap -->
     @include('siswa._tab-profil')
 </div>
-
 
 <!-- Fixed Bottom Navigation Bar -->
 @include('siswa._bottom-nav')

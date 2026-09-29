@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AcademicCalendarController;
 use App\Http\Controllers\Admin\AcademicYearController;
 use App\Http\Controllers\Admin\ApiClientController;
 use App\Http\Controllers\Admin\AttendanceReportController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Admin\StudentController;
 use App\Http\Controllers\Admin\StudentPromotionController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherController;
+use App\Http\Controllers\Admin\TeachingJournalController as AdminTeachingJournalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualAttendanceController;
 use Illuminate\Support\Facades\Route;
@@ -86,9 +88,25 @@ Route::post('holidays', [HolidayController::class, 'store'])->name('holidays.sto
 Route::patch('holidays/{holiday}/toggle', [HolidayController::class, 'toggleActive'])->name('holidays.toggle');
 Route::delete('holidays/{holiday}', [HolidayController::class, 'destroy'])->name('holidays.destroy');
 
+// Manajemen Kalender Pendidikan
+Route::prefix('academic-calendar')->name('academic-calendar.')->group(function () {
+    Route::get('/', [AcademicCalendarController::class, 'index'])->name('index');
+    Route::get('/template/download', [AcademicCalendarController::class, 'downloadTemplate'])->name('template.download');
+    Route::post('/import', [AcademicCalendarController::class, 'importExcel'])->name('import');
+    Route::post('/pdf', [AcademicCalendarController::class, 'uploadPdf'])->name('pdf.upload');
+    Route::delete('/pdf', [AcademicCalendarController::class, 'deletePdf'])->name('pdf.destroy');
+    Route::post('/store', [AcademicCalendarController::class, 'store'])->name('store');
+    Route::put('/{calendar}', [AcademicCalendarController::class, 'update'])->name('update');
+    Route::delete('/{calendar}', [AcademicCalendarController::class, 'destroy'])->name('destroy');
+});
+
 // Laporan Presensi Siswa
 Route::get('reports/attendance', [AttendanceReportController::class, 'index'])->name('reports.attendance');
 Route::get('reports/attendance/export', [AttendanceReportController::class, 'exportExcel'])->name('reports.attendance.export');
+
+// Monitoring & Manajemen Jurnal Kegiatan Guru
+Route::get('teaching-journals/print', [AdminTeachingJournalController::class, 'print'])->name('teaching-journals.print');
+Route::resource('teaching-journals', AdminTeachingJournalController::class)->only(['index', 'show', 'destroy']);
 
 // Pengaturan Sistem Absensi
 Route::get('settings', [SettingController::class, 'index'])->name('settings.index');

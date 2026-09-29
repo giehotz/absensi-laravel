@@ -3,16 +3,31 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Guru\AttendanceReportController;
 use App\Http\Controllers\Guru\AttendanceUploadController;
+use App\Http\Controllers\Guru\CalendarController;
 use App\Http\Controllers\Guru\HomeroomClassController;
 use App\Http\Controllers\Guru\LeaveRequestController;
 use App\Http\Controllers\Guru\ProfileController;
 use App\Http\Controllers\Guru\QrGeneratorController;
 use App\Http\Controllers\Guru\ScheduleController;
+use App\Http\Controllers\Guru\TeachingJournalController;
 use App\Http\Controllers\ManualAttendanceController;
 use Illuminate\Support\Facades\Route;
 
 // Dashboard Guru
 Route::get('/dashboard', [DashboardController::class, 'guru'])->name('dashboard');
+
+// Jurnal Kegiatan Harian Guru Mengajar
+Route::get('/jurnal/template', [TeachingJournalController::class, 'downloadTemplate'])->name('teaching-journals.template');
+Route::post('/jurnal/upload', [TeachingJournalController::class, 'uploadExcel'])->name('teaching-journals.upload');
+Route::get('/jurnal/import/preview', [TeachingJournalController::class, 'previewImport'])->name('teaching-journals.import.preview');
+Route::post('/jurnal/import/publish', [TeachingJournalController::class, 'publishImport'])->name('teaching-journals.import.publish');
+Route::patch('/jurnal/{teachingJournal}/toggle-share', [TeachingJournalController::class, 'toggleShare'])->name('teaching-journals.toggle-share');
+Route::get('/jurnal/cetak', [TeachingJournalController::class, 'print'])->name('teaching-journals.print');
+Route::get('/jurnal/check-attendance', [TeachingJournalController::class, 'checkAttendance'])->name('teaching-journals.check-attendance');
+Route::resource('/jurnal', TeachingJournalController::class)->names('teaching-journals');
+
+// Kalender Pendidikan & Hari Libur Sekolah
+Route::get('/kalender', [CalendarController::class, 'index'])->name('calendar.index');
 
 // Jadwal Mengajar & Jadwal Kelas
 Route::get('/jadwal', [ScheduleController::class, 'index'])->name('jadwal');

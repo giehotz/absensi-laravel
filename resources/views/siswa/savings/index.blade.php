@@ -3,15 +3,15 @@
 @section('title', 'Tabungan Siswa - ' . ($student->user->name ?? 'Buku Tabungan'))
 
 @section('content')
-<div class="max-w-2xl mx-auto pb-28 space-y-4">
+<div class="max-w-2xl mx-auto pb-16 sm:pb-20 space-y-4 sm:space-y-5">
     <!-- Header Navigasi -->
-    <div class="bg-white neo-box p-4 flex items-center justify-between gap-3">
+    <div class="bg-white rounded-2xl border-2 sm:border-[2.5px] border-black p-4 flex items-center justify-between gap-3 shadow-[4px_4px_0px_0px_#000]">
         <a href="{{ route('siswa.dashboard') }}" 
-           class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-xs font-bold px-3 py-1.5 flex items-center gap-1.5 transition-all">
-            <span>←</span> Dashboard
+           class="bg-slate-100 hover:bg-slate-200 text-black text-xs font-black px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#000] flex items-center gap-2 transition-all">
+            <span>←</span> Kembali ke Dashboard
         </a>
         <div class="text-right">
-            <span class="neo-badge bg-[#FFD43B] text-black text-[10px] font-black uppercase">
+            <span class="bg-[#FFD43B] text-black text-[10px] font-black uppercase px-3 py-1 rounded-full border border-black shadow-[1.5px_1.5px_0px_0px_#000]">
                 Simpanan Pelajar
             </span>
         </div>
@@ -21,7 +21,7 @@
         <!-- ========================================================================= -->
         <!-- STATE 1: SISWA BELUM TERDAFTAR / BELUM MEMILIKI TABUNGAN -->
         <!-- ========================================================================= -->
-        <div class="bg-white neo-box-lg p-6 sm:p-8 space-y-6 text-center border-4 border-black shadow-[6px_6px_0px_0px_#000]">
+        <div class="bg-white rounded-2xl border-2 sm:border-3 border-black p-6 sm:p-8 space-y-6 text-center shadow-[6px_6px_0px_0px_#000]">
             <!-- Icon Hero Gembok & Tabungan -->
             <div class="relative w-24 h-24 mx-auto">
                 <div class="w-24 h-24 bg-[#FFF3BF] border-3 border-black rounded-2xl flex items-center justify-center text-5xl shadow-[4px_4px_0px_0px_#000]">
@@ -34,7 +34,7 @@
 
             <!-- Pesan Utama Peringatan -->
             <div class="space-y-2.5">
-                <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-xs px-3 py-1 font-black inline-flex items-center gap-1.5 border border-black shadow-[2px_2px_0px_0px_#000]">
+                <span class="inline-flex items-center gap-1.5 bg-[#FFE3E3] text-rose-950 text-xs px-3.5 py-1 rounded-full font-black border border-black shadow-[2px_2px_0px_0px_#000]">
                     <span>🔒</span> AKSES DIBATASI
                 </span>
                 <h2 class="font-heading font-black text-xl sm:text-2xl text-black uppercase tracking-tight">
@@ -42,10 +42,10 @@
                 </h2>
                 <div class="bg-[#FFF9DB] border-2 border-black p-4 rounded-xl text-xs sm:text-sm font-semibold text-slate-800 max-w-lg mx-auto leading-relaxed shadow-[2px_2px_0px_0px_#000] text-left sm:text-center space-y-2">
                     <p>
-                        Akun Anda saat ini <strong>belum terdaftar</strong> dalam sistem tabungan sekolah dan belum didaftarkan oleh <strong>Pengelola Tabungan</strong>, sehingga halaman buku tabungan dan grafik mutasi ini tidak dapat diakses.
+                        Akun Anda saat ini <strong>belum terdaftar</strong> dalam sistem tabungan sekolah dan belum diaktifkan oleh <strong>Pengelola Tabungan</strong>, sehingga buku tabungan digital dan grafik mutasi belum dapat dibuka.
                     </p>
                     <p class="text-amber-950 font-bold">
-                        👉 Jika ingin membuka tabungan, silakan hubungi pengelola tabungan sekolah melalui kontak di bawah ini.
+                        👉 Jika ingin membuka tabungan baru, silakan hubungi bapak/ibu pengelola tabungan sekolah melalui kontak di bawah ini.
                     </p>
                 </div>
             </div>
@@ -65,21 +65,21 @@
             </div>
 
             <!-- Tombol Aksi WhatsApp Langsung -->
-            <div class="max-w-lg mx-auto space-y-2">
+            <div class="max-w-lg mx-auto space-y-2.5">
                 @if($waUrl)
                     <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" 
-                       class="neo-btn bg-[#20C997] hover:bg-emerald-400 text-black text-xs sm:text-sm font-black px-6 py-3.5 w-full flex items-center justify-center gap-2.5 shadow-[4px_4px_0px_0px_#000] hover:scale-[1.01] transition-transform cursor-pointer">
+                       class="bg-[#20C997] hover:bg-[#12b886] text-black text-xs sm:text-sm font-black px-6 py-3.5 w-full rounded-xl border-2 border-black flex items-center justify-center gap-2.5 shadow-[4px_4px_0px_0px_#000] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#000] transition-all cursor-pointer">
                         <span class="text-xl">💬</span>
                         <span>Hubungi Pengelola Tabungan via WhatsApp</span>
                     </a>
                 @else
-                    <div class="p-3 bg-amber-100 border-2 border-black text-amber-950 text-xs font-bold rounded-lg text-center">
+                    <div class="p-3 bg-amber-100 border-2 border-black text-amber-950 text-xs font-bold rounded-xl text-center">
                         Silakan hubungi Pengelola Tabungan secara langsung di ruang guru untuk pendaftaran buku tabungan.
                     </div>
                 @endif
 
                 <a href="{{ route('siswa.dashboard') }}" 
-                   class="neo-btn bg-slate-100 hover:bg-slate-200 text-black text-xs font-bold px-4 py-2 w-full flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] transition-all">
+                   class="bg-slate-100 hover:bg-slate-200 text-black text-xs font-black px-4 py-2.5 w-full rounded-xl border-2 border-black flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] transition-all">
                     <span>←</span> Kembali ke Dashboard
                 </a>
             </div>
@@ -90,21 +90,21 @@
                     ⭐ Keuntungan Menabung di Sekolah:
                 </div>
                 <div class="grid grid-cols-2 gap-2.5 text-left">
-                    <div class="p-2.5 bg-slate-50 border border-black rounded-lg">
+                    <div class="p-3 bg-slate-50 border-2 border-black rounded-xl shadow-[1.5px_1.5px_0px_0px_#000]">
                         <div class="text-xs font-black text-black">🛡️ Aman & Terdata</div>
-                        <div class="text-[10px] text-slate-600 mt-0.5">Semua setoran tercatat digital dan transparan.</div>
+                        <div class="text-[10px] font-medium text-slate-600 mt-0.5">Semua setoran tercatat digital dan transparan.</div>
                     </div>
-                    <div class="p-2.5 bg-slate-50 border border-black rounded-lg">
+                    <div class="p-3 bg-slate-50 border-2 border-black rounded-xl shadow-[1.5px_1.5px_0px_0px_#000]">
                         <div class="text-xs font-black text-black">📈 Pantau Real-Time</div>
-                        <div class="text-[10px] text-slate-600 mt-0.5">Cek grafik dan mutasi langsung lewat HP.</div>
+                        <div class="text-[10px] font-medium text-slate-600 mt-0.5">Cek grafik dan mutasi langsung lewat ponsel.</div>
                     </div>
-                    <div class="p-2.5 bg-slate-50 border border-black rounded-lg">
-                        <div class="text-xs font-black text-black">🆓 Tanpa Biaya Admin</div>
-                        <div class="text-[10px] text-slate-600 mt-0.5">Saldo utuh tanpa potongan biaya bulanan.</div>
+                    <div class="p-3 bg-slate-50 border-2 border-black rounded-xl shadow-[1.5px_1.5px_0px_0px_#000]">
+                        <div class="text-xs font-black text-black">🆓 Bebas Biaya Admin</div>
+                        <div class="text-[10px] font-medium text-slate-600 mt-0.5">Saldo utuh tanpa potongan biaya bulanan.</div>
                     </div>
-                    <div class="p-2.5 bg-slate-50 border border-black rounded-lg">
+                    <div class="p-3 bg-slate-50 border-2 border-black rounded-xl shadow-[1.5px_1.5px_0px_0px_#000]">
                         <div class="text-xs font-black text-black">🎯 Latih Disiplin</div>
-                        <div class="text-[10px] text-slate-600 mt-0.5">Belajar menyisihkan uang saku sejak dini.</div>
+                        <div class="text-[10px] font-medium text-slate-600 mt-0.5">Belajar menyisihkan uang saku sejak dini.</div>
                     </div>
                 </div>
             </div>
@@ -115,19 +115,19 @@
         <!-- ========================================================================= -->
 
         <!-- Kartu Buku Tabungan (ATM/Passbook Style) -->
-        <div class="bg-gradient-to-br from-[#1E293B] to-[#0F172A] border-4 border-black p-5 sm:p-6 text-white shadow-[5px_5px_0px_0px_#000] relative overflow-hidden">
+        <div class="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-2xl border-3 border-black p-5 sm:p-6 text-white shadow-[5px_5px_0px_0px_#000] relative overflow-hidden">
             <div class="absolute -right-8 -bottom-8 w-40 h-40 bg-[#5294FF]/10 rounded-full blur-2xl pointer-events-none"></div>
             <div class="absolute right-4 top-4 text-5xl opacity-15">💰</div>
 
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2.5">
                     <span class="text-2xl">🏦</span>
                     <div>
                         <h3 class="font-heading font-black text-sm tracking-wider uppercase text-[#FFD43B]">Buku Tabungan Siswa</h3>
                         <p class="text-[10px] text-slate-400 font-mono">SIMPANAN PELAJAR (SIMPEL)</p>
                     </div>
                 </div>
-                <span class="neo-badge bg-[#20C997] text-white text-[10px] px-2.5 py-0.5 font-bold shadow-[2px_2px_0px_0px_#000]">
+                <span class="bg-[#20C997] text-white text-[10px] px-3 py-0.5 rounded-full font-black border border-black shadow-[2px_2px_0px_0px_#000]">
                     ● AKTIF
                 </span>
             </div>
@@ -152,10 +152,10 @@
         </div>
 
         <!-- Banner Performa Mingguan (Weekly Performance) -->
-        <div class="bg-white neo-box p-4 sm:p-5 space-y-3">
-            <div class="flex items-center justify-between">
+        <div class="bg-white rounded-2xl border-2 sm:border-[2.5px] border-black p-4 sm:p-5 space-y-3.5 shadow-[4px_4px_0px_0px_#000]">
+            <div class="flex items-center justify-between flex-wrap gap-2">
                 <div class="flex items-center gap-2">
-                    <span class="text-xl">📊</span>
+                    <span class="text-2xl">📊</span>
                     <div>
                         <h4 class="font-heading font-black text-xs sm:text-sm text-black uppercase">Performa Menabung Mingguan</h4>
                         <p class="text-[10px] text-slate-500 font-semibold">Komparasi setoran minggu ini vs minggu lalu</p>
@@ -163,42 +163,42 @@
                 </div>
                 <!-- Status Badge -->
                 @if($isMore)
-                    <span class="neo-badge bg-[#D3F9D8] text-emerald-950 text-[10px] px-2.5 py-1 font-black flex items-center gap-1">
+                    <span class="bg-[#D3F9D8] text-emerald-950 text-[10px] px-3 py-1 rounded-full font-black border border-black shadow-[1.5px_1.5px_0px_0px_#000] flex items-center gap-1">
                         <span>🚀</span> Lebih Banyak (+{{ $growthPercent }}%)
                     </span>
                 @elseif($diffDeposit < 0)
-                    <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-[10px] px-2.5 py-1 font-black flex items-center gap-1">
+                    <span class="bg-[#FFE3E3] text-rose-950 text-[10px] px-3 py-1 rounded-full font-black border border-black shadow-[1.5px_1.5px_0px_0px_#000] flex items-center gap-1">
                         <span>📉</span> Menurun (-{{ $growthPercent }}%)
                     </span>
                 @elseif($thisWeekDeposit > 0)
-                    <span class="neo-badge bg-[#D0EBFF] text-blue-950 text-[10px] px-2.5 py-1 font-black flex items-center gap-1">
+                    <span class="bg-[#D0EBFF] text-blue-950 text-[10px] px-3 py-1 rounded-full font-black border border-black shadow-[1.5px_1.5px_0px_0px_#000] flex items-center gap-1">
                         <span>🎯</span> Konsisten Sama
                     </span>
                 @else
-                    <span class="neo-badge bg-slate-100 text-slate-700 text-[10px] px-2 py-0.5 font-bold">
+                    <span class="bg-slate-100 text-slate-700 text-[10px] px-2.5 py-0.5 rounded-full font-bold border border-black">
                         Belum Menabung
                     </span>
                 @endif
             </div>
 
             <!-- Komparasi Angka -->
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <div class="p-3 bg-[#EBFBEE] border-2 border-black rounded-lg">
+            <div class="grid grid-cols-2 gap-3 pt-1">
+                <div class="p-3.5 bg-[#EBFBEE] border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000]">
                     <div class="text-[10px] font-black uppercase text-emerald-900">Minggu Ini</div>
-                    <div class="font-mono font-black text-sm sm:text-base text-emerald-700 mt-0.5">
+                    <div class="font-mono font-black text-base sm:text-lg text-emerald-700 mt-0.5">
                         Rp {{ number_format($thisWeekDeposit, 0, ',', '.') }}
                     </div>
                 </div>
-                <div class="p-3 bg-slate-50 border-2 border-black rounded-lg">
+                <div class="p-3.5 bg-slate-50 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000]">
                     <div class="text-[10px] font-black uppercase text-slate-600">Minggu Lalu</div>
-                    <div class="font-mono font-black text-sm sm:text-base text-slate-700 mt-0.5">
+                    <div class="font-mono font-black text-base sm:text-lg text-slate-700 mt-0.5">
                         Rp {{ number_format($lastWeekDeposit, 0, ',', '.') }}
                     </div>
                 </div>
             </div>
 
             <!-- Feedback Motivasi -->
-            <div class="text-[11px] font-medium text-slate-700 bg-slate-50 border border-black/20 p-2.5 rounded-lg flex items-center gap-2">
+            <div class="text-xs font-semibold text-slate-700 bg-slate-50 border border-black/20 p-3 rounded-xl flex items-center gap-2">
                 @if($isMore)
                     <span>⭐</span>
                     <span><strong>Luar biasa!</strong> Setoran tabunganmu minggu ini meningkat <strong>Rp {{ number_format(abs($diffDeposit), 0, ',', '.') }}</strong> dibanding minggu lalu. Pertahankan kebiasaan hemat ini!</span>
@@ -216,20 +216,20 @@
         </div>
 
         <!-- Grafik Tren Mutasi Tabungan (4 Minggu Terakhir) -->
-        <div class="bg-white neo-box p-4 sm:p-5 space-y-3">
-            <div class="flex items-center justify-between">
+        <div class="bg-white rounded-2xl border-2 sm:border-[2.5px] border-black p-4 sm:p-5 space-y-3.5 shadow-[4px_4px_0px_0px_#000]">
+            <div class="flex items-center justify-between flex-wrap gap-2">
                 <div>
                     <h4 class="font-heading font-black text-xs sm:text-sm text-black uppercase flex items-center gap-1.5">
                         <span>📈</span> Tren Mutasi Tabungan
                     </h4>
                     <p class="text-[10px] text-slate-500 font-semibold">Aktivitas setoran & penarikan 4 minggu terakhir</p>
                 </div>
-                <div class="flex items-center gap-2 text-[10px] font-bold">
-                    <span class="inline-flex items-center gap-1">
-                        <span class="w-3 h-3 bg-[#20C997] border border-black rounded-xs"></span> Setor
+                <div class="flex items-center gap-2.5 text-[10px] font-bold">
+                    <span class="inline-flex items-center gap-1 bg-[#D3F9D8] px-2 py-0.5 rounded border border-black">
+                        <span class="w-2.5 h-2.5 bg-[#20C997] border border-black rounded-xs"></span> Setor
                     </span>
-                    <span class="inline-flex items-center gap-1">
-                        <span class="w-3 h-3 bg-[#FF6B6B] border border-black rounded-xs"></span> Tarik
+                    <span class="inline-flex items-center gap-1 bg-[#FFE3E3] px-2 py-0.5 rounded border border-black">
+                        <span class="w-2.5 h-2.5 bg-[#FF6B6B] border border-black rounded-xs"></span> Tarik
                     </span>
                 </div>
             </div>
@@ -242,19 +242,19 @@
 
         <!-- Total Akumulasi Mutasi -->
         <div class="grid grid-cols-3 gap-2 sm:gap-3">
-            <div class="bg-[#EBFBEE] border-3 border-black p-3 shadow-[3px_3px_0px_0px_#000]">
+            <div class="bg-[#EBFBEE] border-2 border-black rounded-xl p-3 shadow-[2.5px_2.5px_0px_0px_#000]">
                 <div class="text-[10px] font-black text-emerald-950 uppercase mb-0.5">Total Setor</div>
                 <div class="font-mono font-black text-xs sm:text-sm text-emerald-700">
                     +Rp {{ number_format($totalDeposit, 0, ',', '.') }}
                 </div>
             </div>
-            <div class="bg-[#FFF5F5] border-3 border-black p-3 shadow-[3px_3px_0px_0px_#000]">
+            <div class="bg-[#FFF5F5] border-2 border-black rounded-xl p-3 shadow-[2.5px_2.5px_0px_0px_#000]">
                 <div class="text-[10px] font-black text-rose-950 uppercase mb-0.5">Total Tarik</div>
                 <div class="font-mono font-black text-xs sm:text-sm text-rose-700">
                     -Rp {{ number_format($totalWithdrawal, 0, ',', '.') }}
                 </div>
             </div>
-            <div class="bg-white border-3 border-black p-3 shadow-[3px_3px_0px_0px_#000]">
+            <div class="bg-white border-2 border-black rounded-xl p-3 shadow-[2.5px_2.5px_0px_0px_#000]">
                 <div class="text-[10px] font-black text-slate-900 uppercase mb-0.5">Frekuensi</div>
                 <div class="font-mono font-black text-xs sm:text-sm text-black">
                     {{ $depositCount }}× Setor
@@ -264,43 +264,43 @@
 
         <!-- Riwayat Mutasi Transaksi -->
         <div class="space-y-3">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between px-1">
                 <h4 class="font-heading font-black text-xs sm:text-sm text-black uppercase flex items-center gap-1.5">
                     <span>📜</span> Riwayat Mutasi Transaksi
                 </h4>
-                <span class="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 border border-slate-300 rounded">
+                <span class="text-[10px] font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-0.5 border border-black rounded-full shadow-[1px_1px_0px_0px_#000]">
                     {{ count($transactions) }} Transaksi Terakhir
                 </span>
             </div>
 
             <div class="space-y-2.5">
                 @forelse($transactions as $tx)
-                    <div class="bg-white neo-box p-3.5 flex items-start justify-between gap-3 hover:translate-x-0.5 transition-transform">
+                    <div class="bg-white rounded-xl border-2 border-black p-3.5 sm:p-4 flex items-start justify-between gap-3 shadow-[2.5px_2.5px_0px_0px_#000] hover:translate-x-0.5 transition-transform">
                         <div class="min-w-0 space-y-1">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                                <span class="font-heading font-black text-xs text-black">
+                                <span class="font-heading font-black text-xs sm:text-sm text-black">
                                     {{ $tx->created_at->translatedFormat('d M Y, H:i') }} WIB
                                 </span>
-                                <span class="text-[9px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.2 border border-slate-300 rounded">
+                                <span class="text-[10px] font-mono text-slate-600 bg-slate-100 px-2 py-0.2 border border-black rounded">
                                     {{ $tx->transaction_code }}
                                 </span>
                                 @if($tx->is_corrected)
-                                    <span class="neo-badge bg-[#FFE066] text-[#664D03] text-[9px] px-1.5 py-0.2 font-bold border border-black inline-flex items-center gap-0.5">
+                                    <span class="bg-[#FFE066] text-[#664D03] text-[9px] px-2 py-0.5 font-black border border-black rounded inline-flex items-center gap-0.5 shadow-[1px_1px_0px_0px_#000]">
                                         <span>✏</span> Koreksi
                                     </span>
                                 @endif
                             </div>
 
-                            <div class="text-xs text-slate-700 font-medium">
+                            <div class="text-xs text-slate-700 font-semibold">
                                 {{ $tx->description ?: ($tx->type === 'deposit' ? 'Setoran tunai tabungan' : 'Penarikan tunai tabungan') }}
                             </div>
 
-                            <div class="text-[10px] text-slate-400 font-mono">
+                            <div class="text-[11px] text-slate-500 font-mono">
                                 Saldo: Rp {{ number_format($tx->balance_before, 0, ',', '.') }} → <strong class="text-black">Rp {{ number_format($tx->balance_after, 0, ',', '.') }}</strong>
                             </div>
 
                             @if($tx->handler)
-                                <div class="text-[10px] text-slate-500 font-semibold flex items-center gap-1 pt-0.5">
+                                <div class="text-[10px] text-slate-500 font-bold flex items-center gap-1 pt-0.5">
                                     <span>👤</span> Dicatat oleh: {{ $tx->handler->name }}
                                 </div>
                             @endif
@@ -312,24 +312,24 @@
                                 <div class="font-mono font-black text-xs sm:text-sm text-emerald-700">
                                     +Rp {{ number_format($tx->amount, 0, ',', '.') }}
                                 </div>
-                                <span class="neo-badge bg-[#D3F9D8] text-emerald-950 text-[9px] px-1.5 py-0.2 font-bold mt-1 inline-block">
+                                <span class="bg-[#D3F9D8] text-emerald-950 text-[9px] px-2 py-0.5 font-black border border-black rounded-full mt-1 inline-block shadow-[1px_1px_0px_0px_#000]">
                                     SETORAN
                                 </span>
                             @else
                                 <div class="font-mono font-black text-xs sm:text-sm text-rose-700">
                                     -Rp {{ number_format($tx->amount, 0, ',', '.') }}
                                 </div>
-                                <span class="neo-badge bg-[#FFE3E3] text-rose-950 text-[9px] px-1.5 py-0.2 font-bold mt-1 inline-block">
+                                <span class="bg-[#FFE3E3] text-rose-950 text-[9px] px-2 py-0.5 font-black border border-black rounded-full mt-1 inline-block shadow-[1px_1px_0px_0px_#000]">
                                     PENARIKAN
                                 </span>
                             @endif
                         </div>
                     </div>
                 @empty
-                    <div class="bg-white neo-box p-8 text-center text-slate-500 font-semibold space-y-2">
-                        <div class="text-3xl">📭</div>
-                        <div class="text-xs">Belum ada riwayat mutasi transaksi pada rekening ini.</div>
-                        <div class="text-[11px] text-slate-400">Setoran pertama Anda akan langsung tercatat dan diakumulasikan di sini.</div>
+                    <div class="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center text-slate-500 font-semibold space-y-2">
+                        <div class="text-4xl">📭</div>
+                        <div class="text-sm font-bold text-black">Belum Ada Transaksi</div>
+                        <div class="text-xs text-slate-500 max-w-sm mx-auto">Setoran pertama Anda akan langsung tercatat dan diakumulasikan di sini.</div>
                     </div>
                 @endforelse
             </div>
