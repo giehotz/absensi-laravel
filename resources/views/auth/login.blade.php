@@ -137,52 +137,6 @@
                 <span>→</span>
             </button>
         </form>
-
-        <!-- Quick Demo Accounts Helper -->
-        <div class="pt-5 border-t-2 border-dashed border-slate-300 space-y-2.5">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1">
-                    <span>⚡</span> <span>Akun Demo (1-Klik Isi)</span>
-                </span>
-                <span class="text-[9px] bg-[#E7F5FF] text-[#1971C2] border border-[#1971C2] px-1.5 py-0.2 font-black uppercase rounded">
-                    Siap Uji
-                </span>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-2 text-left">
-                <!-- Admin -->
-                <button type="button" onclick="fillCredential('admin@sekolah.sch.id', 'password')" class="neo-btn bg-[#FFE3E3] hover:bg-[#ffc9c9] text-left p-2 sm:p-2.5 text-xs flex flex-col gap-0.5 cursor-pointer">
-                    <span class="font-black text-rose-700 flex items-center gap-1 text-[11px]">
-                        <span>👑</span> Admin
-                    </span>
-                    <span class="font-mono text-[9px] text-slate-600 truncate">admin@sekolah.sch.id</span>
-                </button>
-
-                <!-- Guru -->
-                <button type="button" onclick="fillCredential('198501012010011001', 'password')" class="neo-btn bg-[#E7F5FF] hover:bg-[#d0ebff] text-left p-2 sm:p-2.5 text-xs flex flex-col gap-0.5 cursor-pointer">
-                    <span class="font-black text-blue-700 flex items-center gap-1 text-[11px]">
-                        <span>👨‍🏫</span> Guru (NIP)
-                    </span>
-                    <span class="font-mono text-[9px] text-slate-600 truncate">198501012010011001</span>
-                </button>
-
-                <!-- Siswa -->
-                <button type="button" onclick="fillCredential('12345', 'password')" class="neo-btn bg-[#D3F9D8] hover:bg-[#b2f2bb] text-left p-2 sm:p-2.5 text-xs flex flex-col gap-0.5 cursor-pointer">
-                    <span class="font-black text-emerald-800 flex items-center gap-1 text-[11px]">
-                        <span>🎓</span> Siswa (NIS)
-                    </span>
-                    <span class="font-mono text-[9px] text-slate-600 truncate">NIS: 12345</span>
-                </button>
-
-                <!-- Orang Tua -->
-                <button type="button" onclick="fillCredential('ortu@sekolah.sch.id', 'password')" class="neo-btn bg-[#FFF3BF] hover:bg-[#ffec99] text-left p-2 sm:p-2.5 text-xs flex flex-col gap-0.5 cursor-pointer">
-                    <span class="font-black text-amber-800 flex items-center gap-1 text-[11px]">
-                        <span>👨‍👩‍👧</span> Orang Tua
-                    </span>
-                    <span class="font-mono text-[9px] text-slate-600 truncate">ortu@sekolah.sch.id</span>
-                </button>
-            </div>
-        </div>
     </div>
 
     <!-- Back to Home Link -->
@@ -195,16 +149,6 @@
 </div>
 
 <script>
-    function fillCredential(id, pass) {
-        const idInput = document.getElementById('login_identifier');
-        const passInput = document.getElementById('password');
-        if (idInput && passInput) {
-            idInput.value = id;
-            passInput.value = pass;
-            passInput.focus();
-        }
-    }
-
     function togglePasswordVisibility() {
         const passInput = document.getElementById('password');
         const toggleIcon = document.getElementById('passwordToggleIcon');
