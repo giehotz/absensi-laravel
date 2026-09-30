@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AcademicYear;
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
+use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\NotificationLog;
 use App\Models\QrToken;
+use App\Models\SavingsAccount;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
+use App\Models\TeachingJournal;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,31 +25,104 @@ class DashboardController extends Controller
     /**
      * Dashboard untuk Administrator Sekolah.
      */
-    public function admin(): View
+    public function admin(Request $request): View
     {
-        $today = Carbon::today()->toDateString();
+        $date = $request->input('date', Carbon::today()->toDateString());
+        $carbonDate = Carbon::parse($date)->locale('id');
+        $prevDate = $carbonDate->copy()->subDay()->toDateString();
+        $nextDate = $carbonDate->copy()->addDay()->toDateString();
+
+        $academicYear = AcademicYear::where('is_active', true)->first();
+        $setting = AttendanceSetting::first() ?? new AttendanceSetting([
+            'mode' => 'daily',
+            'tolerance_minutes' => 15,
+            'school_start_time' => '07:00:00',
+        ]);
+        $holiday = Holiday::getHolidayFor($date);
+
+        $totalStudents = Student::count();
+        $maleStudents = Student::where('gender', 'L')->count();
+        $femaleStudents = Student::where('gender', 'P')->count();
+        $totalTeachers = Teacher::count();
+        $totalClasses = SchoolClass::count();
+        $pendingLeavesCount = LeaveRequest::where('status', 'pending')->count();
+        $totalSavingsBalance = (float) SavingsAccount::sum('balance');
+        $todayJournalsCount = TeachingJournal::whereDate('date', $date)->count();
+
+        $attendancesDate = Attendance::whereDate('date', $date)->get();
+        $hadirToday = $attendancesDate->where('status', 'hadir')->count();
+        $terlambatToday = $attendancesDate->where('status', 'terlambat')->count();
+        $sakitToday = $attendancesDate->where('status', 'sakit')->count();
+        $izinToday = $attendancesDate->where('status', 'izin')->count();
+        $alpaToday = $attendancesDate->where('status', 'alpa')->count();
+        $recordedToday = $attendancesDate->count();
+        $presentToday = $hadirToday + $terlambatToday;
+        $attendanceRate = $totalStudents > 0 ? round(($presentToday / $totalStudents) * 100, 1) : 0;
 
         $stats = [
-            'total_students' => Student::count(),
-            'total_teachers' => Teacher::count(),
-            'total_classes' => SchoolClass::count(),
-            'hadir_today' => Attendance::where('date', $today)->where('status', 'hadir')->count(),
-            'terlambat_today' => Attendance::where('date', $today)->where('status', 'terlambat')->count(),
-            'sakit_today' => Attendance::where('date', $today)->where('status', 'sakit')->count(),
-            'izin_today' => Attendance::where('date', $today)->where('status', 'izin')->count(),
-            'alpa_today' => Attendance::where('date', $today)->where('status', 'alpa')->count(),
+            'total_students' => $totalStudents,
+            'male_students' => $maleStudents,
+            'female_students' => $femaleStudents,
+            'total_teachers' => $totalTeachers,
+            'total_classes' => $totalClasses,
+            'pending_leaves' => $pendingLeavesCount,
+            'total_savings' => $totalSavingsBalance,
+            'today_journals' => $todayJournalsCount,
+            'hadir_today' => $hadirToday,
+            'terlambat_today' => $terlambatToday,
+            'sakit_today' => $sakitToday,
+            'izin_today' => $izinToday,
+            'alpa_today' => $alpaToday,
+            'recorded_today' => $recordedToday,
+            'present_today' => $presentToday,
+            'attendance_rate' => $attendanceRate,
         ];
 
-        $classes = SchoolClass::with(['homeroomTeacher.user', 'students'])->get();
+        // Eager load classes with homeroom teacher and students' attendances on $date
+        $classes = SchoolClass::with([
+            'homeroomTeacher.user',
+            'students' => function ($q) use ($date) {
+                $q->with(['attendances' => function ($aq) use ($date) {
+                    $aq->whereDate('date', $date);
+                }]);
+            },
+        ])->orderBy('level')->orderBy('name')->get();
+
+        // Feed presensi terbaru pada tanggal terpilih
         $recentAttendances = Attendance::with(['student.user', 'student.schoolClass'])
-            ->where('date', $today)
-            ->latest('check_in_time')
+            ->whereDate('date', $date)
+            ->latest('updated_at')
             ->take(10)
             ->get();
 
-        $setting = AttendanceSetting::first() ?? new AttendanceSetting(['mode' => 'daily', 'tolerance_minutes' => 15]);
+        // Pengajuan izin pending terbaru
+        $recentPendingLeaves = LeaveRequest::with(['student.user', 'student.schoolClass'])
+            ->where('status', 'pending')
+            ->latest()
+            ->take(5)
+            ->get();
 
-        return view('dashboard.admin', compact('stats', 'classes', 'recentAttendances', 'setting'));
+        // Jurnal mengajar terbaru pada tanggal terpilih
+        $recentJournals = TeachingJournal::with(['teacher.user', 'schoolClass', 'subject'])
+            ->whereDate('date', $date)
+            ->latest()
+            ->take(5)
+            ->get();
+
+        return view('dashboard.admin', compact(
+            'stats',
+            'classes',
+            'recentAttendances',
+            'recentPendingLeaves',
+            'recentJournals',
+            'setting',
+            'academicYear',
+            'date',
+            'carbonDate',
+            'prevDate',
+            'nextDate',
+            'holiday'
+        ));
     }
 
     /**
