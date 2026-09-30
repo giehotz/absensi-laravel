@@ -22,6 +22,10 @@
     }
 
     $formattedDateIndo = $carbonDate->translatedFormat('l, d F Y');
+    $schoolStartTime = \App\Models\AttendanceSetting::value('school_start_time') ?? '07:00:00';
+    $defaultCheckInTime = substr($schoolStartTime, 0, 5);
+    $toleranceMinutes = (int) (\App\Models\AttendanceSetting::value('tolerance_minutes') ?? 15);
+    $defaultLateTime = \Carbon\Carbon::parse($schoolStartTime)->addMinutes($toleranceMinutes + 15)->format('H:i');
 @endphp
 
 <style>
@@ -242,7 +246,7 @@
                         <span class="text-2xl sm:text-3xl shrink-0">✅</span>
                         <div class="space-y-1">
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="font-heading font-black text-xs sm:text-sm text-black tracking-wide uppercase px-2 py-0.5 bg-black text-[#D3F9D8] rounded-xs">
+                                <span class="font-heading font-black text-xs sm:text-sm text-white tracking-wide uppercase px-2 py-0.5 bg-black text-[#D3F9D8] rounded-xs">
                                     PRESENSI SUDAH DIISI
                                 </span>
                                 <span class="text-xs font-mono font-bold text-slate-800">
@@ -250,7 +254,7 @@
                                 </span>
                             </div>
                             <p class="text-xs sm:text-sm text-slate-900 font-semibold leading-relaxed">
-                                Presensi kelas <strong>{{ $selectedClass->name }}</strong> untuk tanggal <strong>{{ $formattedDateIndo }}</strong> {{ $attendanceMeta['is_updated'] ? 'terakhir diperbarui' : 'telah dicatat' }} oleh <strong>{{ $attendanceMeta['recorder_name'] }}</strong> pada pukul <strong>{{ $attendanceMeta['recorded_at'] ? \Carbon\Carbon::parse($attendanceMeta['recorded_at'])->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i') . ' WIB' : '-' }}</strong>.
+                                Presensi kelas <strong>{{ $selectedClass->name }}</strong> untuk tanggal <strong>{{ $formattedDateIndo }}</strong> {{ $attendanceMeta['is_updated'] ? 'terakhir diperbarui' : 'telah dicatat' }} oleh <strong  class="font-heading font-black text-xs sm:text-sm text-white tracking-wide uppercase px-2 py-0.5 bg-blue-700 text-[#D3F9D8] rounded-xs">{{ $attendanceMeta['recorder_name'] }}</strong> pada pukul <strong>{{ $attendanceMeta['recorded_at'] ? \Carbon\Carbon::parse($attendanceMeta['recorded_at'])->timezone(config('app.timezone', 'Asia/Jakarta'))->format('H:i') . ' WIB' : '-' }}</strong>.
                             </p>
                             <div class="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] font-bold font-mono text-slate-800">
                                 <span class="text-emerald-800 font-black">Status:</span>
@@ -443,6 +447,10 @@
                                         <span class="text-rose-700" title="Alpa">✕ Alpa</span>
                                     </div>
                                 </th>
+                                <th class="p-3 border-r-2 border-black text-center w-28 sm:w-32">
+                                    <div>Jam Masuk</div>
+                                    <div class="text-[9px] font-bold text-slate-500 uppercase tracking-tight">Manual (WIB)</div>
+                                </th>
                                 <th class="p-3 min-w-[180px]">Catatan / Keterangan</th>
                             </tr>
                         </thead>
@@ -452,6 +460,9 @@
                                     $existingAtt = $stu->attendances->first();
                                     $currentStatus = $existingAtt ? $existingAtt->status : 'hadir';
                                     $currentNotes = $existingAtt ? $existingAtt->notes : '';
+                                    $currentCheckInTime = $existingAtt?->check_in_time 
+                                        ? \Carbon\Carbon::parse($existingAtt->check_in_time)->format('H:i') 
+                                        : (in_array($currentStatus, ['hadir', 'terlambat']) ? $defaultCheckInTime : '');
                                     $cellClass = match($currentStatus) {
                                         'hadir' => 'status-cell-hadir',
                                         'terlambat' => 'status-cell-terlambat',
@@ -589,6 +600,16 @@
                                         </div>
                                     </td>
 
+                                    <!-- Jam Masuk Manual (WIB) -->
+                                    <td class="p-2 text-center border-r-2 border-black bg-slate-50/50">
+                                        <input type="time" 
+                                               name="attendances[{{ $index }}][check_in_time]" 
+                                               value="{{ $currentCheckInTime }}" 
+                                               class="check-in-time-input w-24 sm:w-28 bg-white border-2 border-black px-1.5 py-1 text-xs font-mono font-black text-center rounded-xs shadow-[1.5px_1.5px_0px_0px_#000] focus:ring-1 focus:ring-black transition-opacity {{ in_array($currentStatus, ['hadir', 'terlambat']) ? '' : 'opacity-25 pointer-events-none bg-slate-200' }}"
+                                               {{ in_array($currentStatus, ['hadir', 'terlambat']) ? '' : 'disabled' }}
+                                               title="Jam Masuk Siswa (WIB)">
+                                    </td>
+
                                     <!-- Catatan -->
                                     <td class="p-3">
                                         <input type="text" name="attendances[{{ $index }}][notes]" value="{{ $currentNotes }}" 
@@ -629,11 +650,14 @@
 
 @push('scripts')
 <script>
+    const defaultSchoolStartTime = "{{ $defaultCheckInTime }}";
+    const defaultLateTime = "{{ $defaultLateTime }}";
+
     // Inisialisasi saat DOM siap
     document.addEventListener('DOMContentLoaded', () => {
         updateCounters();
         updateSelectionBar();
-        // Sinkronisasi awal warna background cell dari radio yang aktif
+        // Sinkronisasi awal warna background cell dan input jam dari radio yang aktif
         document.querySelectorAll('.status-cell input[type="radio"]:checked').forEach(r => {
             updateCellColor(r);
         });
@@ -658,6 +682,35 @@
         );
 
         td.classList.add('status-cell-' + radio.value);
+        updateRowTimeInput(radio);
+    }
+
+    // Update input jam pada baris siswa sesuai radio status yang dipilih
+    function updateRowTimeInput(radio) {
+        const row = radio.closest('.student-row');
+        if (!row) return;
+
+        const timeInput = row.querySelector('.check-in-time-input');
+        if (!timeInput) return;
+
+        if (radio.value === 'hadir') {
+            timeInput.disabled = false;
+            timeInput.classList.remove('opacity-25', 'pointer-events-none', 'bg-slate-200');
+            if (!timeInput.value) {
+                timeInput.value = defaultSchoolStartTime;
+            }
+        } else if (radio.value === 'terlambat') {
+            timeInput.disabled = false;
+            timeInput.classList.remove('opacity-25', 'pointer-events-none', 'bg-slate-200');
+            if (!timeInput.value || timeInput.value === defaultSchoolStartTime) {
+                timeInput.value = defaultLateTime;
+            }
+        } else {
+            // izin, sakit, alpa
+            timeInput.value = '';
+            timeInput.disabled = true;
+            timeInput.classList.add('opacity-25', 'pointer-events-none', 'bg-slate-200');
+        }
     }
 
     // Update Live Counters
@@ -679,13 +732,70 @@
     }
 
     // Set Status untuk SEMUA siswa
-    function setAllStatus(status) {
+    async function setAllStatus(status) {
         const rows = document.querySelectorAll('.student-row');
+        if (rows.length === 0) return;
+
+        let manualTime = null;
+
+        if (status === 'hadir' || status === 'terlambat') {
+            const defaultTime = status === 'hadir' ? defaultSchoolStartTime : defaultLateTime;
+            const statusLabel = status === 'hadir' ? 'HADIR' : 'TERLAMBAT';
+            const color = status === 'hadir' ? '#20C997' : '#339AF0';
+
+            const { value: timeVal, isConfirmed } = await Swal.fire({
+                title: `Set Semua Siswa ke ${statusLabel}`,
+                html: `
+                    <div class="text-left space-y-3 p-1">
+                        <p class="text-xs font-semibold text-slate-700">
+                            Masukkan jam kehadiran secara manual untuk <b>seluruh siswa (${rows.length} siswa)</b>:
+                        </p>
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-black uppercase text-black">Jam Hadir / Masuk (WIB):</label>
+                            <input type="time" id="swal-all-manual-time" class="swal2-input !w-full !m-0 !h-11 text-center font-mono font-black text-lg border-2 border-black rounded-xs shadow-[2px_2px_0px_0px_#000]" value="${defaultTime}" required autofocus>
+                        </div>
+                        <div class="p-2.5 bg-amber-50 border-2 border-amber-300 text-[11px] text-amber-900 rounded-xs flex items-start gap-2">
+                            <span class="text-base shrink-0">💡</span>
+                            <span>Jam ini akan dicatat ke seluruh siswa <b>(bukan jam saat ini)</b>.</span>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: `✓ Terapkan Semua ${statusLabel}`,
+                cancelButtonText: 'Batal',
+                confirmButtonColor: color,
+                cancelButtonColor: '#868E96',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const val = document.getElementById('swal-all-manual-time').value;
+                    if (!val) {
+                        Swal.showValidationMessage('Jam kehadiran wajib diisi!');
+                        return false;
+                    }
+                    return val;
+                }
+            });
+
+            if (!isConfirmed) {
+                return;
+            }
+
+            manualTime = timeVal;
+        }
+
         rows.forEach(row => {
             const radio = row.querySelector(`input[type="radio"][value="${status}"]`);
             if (radio) {
                 radio.checked = true;
                 updateCellColor(radio);
+            }
+            if (manualTime) {
+                const timeInput = row.querySelector('.check-in-time-input');
+                if (timeInput) {
+                    timeInput.disabled = false;
+                    timeInput.classList.remove('opacity-25', 'pointer-events-none', 'bg-slate-200');
+                    timeInput.value = manualTime;
+                }
             }
         });
         updateCounters();
@@ -702,12 +812,12 @@
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 1500,
+            timer: 2000,
             timerProgressBar: true
         });
         Toast.fire({
             icon: 'info',
-            title: `Semua siswa diatur ke: ${statusNames[status]}`
+            title: `Semua siswa diatur ke: ${statusNames[status]}` + (manualTime ? ` (${manualTime} WIB)` : '')
         });
     }
 
@@ -735,7 +845,7 @@
     }
 
     // Set Status untuk Siswa TERPILIH (yang dicentang)
-    function setSelectedStatus(status) {
+    async function setSelectedStatus(status) {
         const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
         if (checkedBoxes.length === 0) {
             Swal.fire({
@@ -747,6 +857,53 @@
             return;
         }
 
+        let manualTime = null;
+
+        if (status === 'hadir' || status === 'terlambat') {
+            const defaultTime = status === 'hadir' ? defaultSchoolStartTime : defaultLateTime;
+            const statusLabel = status === 'hadir' ? 'HADIR' : 'TERLAMBAT';
+            const color = status === 'hadir' ? '#20C997' : '#339AF0';
+
+            const { value: timeVal, isConfirmed } = await Swal.fire({
+                title: `Set ${statusLabel} (${checkedBoxes.length} Siswa)`,
+                html: `
+                    <div class="text-left space-y-3 p-1">
+                        <p class="text-xs font-semibold text-slate-700">
+                            Masukkan jam kehadiran secara manual untuk <b>${checkedBoxes.length} siswa terpilih</b>:
+                        </p>
+                        <div class="space-y-1">
+                            <label class="block text-[11px] font-black uppercase text-black">Jam Hadir / Masuk (WIB):</label>
+                            <input type="time" id="swal-manual-time" class="swal2-input !w-full !m-0 !h-11 text-center font-mono font-black text-lg border-2 border-black rounded-xs shadow-[2px_2px_0px_0px_#000]" value="${defaultTime}" required autofocus>
+                        </div>
+                        <div class="p-2.5 bg-amber-50 border-2 border-amber-300 text-[11px] text-amber-900 rounded-xs flex items-start gap-2">
+                            <span class="text-base shrink-0">💡</span>
+                            <span>Jam ini akan dicatat ke seluruh siswa terpilih <b>(bukan jam saat ini)</b>. Anda dapat mengubahnya sesuai waktu riil kedatangan siswa.</span>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: `✓ Terapkan ${statusLabel}`,
+                cancelButtonText: 'Batal',
+                confirmButtonColor: color,
+                cancelButtonColor: '#868E96',
+                focusConfirm: false,
+                preConfirm: () => {
+                    const val = document.getElementById('swal-manual-time').value;
+                    if (!val) {
+                        Swal.showValidationMessage('Jam kehadiran wajib diisi!');
+                        return false;
+                    }
+                    return val;
+                }
+            });
+
+            if (!isConfirmed) {
+                return;
+            }
+
+            manualTime = timeVal;
+        }
+
         checkedBoxes.forEach(cb => {
             const row = cb.closest('.student-row');
             if (row) {
@@ -754,6 +911,14 @@
                 if (radio) {
                     radio.checked = true;
                     updateCellColor(radio);
+                }
+                if (manualTime) {
+                    const timeInput = row.querySelector('.check-in-time-input');
+                    if (timeInput) {
+                        timeInput.disabled = false;
+                        timeInput.classList.remove('opacity-25', 'pointer-events-none', 'bg-slate-200');
+                        timeInput.value = manualTime;
+                    }
                 }
             }
         });
@@ -772,12 +937,12 @@
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
-            timer: 1500,
+            timer: 2000,
             timerProgressBar: true
         });
         Toast.fire({
             icon: 'success',
-            title: `${checkedBoxes.length} siswa diatur ke: ${statusNames[status]}`
+            title: `${checkedBoxes.length} siswa diatur ke: ${statusNames[status]}` + (manualTime ? ` (${manualTime} WIB)` : '')
         });
     }
 
@@ -808,8 +973,12 @@
                     <div class="text-amber-700">🟡 Sakit: <b>${counts.sakit}</b></div>
                     <div class="text-rose-700 col-span-2">🔴 Alpa: <b>${counts.alpa}</b></div>
                 </div>
-                <div class="text-xs font-black text-black pt-2 border-t border-slate-200">
-                    Total Siswa: <b>${total}</b>
+                <div class="text-xs font-black text-black pt-2 border-t border-slate-200 flex justify-between items-center">
+                    <span>Total Siswa:</span>
+                    <span><b>${total}</b> Siswa</span>
+                </div>
+                <div class="text-[11px] text-emerald-800 font-bold pt-2 border-t border-slate-200 flex items-center gap-1.5">
+                    <span>⏰</span> <span>Jam Masuk dicatat sesuai input manual guru (bukan jam saat ini).</span>
                 </div>
             </div>
             <p class="text-xs text-slate-500 mt-3 font-semibold">Simpan seluruh data presensi ini ke database?</p>

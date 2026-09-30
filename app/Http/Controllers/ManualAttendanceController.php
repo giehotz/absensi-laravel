@@ -142,6 +142,7 @@ class ManualAttendanceController extends Controller
             'attendances' => 'required|array',
             'attendances.*.student_id' => 'required|exists:students,id',
             'attendances.*.status' => 'required|in:hadir,terlambat,sakit,izin,alpa',
+            'attendances.*.check_in_time' => 'nullable|string',
             'attendances.*.notes' => 'nullable|string|max:255',
         ]);
 
@@ -165,21 +166,30 @@ class ManualAttendanceController extends Controller
             }
         }
 
-        $now = Carbon::now();
+        $attendanceSetting = AttendanceSetting::first();
+        $defaultStartTime = $attendanceSetting?->school_start_time ?? '07:00:00';
         $savedCount = 0;
 
         foreach ($validated['attendances'] as $item) {
             $studentId = $item['student_id'];
             $status = $item['status'];
             $notes = $item['notes'] ?? null;
+            $inputTime = ! empty($item['check_in_time']) ? trim($item['check_in_time']) : null;
 
             $existing = Attendance::where('student_id', $studentId)
                 ->whereDate('date', $date)
                 ->first();
 
-            $checkInTime = in_array($status, ['hadir', 'terlambat'])
-                ? ($existing?->check_in_time ?? $now)
-                : null;
+            $checkInTime = null;
+            if (in_array($status, ['hadir', 'terlambat'])) {
+                if ($inputTime) {
+                    $checkInTime = Carbon::parse($date.' '.$inputTime);
+                } elseif ($existing?->check_in_time) {
+                    $checkInTime = $existing->check_in_time;
+                } else {
+                    $checkInTime = Carbon::parse($date.' '.$defaultStartTime);
+                }
+            }
 
             if ($existing) {
                 $existing->update([
