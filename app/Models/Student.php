@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\QrCodeService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -98,5 +99,29 @@ class Student extends Model
     public function savingsAccount(): HasOne
     {
         return $this->hasOne(SavingsAccount::class);
+    }
+
+    /**
+     * Scope query siswa berdasarkan nama tahun ajaran induk rombelnya (contoh: '2026/2027').
+     */
+    public function scopeForAcademicYearName(Builder $query, ?string $yearName): Builder
+    {
+        if (blank($yearName)) {
+            return $query;
+        }
+
+        return $query->whereHas('schoolClass', function (Builder $q) use ($yearName) {
+            $q->forAcademicYearName($yearName);
+        });
+    }
+
+    /**
+     * Scope query siswa berdasarkan tahun ajaran induk yang sedang aktif.
+     */
+    public function scopeCurrentAcademicYear(Builder $query): Builder
+    {
+        return $query->whereHas('schoolClass', function (Builder $q) {
+            $q->currentAcademicYear();
+        });
     }
 }

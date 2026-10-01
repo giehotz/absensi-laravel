@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -36,5 +37,29 @@ class SchoolClass extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    /**
+     * Scope query untuk rombel berdasarkan nama tahun ajaran induk (contoh: '2026/2027').
+     */
+    public function scopeForAcademicYearName(Builder $query, ?string $yearName): Builder
+    {
+        if (empty($yearName)) {
+            return $query;
+        }
+
+        return $query->whereHas('academicYear', function ($q) use ($yearName) {
+            $q->where('name', $yearName);
+        });
+    }
+
+    /**
+     * Scope query untuk rombel pada tahun ajaran aktif saat ini.
+     */
+    public function scopeCurrentAcademicYear(Builder $query): Builder
+    {
+        $activeYearName = AcademicYear::activeYearName();
+
+        return $this->scopeForAcademicYearName($query, $activeYearName);
     }
 }

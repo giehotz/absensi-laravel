@@ -80,7 +80,7 @@
 
             <!-- Navigation Links -->
             <nav class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
-                <!-- Group: Menu Utama -->
+                <!-- Group 1: Menu Utama -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
                         Menu Utama
@@ -100,25 +100,25 @@
                     </div>
                 </div>
 
-                <!-- Group: Master Data -->
+                <!-- Group 2: Kesiswaan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Master Data
+                        Kesiswaan
                     </div>
                     <div class="space-y-1">
-                        <!-- Data Guru -->
-                        <a href="{{ route('admin.teachers.index') }}" 
+                        <!-- Data Siswa & QR -->
+                        <a href="{{ route('admin.students.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.teachers.*') 
+                           {{ (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.promotion.*') && !request()->routeIs('admin.students.cards*'))
                                 ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
                                 : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.teachers.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                            <svg class="w-4 h-4 shrink-0 {{ (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.promotion.*') && !request()->routeIs('admin.students.cards*')) ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a10.973 10.973 0 00-.074 1.949v2.5a1 1 0 00.553.894l4 2a1 1 0 00.894 0l4-2a1 1 0 00.553-.894V10c0-.663-.025-1.317-.074-1.949l2.644-1.131a1 1 0 000-1.84l-7-3zM4.77 7.02L10 9.26l5.23-2.24L10 4.78 4.77 7.02z"/>
                             </svg>
-                            <span>Data Guru</span>
+                            <span>Data Siswa & QR</span>
                         </a>
 
-                        <!-- Data Kelas -->
+                        <!-- Data Kelas & Rombel -->
                         <a href="{{ route('admin.classes.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
                            {{ request()->routeIs('admin.classes.*') 
@@ -127,19 +127,7 @@
                             <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.classes.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                             </svg>
-                            <span>Data Kelas</span>
-                        </a>
-
-                        <!-- Data Siswa & QR -->
-                        <a href="{{ route('admin.students.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.promotion.*'))
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ (request()->routeIs('admin.students.*') && !request()->routeIs('admin.students.promotion.*')) ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a10.973 10.973 0 00-.074 1.949v2.5a1 1 0 00.553.894l4 2a1 1 0 00.894 0l4-2a1 1 0 00.553-.894V10c0-.663-.025-1.317-.074-1.949l2.644-1.131a1 1 0 000-1.84l-7-3zM4.77 7.02L10 9.26l5.23-2.24L10 4.78 4.77 7.02z"/>
-                            </svg>
-                            <span>Data Siswa & QR</span>
+                            <span>Data Kelas & Rombel</span>
                         </a>
 
                         <!-- Kenaikan Kelas & Kelulusan -->
@@ -152,6 +140,38 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                             </svg>
                             <span>Kenaikan Kelas</span>
+                        </a>
+
+                        <!-- Studio Kartu Pelajar -->
+                        <a href="{{ route('admin.students.cards') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.students.cards*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.students.cards*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                            </svg>
+                            <span>Kartu Pelajar & QR</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Group 3: Akademik & Guru -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                        Akademik & Guru
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Data Guru & Tendik -->
+                        <a href="{{ route('admin.teachers.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.teachers.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.teachers.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
+                            </svg>
+                            <span>Data Guru & Tendik</span>
                         </a>
 
                         <!-- Mata Pelajaran -->
@@ -176,6 +196,18 @@
                                 <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
                             </svg>
                             <span>Jadwal Pelajaran</span>
+                        </a>
+
+                        <!-- Jurnal Kegiatan Guru -->
+                        <a href="{{ route('admin.teaching-journals.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.teaching-journals.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.teaching-journals.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                            </svg>
+                            <span>Jurnal Kegiatan Guru</span>
                         </a>
 
                         <!-- Menu Kalender (Accordion Dropdown) -->
@@ -225,7 +257,7 @@
                     </div>
                 </div>
 
-                <!-- Group: Presensi & Laporan -->
+                <!-- Group 4: Presensi & Laporan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
                         Presensi & Laporan
@@ -255,25 +287,13 @@
                             </svg>
                             <span>Laporan Presensi</span>
                         </a>
-
-                        <!-- Jurnal Kegiatan Guru -->
-                        <a href="{{ route('admin.teaching-journals.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.teaching-journals.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.teaching-journals.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                            </svg>
-                            <span>Jurnal Guru</span>
-                        </a>
                     </div>
                 </div>
 
-                <!-- Group: Keuangan & Tabungan -->
+                <!-- Group 5: Keuangan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Keuangan & Tabungan
+                        Keuangan
                     </div>
                     <div class="space-y-1">
                         <!-- Tabungan Siswa -->
@@ -291,10 +311,10 @@
                     </div>
                 </div>
 
-                <!-- Group: Alat & Utilitas -->
+                <!-- Group 6: Sistem & Utilitas -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Alat & Utilitas
+                        Sistem & Utilitas
                     </div>
                     <div class="space-y-1">
                         <!-- QR Generator -->
@@ -311,15 +331,7 @@
                             </div>
                             <span class="text-[9px] font-black bg-[#5294FF] text-white px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
                         </a>
-                    </div>
-                </div>
 
-                <!-- Group: Konfigurasi -->
-                <div>
-                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Konfigurasi
-                    </div>
-                    <div class="space-y-1">
                         <!-- Pengaturan -->
                         <a href="{{ route('admin.settings.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group

@@ -39,6 +39,8 @@ class SettingController extends Controller
         $archivedAttendanceCount = AttendanceArchive::count();
 
         foreach ($academicYears as $ay) {
+            $ay->year_classes_count = SchoolClass::forAcademicYearName($ay->name)->count();
+
             $ay->active_records_count = Attendance::whereDate('date', '>=', $ay->start_date)
                 ->whereDate('date', '<=', $ay->end_date)
                 ->count();

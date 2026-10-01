@@ -28,18 +28,27 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SchoolClassController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $classes = SchoolClass::with(['academicYear', 'homeroomTeacher.user', 'students'])->latest()->paginate(15);
+        $academicYearName = $request->query('academic_year');
+        $query = SchoolClass::with(['academicYear', 'homeroomTeacher.user', 'students'])->latest();
+
+        if (! empty($academicYearName)) {
+            $query->forAcademicYearName($academicYearName);
+        }
+
+        $classes = $query->paginate(15)->withQueryString();
         $teachers = Teacher::with('user')->get();
         $academicYears = AcademicYear::all();
+        $distinctYears = AcademicYear::distinctYearNames();
 
-        return view('admin.classes.index', compact('classes', 'teachers', 'academicYears'));
+        return view('admin.classes.index', compact('classes', 'teachers', 'academicYears', 'distinctYears', 'academicYearName'));
     }
 
     public function transferView(Request $request): View
     {
-        $classes = SchoolClass::with(['academicYear', 'homeroomTeacher.user'])
+        $classes = SchoolClass::currentAcademicYear()
+            ->with(['academicYear', 'homeroomTeacher.user'])
             ->withCount('students')
             ->orderBy('name')
             ->get();
@@ -71,7 +80,7 @@ class SchoolClassController extends Controller
 
         $targetClasses = SchoolClass::with(['homeroomTeacher.user'])
             ->withCount('students')
-            ->where('academic_year_id', $class->academic_year_id)
+            ->forAcademicYearName($class->academicYear?->name ?? '')
             ->where('id', '!=', $class->id)
             ->orderBy('name')
             ->get()
@@ -116,7 +125,7 @@ class SchoolClassController extends Controller
         $sourceClass = SchoolClass::findOrFail($validated['source_class_id']);
         $targetClass = SchoolClass::findOrFail($validated['target_class_id']);
 
-        if ($sourceClass->academic_year_id !== $targetClass->academic_year_id) {
+        if ($sourceClass->academicYear?->name !== $targetClass->academicYear?->name) {
             return back()->with('error', 'Kelas asal dan kelas tujuan harus berada dalam tahun ajaran yang sama.');
         }
 

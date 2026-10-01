@@ -4,34 +4,34 @@
             <h2 class="font-heading font-black text-xl text-black flex items-center gap-2">
                 <span>🎓</span> Data Siswa & Identitas QR
             </h2>
-            <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                <p class="text-xs font-semibold text-slate-600">
-                    Kelola data profil siswa, generate identifikasi QR unik, dan cetak kartu absensi.
-                </p>
-                <!-- Badge Jumlah Siswa Sesuai Filter -->
-                @if(!empty($selectedClass))
-                    <span class="neo-badge bg-[#D0EBFF] text-blue-950 text-xs font-mono font-bold">
-                        Rombel {{ $selectedClass->name }}: {{ $classStudentsCount }} Siswa
-                    </span>
-                    <span class="neo-badge bg-slate-100 text-slate-700 text-xs font-mono">
-                        (Total Seluruh Kelas: {{ $totalStudentsCount }} Siswa)
-                    </span>
-                @else
-                    <span class="neo-badge bg-[#FFF9DB] text-amber-950 text-xs font-mono font-bold">
-                        Total Seluruh Siswa: {{ $totalStudentsCount }} Siswa
-                    </span>
-                @endif
-            </div>
+            <p class="text-xs font-semibold text-slate-600 mt-1.5">
+                Kelola data profil siswa, generate identifikasi QR unik, dan cetak kartu absensi.
+            </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
-            <!-- Filter Kelas -->
-            <form method="GET" action="{{ route('admin.students.index') }}" class="flex items-center gap-2">
+            <!-- Filter Periode & Kelas -->
+            <form method="GET" action="{{ route('admin.students.index') }}" class="flex flex-wrap items-center gap-2">
                 @if(!empty($perPage) && $perPage != '25')
                     <input type="hidden" name="per_page" value="{{ $perPage }}">
                 @endif
-                <select name="class_id" onchange="this.form.submit()" class="px-3 py-2 neo-input text-xs bg-[#FFF9DB] font-bold cursor-pointer">
-                    <option value="">-- Semua Kelas ({{ $totalStudentsCount }}) --</option>
+                @if(!empty($search))
+                    <input type="hidden" name="search" value="{{ $search }}">
+                @endif
+
+                <!-- Filter Tahun Pelajaran -->
+                @if(!empty($availableAcademicYears) && count($availableAcademicYears) > 0)
+                    <select name="academic_year" onchange="this.form.submit()" class="px-3 py-2 neo-input text-xs bg-white font-black text-black cursor-pointer shadow-[2px_2px_0px_#000]" title="Pilih Tahun Pelajaran">
+                        @foreach($availableAcademicYears as $yearName)
+                            <option value="{{ $yearName }}" {{ $selectedAcademicYear == $yearName ? 'selected' : '' }}>
+                                TP {{ $yearName }} {{ $yearName == ($activeYearName ?? '') ? '(Aktif)' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
+
+                <!-- Filter Kelas -->
+                <select name="class_id" onchange="this.form.submit()" class="px-3 py-2 neo-input text-xs bg-[#FFF9DB] font-bold cursor-pointer shadow-[2px_2px_0px_#000]" title="Filter Berdasarkan Rombel">
+                    <option value="">-- Semua Kelas --</option>
                     @foreach($classes as $cls)
                         <option value="{{ $cls->id }}" {{ $selectedClassId == $cls->id ? 'selected' : '' }}>
                             {{ $cls->name }}

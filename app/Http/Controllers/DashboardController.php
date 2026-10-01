@@ -40,11 +40,11 @@ class DashboardController extends Controller
         ]);
         $holiday = Holiday::getHolidayFor($date);
 
-        $totalStudents = Student::count();
-        $maleStudents = Student::where('gender', 'L')->count();
-        $femaleStudents = Student::where('gender', 'P')->count();
+        $totalStudents = Student::currentAcademicYear()->count();
+        $maleStudents = Student::currentAcademicYear()->where('gender', 'L')->count();
+        $femaleStudents = Student::currentAcademicYear()->where('gender', 'P')->count();
         $totalTeachers = Teacher::count();
-        $totalClasses = SchoolClass::count();
+        $totalClasses = SchoolClass::currentAcademicYear()->count();
         $pendingLeavesCount = LeaveRequest::where('status', 'pending')->count();
         $totalSavingsBalance = (float) SavingsAccount::sum('balance');
         $todayJournalsCount = TeachingJournal::whereDate('date', $date)->count();
@@ -79,7 +79,7 @@ class DashboardController extends Controller
         ];
 
         // Eager load classes with homeroom teacher and students' attendances on $date
-        $classes = SchoolClass::with([
+        $classes = SchoolClass::currentAcademicYear()->with([
             'homeroomTeacher.user',
             'students' => function ($q) use ($date) {
                 $q->with(['attendances' => function ($aq) use ($date) {

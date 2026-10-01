@@ -50,8 +50,8 @@
                             {{ $year->start_date ? \Carbon\Carbon::parse($year->start_date)->format('d M Y') : '-' }} s/d {{ $year->end_date ? \Carbon\Carbon::parse($year->end_date)->format('d M Y') : '-' }}
                         </td>
                         <td class="p-3 border-r border-black text-center font-bold">
-                            <span class="bg-[#D3F9D8] px-2 py-0.5 border border-black text-xs font-mono">
-                                {{ $year->school_classes_count ?? $year->schoolClasses()->count() }}
+                            <span class="bg-[#D3F9D8] px-2 py-0.5 border border-black text-xs font-mono" title="{{ $year->year_classes_count }} kelas terdaftar pada TP {{ $year->name }}">
+                                {{ $year->year_classes_count ?? ($year->school_classes_count ?? $year->schoolClasses()->count()) }}
                             </span>
                         </td>
                         <td class="p-3 border-r border-black text-center">

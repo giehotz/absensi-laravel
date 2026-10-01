@@ -17,6 +17,11 @@
                 <span class="text-xs font-mono font-bold bg-[#D3F9D8] text-emerald-950 px-2.5 py-0.5 border-2 border-black">
                     T.A. Tujuan: {{ $targetAcademicYear->name ?? '-' }} ({{ ucfirst($targetAcademicYear->semester ?? '') }})
                 </span>
+                @if($sourceAcademicYear && $targetAcademicYear && $sourceAcademicYear->name === $targetAcademicYear->name)
+                    <span class="text-xs font-bold bg-amber-300 text-amber-950 px-2.5 py-0.5 border-2 border-black">
+                        ⚠️ 1 Siklus T.A. Yang Sama
+                    </span>
+                @endif
             </div>
             <h1 class="font-heading text-2xl sm:text-3xl font-black text-black uppercase tracking-tight">
                 Kenaikan Kelas & Kelulusan Siswa
@@ -34,16 +39,50 @@
         </div>
     </div>
 
+    @if($targetAcademicYears->isEmpty())
+        <div class="bg-[#FFF3BF] border-3 border-black p-4 neo-box flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <span class="text-2xl shrink-0">⚠️</span>
+                <div class="text-xs space-y-1">
+                    <p class="font-black text-black uppercase tracking-wide">
+                        Belum Ada Tahun Ajaran Baru Berikutnya (Semester Ganjil)
+                    </p>
+                    <p class="font-medium text-slate-800 leading-relaxed">
+                        Kenaikan kelas hanya bisa dilakukan dari <b>Semester Genap</b> ke <b>Semester Ganjil</b> tahun ajaran baru. Silakan tambahkan tahun ajaran baru di menu Pengaturan terlebih dahulu.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('admin.settings.index', ['tab' => 'periode']) }}" 
+               class="neo-btn bg-black text-white text-xs font-black px-3 py-1.5 shrink-0 shadow-[2px_2px_0px_#000]">
+                ⚙️ Pengaturan Periode
+            </a>
+        </div>
+    @elseif($sourceAcademicYear && $targetAcademicYear && $sourceAcademicYear->name === $targetAcademicYear->name)
+        <div class="bg-[#FFF3BF] border-3 border-black p-4 neo-box flex items-start gap-3">
+            <span class="text-2xl shrink-0">ℹ️</span>
+            <div class="text-xs space-y-1">
+                <p class="font-black text-black uppercase tracking-wide">
+                    Tahun Pelajaran Asal & Tujuan Sama ({{ $sourceAcademicYear->name }})
+                </p>
+                <p class="font-medium text-slate-800 leading-relaxed">
+                    Semester Ganjil dan Genap berada dalam 1 tahun anggaran/pelajaran yang sama, sehingga rombongan belajar dan data siswa tetap identik (tidak ada kenaikan kelas antar-semester). Kenaikan kelas diproses saat berganti ke tahun ajaran baru berikutnya. Silakan ganti <b>Tahun Ajaran Tujuan</b> ke <b>2027/2028 Ganjil</b> untuk melakukan kenaikan kelas atau menyalin rombel.
+                </p>
+            </div>
+        </div>
+    @endif
+
     <!-- Panel Pengaturan Tahun Ajaran & Salin Struktur Kelas -->
     <div class="bg-white neo-box p-5 border-3 border-black space-y-4">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b-2 border-black pb-4">
             <!-- Form Pemilih Tahun Ajaran Asal & Tujuan -->
             <form method="GET" action="{{ route('admin.students.promotion.index') }}" class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-slate-600 mb-1">Tahun Ajaran Asal:</label>
+                    <label class="block text-[10px] font-black uppercase text-slate-600 mb-1">
+                        Tahun Ajaran Asal (Semester Genap):
+                    </label>
                     <select name="source_academic_year_id" onchange="this.form.submit()" 
                             class="bg-white border-2 border-black px-3 py-1.5 text-xs font-bold text-black focus:outline-hidden">
-                        @foreach($academicYears as $ay)
+                        @foreach($sourceAcademicYears as $ay)
                             <option value="{{ $ay->id }}" {{ $sourceAcademicYear?->id == $ay->id ? 'selected' : '' }}>
                                 {{ $ay->name }} — Semester {{ ucfirst($ay->semester) }} {{ $ay->is_active ? '★ (Aktif)' : '' }}
                             </option>
@@ -54,14 +93,18 @@
                 <div class="hidden sm:block text-base font-black pt-4">➔</div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-slate-600 mb-1">Tahun Ajaran Tujuan (Kenaikan):</label>
+                    <label class="block text-[10px] font-black uppercase text-slate-600 mb-1">
+                        Tahun Ajaran Tujuan (Kenaikan — Semester Ganjil):
+                    </label>
                     <select name="target_academic_year_id" onchange="this.form.submit()" 
                             class="bg-[#D3F9D8] border-2 border-black px-3 py-1.5 text-xs font-black text-emerald-950 focus:outline-hidden">
-                        @foreach($academicYears as $ay)
+                        @forelse($targetAcademicYears as $ay)
                             <option value="{{ $ay->id }}" {{ $targetAcademicYear?->id == $ay->id ? 'selected' : '' }}>
                                 {{ $ay->name }} — Semester {{ ucfirst($ay->semester) }} {{ $ay->is_active ? '★ (Aktif)' : '' }}
                             </option>
-                        @endforeach
+                        @empty
+                            <option value="" disabled selected>Belum ada T.A. Baru (Ganjil)</option>
+                        @endforelse
                     </select>
                 </div>
 
@@ -72,7 +115,7 @@
 
             <!-- Aksi Pembantu Struktur Kelas Baru -->
             <div class="flex items-center gap-2 flex-wrap">
-                @if($sourceAcademicYear && $targetAcademicYear && $sourceAcademicYear->id !== $targetAcademicYear->id)
+                @if($sourceAcademicYear && $targetAcademicYear && $sourceAcademicYear->name !== $targetAcademicYear->name)
                     <form method="POST" action="{{ route('admin.students.promotion.copy-classes') }}" 
                           onsubmit="return confirm('Salin seluruh daftar nama kelas dari {{ $sourceAcademicYear->name }} ke {{ $targetAcademicYear->name }}?')">
                         @csrf
@@ -367,14 +410,16 @@
         <form action="{{ route('admin.students.promotion.quick-class') }}" method="POST" class="p-5 space-y-4">
             @csrf
             <div>
-                <label class="block text-xs font-black uppercase text-black mb-1">Tahun Ajaran Target *</label>
+                <label class="block text-xs font-black uppercase text-black mb-1">Tahun Ajaran Target (Semester Ganjil) *</label>
                 <select name="academic_year_id" required 
                         class="w-full bg-slate-100 border-2 border-black px-3 py-2 text-xs font-bold text-black focus:outline-hidden">
-                    @foreach($academicYears as $ay)
+                    @forelse($targetAcademicYears as $ay)
                         <option value="{{ $ay->id }}" {{ $targetAcademicYear?->id == $ay->id ? 'selected' : '' }}>
                             {{ $ay->name }} — Semester {{ ucfirst($ay->semester) }}
                         </option>
-                    @endforeach
+                    @empty
+                        <option value="" disabled selected>Belum ada T.A. Baru (Ganjil)</option>
+                    @endforelse
                 </select>
             </div>
 
@@ -525,5 +570,31 @@
     function closeQuickClassModal() {
         document.getElementById('quickClassModal')?.classList.add('hidden');
     }
+
+    @if($isActiveSemesterStillGanjil)
+    document.addEventListener('DOMContentLoaded', function () {
+        const ackKey = 'promotion_ganjil_ack_{{ $sourceAcademicYear?->id }}';
+        if (!sessionStorage.getItem(ackKey)) {
+            Swal.fire({
+                title: 'Semester Saat Ini Masih Ganjil',
+                html: `Tahun ajaran aktif sekolah saat ini masih berada di <b>{{ $activeSemesterName }}</b>.<br><br>Sesuai aturan kurikulum, kenaikan kelas siswa hanya dilakukan pada akhir <b>Semester Genap</b> ke <b>Semester Ganjil</b> tahun ajaran baru.<br><br>Apakah Anda yakin ingin melanjutkan persiapan kenaikan kelas sekarang?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#20C997',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Lanjutkan Persiapan',
+                cancelButtonText: 'Kembali ke Data Siswa',
+                reverseButtons: true,
+                allowOutsideClick: false
+            }).then((res) => {
+                if (res.isConfirmed) {
+                    sessionStorage.setItem(ackKey, 'true');
+                } else {
+                    window.location.href = "{{ route('admin.students.index') }}";
+                }
+            });
+        }
+    });
+    @endif
 </script>
 @endpush

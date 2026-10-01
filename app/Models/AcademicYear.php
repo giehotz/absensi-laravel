@@ -31,4 +31,26 @@ class AcademicYear extends Model
     {
         return $this->hasMany(SchoolClass::class);
     }
+
+    public static function activeSemester(): ?self
+    {
+        return static::where('is_active', true)->first();
+    }
+
+    public static function activeYearName(): ?string
+    {
+        return static::activeSemester()?->name ?? static::orderByDesc('start_date')->value('name');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function distinctYearNames(): array
+    {
+        return static::orderByDesc('start_date')
+            ->pluck('name')
+            ->unique()
+            ->values()
+            ->all();
+    }
 }

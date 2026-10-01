@@ -28,12 +28,14 @@ class StudentCardController extends Controller
         $selectedClassId = $request->query('class_id');
         $search = $request->query('search');
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::currentAcademicYear()->orderBy('level')->orderBy('name')->get();
 
         $query = Student::with(['user', 'schoolClass']);
 
         if (! empty($selectedClassId) && $selectedClassId !== 'all') {
             $query->where('school_class_id', $selectedClassId);
+        } else {
+            $query->currentAcademicYear();
         }
 
         if (! empty($search)) {

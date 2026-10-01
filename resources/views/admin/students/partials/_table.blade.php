@@ -1,21 +1,63 @@
     <!-- Table Card -->
     <div class="bg-white neo-box overflow-hidden">
         <!-- Table Toolbar -->
-        <div class="p-3.5 border-b-2 border-black bg-[#FFF9DB]/40 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-2">
+        <div class="p-3.5 border-b-2 border-black bg-[#FFF9DB]/40 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs font-black uppercase tracking-wider font-heading text-black flex items-center gap-1.5">
                     <span>📋</span> Tabel Siswa
                 </span>
                 <span class="neo-badge bg-white text-black text-[11px] font-mono font-bold">
                     {{ $students->total() }} Data
                 </span>
+                @if(!empty($search))
+                    <span class="neo-badge bg-[#FFD43B] text-black text-[11px] font-bold flex items-center gap-1">
+                        <span>🔍</span> "{{ Str::limit($search, 20) }}"
+                        <a href="{{ route('admin.students.index', array_filter(['academic_year' => $selectedAcademicYear != ($activeYearName ?? '') ? $selectedAcademicYear : null, 'class_id' => $selectedClassId, 'per_page' => $perPage != '25' ? $perPage : null])) }}" class="ml-1 text-black hover:text-rose-700 font-black" title="Hapus pencarian">✕</a>
+                    </span>
+                @endif
             </div>
 
-            <!-- Filter Jumlah Tampilan (25, 50, 100, Semua) -->
-            <form method="GET" action="{{ route('admin.students.index') }}" class="flex items-center gap-2">
+            <!-- Form Pencarian & Filter Jumlah Tampilan -->
+            <form method="GET" action="{{ route('admin.students.index') }}" class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                @if(!empty($selectedAcademicYear))
+                    <input type="hidden" name="academic_year" value="{{ $selectedAcademicYear }}">
+                @endif
                 @if(!empty($selectedClassId))
                     <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
                 @endif
+
+                <!-- Input Pencarian Siswa -->
+                <div class="relative flex-1 sm:w-64">
+                    <input type="text" 
+                           name="search" 
+                           id="studentTableSearch"
+                           value="{{ $search ?? '' }}" 
+                           placeholder="Cari siswa (Nama, NIS, QR)..." 
+                           autocomplete="off"
+                           class="w-full pl-8 pr-7 py-1.5 text-xs font-bold text-black bg-white border-2 border-black shadow-[2px_2px_0px_#000] focus:outline-none focus:ring-2 focus:ring-[#FFD43B]">
+                    <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    @if(!empty($search))
+                        <a href="{{ route('admin.students.index', array_filter(['academic_year' => $selectedAcademicYear != ($activeYearName ?? '') ? $selectedAcademicYear : null, 'class_id' => $selectedClassId, 'per_page' => $perPage != '25' ? $perPage : null])) }}" 
+                           class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-black font-black text-xs" 
+                           title="Hapus Pencarian">✕</a>
+                    @endif
+                </div>
+
+                <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_#000] cursor-pointer">
+                    Cari
+                </button>
+
+                @if(!empty($search))
+                    <a href="{{ route('admin.students.index', array_filter(['academic_year' => $selectedAcademicYear != ($activeYearName ?? '') ? $selectedAcademicYear : null, 'class_id' => $selectedClassId, 'per_page' => $perPage != '25' ? $perPage : null])) }}" 
+                       class="neo-btn bg-slate-100 hover:bg-slate-200 text-black px-2.5 py-1.5 text-xs font-bold shadow-[2px_2px_0px_#000] cursor-pointer"
+                       title="Reset Pencarian">
+                        Reset
+                    </a>
+                @endif
+
+                <!-- Filter Jumlah Tampilan (25, 50, 100, Semua) -->
                 <div class="flex items-center gap-1 bg-white border-2 border-black px-2.5 py-1.5 shadow-[2px_2px_0px_#000]">
                     <span class="text-[10px] font-black uppercase text-slate-600 font-heading">Tampil:</span>
                     <select name="per_page" onchange="this.form.submit()" class="bg-transparent text-xs font-bold text-black focus:outline-none cursor-pointer">
@@ -41,9 +83,10 @@
                         <th class="p-3.5 text-center w-48">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y-2 divide-black">
+                <tbody class="divide-y-2 divide-black" id="studentsTableBody">
                     @forelse($students as $index => $student)
-                    <tr class="hover:bg-slate-50 font-medium">
+                    <tr class="student-row hover:bg-slate-50 font-medium" 
+                        data-search="{{ strtolower(($student->nis ?? '') . ' ' . ($student->nisn ?? '') . ' ' . ($student->user->name ?? '') . ' ' . ($student->user->email ?? '') . ' ' . ($student->schoolClass->name ?? '') . ' ' . ($student->qr_code_identifier ?? '')) }}">
                         <td class="p-3.5 font-bold text-center border-r border-black">
                             {{ $students->firstItem() + $index }}
                         </td>
@@ -211,7 +254,19 @@
                     @empty
                     <tr>
                         <td colspan="7" class="p-8 text-center text-slate-500 font-semibold">
-                            Belum ada data siswa ditemukan.
+                            @if(!empty($search))
+                                <div class="flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
+                                    <span class="text-3xl">🔍</span>
+                                    <span class="font-bold text-black text-sm">Tidak ditemukan data siswa untuk kata kunci "{{ $search }}"</span>
+                                    <span class="text-xs text-slate-500">Coba gunakan kata kunci lain (Nama Siswa, NIS, NISN, atau QR Identifier).</span>
+                                    <a href="{{ route('admin.students.index', array_filter(['academic_year' => $selectedAcademicYear != ($activeYearName ?? '') ? $selectedAcademicYear : null, 'class_id' => $selectedClassId, 'per_page' => $perPage != '25' ? $perPage : null])) }}" 
+                                       class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black text-xs font-bold px-3.5 py-1.5 mt-2 shadow-[2px_2px_0px_#000] cursor-pointer inline-flex items-center gap-1.5">
+                                        <span>✕</span> Reset Pencarian
+                                    </a>
+                                </div>
+                            @else
+                                Belum ada data siswa ditemukan.
+                            @endif
                         </td>
                     </tr>
                     @endforelse
@@ -223,10 +278,13 @@
         <div class="p-4 border-t-2 border-black bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div class="text-xs font-semibold text-slate-700">
                 Menampilkan <span class="font-mono font-bold text-black">{{ $students->firstItem() ?? 0 }}</span> - <span class="font-mono font-bold text-black">{{ $students->lastItem() ?? 0 }}</span> dari <span class="font-mono font-bold text-black">{{ $students->total() }}</span> siswa
+                @if(!empty($search))
+                    <span class="text-amber-900 font-bold bg-[#FFF9DB] border border-black px-1.5 py-0.5 rounded text-[11px] ml-1">
+                        Filter: "{{ $search }}"
+                    </span>
+                @endif
                 @if(!empty($selectedClass))
-                    <span class="text-slate-500 font-normal">(Kelas {{ $selectedClass->name }} • Total Semua Kelas: {{ $totalStudentsCount }})</span>
-                @else
-                    <span class="text-slate-500 font-normal">(Total Semua Kelas: {{ $totalStudentsCount }})</span>
+                    <span class="text-slate-500 font-normal">(Kelas {{ $selectedClass->name }})</span>
                 @endif
             </div>
 

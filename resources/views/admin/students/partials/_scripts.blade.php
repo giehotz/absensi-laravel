@@ -198,5 +198,54 @@
             }
         }
     }
+
+    // Live Instant Filter on Student Table
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('studentTableSearch');
+        if (!searchInput) return;
+
+        let clientSearchNoMatchRow = null;
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            const rows = document.querySelectorAll('.student-row');
+            if (!rows.length) return;
+
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const searchData = row.getAttribute('data-search') || row.innerText.toLowerCase();
+                if (!query || searchData.includes(query)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const tbody = document.getElementById('studentsTableBody');
+            if (tbody) {
+                if (visibleCount === 0 && query !== '') {
+                    if (!clientSearchNoMatchRow) {
+                        clientSearchNoMatchRow = document.createElement('tr');
+                        clientSearchNoMatchRow.id = 'clientSearchNoMatchRow';
+                        clientSearchNoMatchRow.innerHTML = `
+                            <td colspan="7" class="p-6 text-center bg-amber-50/60 border-b border-black">
+                                <p class="text-xs font-bold text-slate-800">
+                                    Tidak ada siswa yang cocok di tampilan halaman ini.
+                                </p>
+                                <p class="text-[11px] text-slate-500 mt-1">
+                                    Tekan <kbd class="px-1.5 py-0.5 bg-white border border-black rounded text-[10px] font-bold shadow-[1px_1px_0px_#000]">Enter</kbd> atau klik tombol <b>Cari</b> untuk mencari di seluruh data siswa.
+                                </p>
+                            </td>
+                        `;
+                        tbody.appendChild(clientSearchNoMatchRow);
+                    }
+                    clientSearchNoMatchRow.style.display = '';
+                } else if (clientSearchNoMatchRow) {
+                    clientSearchNoMatchRow.style.display = 'none';
+                }
+            }
+        });
+    });
 </script>
 @endpush

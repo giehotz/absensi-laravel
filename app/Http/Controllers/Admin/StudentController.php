@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -33,17 +34,28 @@ class StudentController extends Controller
 
     public function index(Request $request): View
     {
+        $availableAcademicYears = AcademicYear::distinctYearNames();
+        $activeYearName = AcademicYear::activeYearName();
+        $selectedAcademicYear = (string) $request->query('academic_year', $activeYearName ?? '');
+        if (empty($selectedAcademicYear) && ! empty($availableAcademicYears)) {
+            $selectedAcademicYear = $availableAcademicYears[0];
+        }
+
+        $classesQuery = SchoolClass::orderBy('name');
+        if (! empty($selectedAcademicYear)) {
+            $classesQuery->forAcademicYearName($selectedAcademicYear);
+        }
+        $classes = $classesQuery->get();
+
         $selectedClassId = $request->query('class_id');
         $perPage = $request->query('per_page', '25');
-
-        $totalStudentsCount = Student::count();
+        $search = trim((string) $request->query('search', ''));
 
         $selectedClass = null;
-        $classStudentsCount = null;
         if (! empty($selectedClassId)) {
-            $selectedClass = SchoolClass::find($selectedClassId);
-            if ($selectedClass) {
-                $classStudentsCount = Student::where('school_class_id', $selectedClassId)->count();
+            $selectedClass = $classes->firstWhere('id', (int) $selectedClassId);
+            if (! $selectedClass) {
+                $selectedClassId = null;
             }
         }
 
@@ -51,16 +63,32 @@ class StudentController extends Controller
 
         if (! empty($selectedClassId)) {
             $query->where('school_class_id', $selectedClassId);
+        } elseif (! empty($selectedAcademicYear)) {
+            $query->forAcademicYearName($selectedAcademicYear);
+        }
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('nis', 'like', "%{$search}%")
+                    ->orWhere('nisn', 'like', "%{$search}%")
+                    ->orWhere('qr_code_identifier', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('schoolClass', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%");
+                    });
+            });
         }
 
         if ($perPage === 'all' || $perPage === 'semua') {
-            $perPageNum = max($totalStudentsCount, 1);
+            $perPageNum = max((clone $query)->count(), 1);
         } else {
             $perPageNum = in_array((int) $perPage, [25, 50, 100], true) ? (int) $perPage : 25;
         }
 
         $students = $query->paginate($perPageNum)->withQueryString();
-        $classes = SchoolClass::orderBy('name')->get();
         $setting = AttendanceSetting::first() ?? new AttendanceSetting([
             'school_name' => 'SMP Negeri 1 Garuda',
             'npsn' => '20102030',
@@ -72,9 +100,11 @@ class StudentController extends Controller
             'classes',
             'selectedClassId',
             'selectedClass',
-            'totalStudentsCount',
-            'classStudentsCount',
             'perPage',
+            'search',
+            'availableAcademicYears',
+            'selectedAcademicYear',
+            'activeYearName',
             'setting'
         ));
     }
