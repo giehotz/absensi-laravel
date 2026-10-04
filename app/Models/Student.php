@@ -101,6 +101,11 @@ class Student extends Model
         return $this->hasOne(SavingsAccount::class);
     }
 
+    public function assessmentScores(): HasMany
+    {
+        return $this->hasMany(AssessmentScore::class);
+    }
+
     /**
      * Scope query siswa berdasarkan nama tahun ajaran induk rombelnya (contoh: '2026/2027').
      */

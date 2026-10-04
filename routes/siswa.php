@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Siswa\CalendarController;
 use App\Http\Controllers\Siswa\DashboardController;
+use App\Http\Controllers\Siswa\GradeController;
 use App\Http\Controllers\Siswa\LeaveRequestController;
 use App\Http\Controllers\Siswa\ProfileController;
 use App\Http\Controllers\Siswa\SavingsController;
@@ -19,6 +20,9 @@ Route::get('/jurnal-pembelajaran', [TeachingJournalController::class, 'index'])-
 
 // Halaman Mandiri Tabungan Siswa
 Route::get('/tabungan', [SavingsController::class, 'index'])->name('savings.index');
+
+// Halaman Mandiri Capaian Nilai Sumatif Siswa (Read-Only)
+Route::get('/nilai', [GradeController::class, 'index'])->name('grades.index');
 
 // Pengajuan Izin / Sakit
 Route::post('/leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');

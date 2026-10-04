@@ -210,6 +210,18 @@
                             <span>Jurnal Kegiatan Guru</span>
                         </a>
 
+                        <!-- Penilaian Sumatif -->
+                        <a href="{{ route('admin.penilaian.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.penilaian.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.penilaian.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                            </svg>
+                            <span>Penilaian Sumatif</span>
+                        </a>
+
                         <!-- Menu Kalender (Accordion Dropdown) -->
                         @php
                             $isCalendarActive = request()->routeIs('admin.holidays.*') || request()->routeIs('admin.academic-calendar.*');
@@ -331,6 +343,7 @@
                             </div>
                             <span class="text-[9px] font-black bg-[#5294FF] text-white px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
                         </a>
+
 
                         <!-- Pengaturan -->
                         <a href="{{ route('admin.settings.index') }}" 

@@ -31,12 +31,19 @@ class SchoolClass extends Model
 
     public function students(): HasMany
     {
-        return $this->hasMany(Student::class);
+        return $this->hasMany(Student::class)->whereHas('user', function ($q) {
+            $q->where('role', 'siswa');
+        });
     }
 
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function assessmentPackages(): HasMany
+    {
+        return $this->hasMany(AssessmentPackage::class);
     }
 
     /**

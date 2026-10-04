@@ -150,6 +150,21 @@
                             <span class="text-[10px] font-black {{ request()->routeIs('guru.teaching-journals.*') ? 'bg-black text-yellow-300' : 'bg-[#E7F5FF] text-blue-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Harian</span>
                         </a>
 
+                        <!-- Penilaian Siswa -->
+                        <a href="{{ route('guru.penilaian.index') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('guru.penilaian.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.penilaian.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                </svg>
+                                <span>Penilaian Siswa</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('guru.penilaian.*') ? 'bg-black text-yellow-300' : 'bg-emerald-200 text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Sumatif</span>
+                        </a>
+
                         <!-- Jadwal Mengajar -->
                         <a href="{{ route('guru.jadwal') }}" 
                            class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
@@ -282,6 +297,7 @@
                             </div>
                             <span class="text-[9px] font-black {{ request()->routeIs('guru.qr-generator.*') ? 'bg-black text-yellow-300' : 'bg-[#FFD43B] text-black' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
                         </a>
+
                     </div>
                 </div>
             </nav>

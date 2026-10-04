@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AcademicCalendarController;
 use App\Http\Controllers\Admin\AcademicYearController;
 use App\Http\Controllers\Admin\ApiClientController;
+use App\Http\Controllers\Admin\AssessmentController as AdminAssessmentController;
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\AttendanceUploadController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
@@ -144,3 +145,13 @@ Route::delete('api-clients/{client}', [ApiClientController::class, 'destroy'])->
 // QR Generator
 Route::get('qr-generator/{qrGenerator}/download/{format}', [QrGeneratorController::class, 'download'])->name('qr-generator.download');
 Route::resource('qr-generator', QrGeneratorController::class);
+
+// Monitoring & Kontrol Penilaian Sumatif (Admin)
+Route::prefix('penilaian')->name('penilaian.')->group(function () {
+    Route::get('/', [AdminAssessmentController::class, 'index'])->name('index');
+    Route::get('/{package}', [AdminAssessmentController::class, 'show'])->name('show');
+    Route::patch('/{package}/unlock', [AdminAssessmentController::class, 'unlock'])->name('unlock');
+    Route::delete('/{package}', [AdminAssessmentController::class, 'destroy'])->name('destroy');
+    Route::get('/{package}/export', [AdminAssessmentController::class, 'exportExcel'])->name('export');
+    Route::get('/{package}/cetak', [AdminAssessmentController::class, 'printPdf'])->name('print');
+});

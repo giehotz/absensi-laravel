@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Guru\AssessmentController;
 use App\Http\Controllers\Guru\AttendanceReportController;
 use App\Http\Controllers\Guru\AttendanceUploadController;
 use App\Http\Controllers\Guru\CalendarController;
@@ -67,3 +68,20 @@ Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->na
 // QR Generator (Guru)
 Route::get('/qr-generator/{qrGenerator}/download/{format}', [QrGeneratorController::class, 'download'])->name('qr-generator.download');
 Route::resource('/qr-generator', QrGeneratorController::class);
+// Penilaian Sumatif Siswa (Guru Mapel & Wali Kelas)
+Route::prefix('penilaian')->name('penilaian.')->group(function () {
+    Route::get('/', [AssessmentController::class, 'index'])->name('index');
+    Route::get('/create', [AssessmentController::class, 'create'])->name('create');
+    Route::post('/', [AssessmentController::class, 'store'])->name('store');
+    Route::get('/{package}', [AssessmentController::class, 'show'])->name('show');
+    Route::post('/{package}/add-assessment', [AssessmentController::class, 'addAssessment'])->name('add-assessment');
+    Route::delete('/{package}', [AssessmentController::class, 'destroy'])->name('destroy');
+    Route::get('/{package}/template', [AssessmentController::class, 'downloadTemplate'])->name('template');
+    Route::post('/{package}/upload', [AssessmentController::class, 'uploadExcel'])->name('upload');
+    Route::get('/{package}/preview', [AssessmentController::class, 'previewImport'])->name('preview');
+    Route::post('/{package}/publish', [AssessmentController::class, 'publishImport'])->name('publish');
+    Route::put('/{package}/quick-update', [AssessmentController::class, 'quickUpdateScore'])->name('quick-update');
+    Route::patch('/{package}/lock', [AssessmentController::class, 'lock'])->name('lock');
+    Route::get('/{package}/export', [AssessmentController::class, 'exportExcel'])->name('export');
+    Route::get('/{package}/cetak', [AssessmentController::class, 'printPdf'])->name('print');
+});

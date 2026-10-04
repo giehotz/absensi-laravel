@@ -133,4 +133,9 @@ class Teacher extends Model
     {
         return $this->hasMany(TeachingJournal::class);
     }
+
+    public function assessmentPackages(): HasMany
+    {
+        return $this->hasMany(AssessmentPackage::class);
+    }
 }
