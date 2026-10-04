@@ -342,15 +342,19 @@
                     </select>
                 </div>
 
-                <div class="relative">
+                <div class="relative w-44 sm:w-60">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
                     <input type="text" 
                            name="search" 
                            value="{{ $search }}"
                            placeholder="Cari nama atau NIS..." 
-                           class="neo-input pl-8 pr-3 py-1.5 text-xs bg-white focus:bg-white w-40 sm:w-56 border-2 border-black rounded shadow-[2px_2px_0px_0px_#000]">
-                    <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
+                           autocomplete="off"
+                           class="w-full pr-3 py-1.5 text-xs font-bold text-black bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] focus:shadow-[4px_4px_0px_0px_#000] focus:outline-none focus:bg-white placeholder:text-slate-400 placeholder:font-medium transition-all"
+                           style="padding-left: 2.25rem;">
                 </div>
 
                 <button type="submit" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-3 py-1.5 text-xs font-bold border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] cursor-pointer">

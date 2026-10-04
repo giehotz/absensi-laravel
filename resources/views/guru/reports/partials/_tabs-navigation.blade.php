@@ -21,15 +21,19 @@
         <input type="hidden" name="status" value="{{ $status }}">
         <input type="hidden" name="tab" id="search-tab-input" value="{{ $activeTab }}">
 
-        <div class="relative">
+        <div class="relative w-48 sm:w-60">
+            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </div>
             <input type="text" 
                    name="search" 
                    value="{{ $search }}" 
                    placeholder="Cari NIS / Nama Siswa..." 
-                   class="neo-input pl-8 pr-3 py-1.5 text-xs bg-slate-50 focus:bg-white w-48 sm:w-60">
-            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
+                   autocomplete="off"
+                   class="w-full pr-3 py-1.5 text-xs font-bold text-black bg-white border-2 border-black rounded shadow-[2px_2px_0px_0px_#000] focus:shadow-[4px_4px_0px_0px_#000] focus:outline-none focus:bg-white placeholder:text-slate-400 placeholder:font-medium transition-all"
+                   style="padding-left: 2.25rem;">
         </div>
         @if($search)
             <a href="{{ route('guru.reports.attendance', array_merge(request()->except('search'), ['tab' => $activeTab])) }}" 

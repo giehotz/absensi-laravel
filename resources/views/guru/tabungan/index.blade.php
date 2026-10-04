@@ -233,11 +233,14 @@
 
                 <!-- Search Siswa di Kelas Ini -->
                 <div class="sm:col-span-5 relative">
+                    <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
                     <input type="text" name="student_search" value="{{ $studentSearch }}" placeholder="Cari nama / NISN di kelas ini..." 
-                        class="w-full neo-input py-1.5 pl-8 text-xs bg-white">
-                    <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
+                        class="w-full neo-input py-1.5 text-xs bg-white placeholder:text-slate-400 placeholder:font-normal"
+                        style="padding-left: 2.25rem;">
                 </div>
 
                 <!-- Filter Status Penabung (Default: Penabung Aktif Saja) -->

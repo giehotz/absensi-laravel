@@ -93,12 +93,13 @@
                 <!-- Live Search & Select All Controls -->
                 <div id="studentControls" class="hidden space-y-3 pt-2">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <!-- Search Box -->
                         <div class="relative flex-1">
-                            <input type="text" id="searchStudent" oninput="filterStudents()" placeholder="Cari nama atau NIS siswa..." class="w-full pl-8 pr-3 py-1.5 neo-input text-xs bg-white">
-                            <svg class="w-4 h-4 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                            </svg>
+                            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+                            <input type="text" id="searchStudent" oninput="filterStudents()" placeholder="Cari nama atau NIS siswa..." class="w-full pr-3 py-1.5 neo-input text-xs bg-white placeholder:text-slate-400 placeholder:font-normal" style="padding-left: 2.25rem;">
                         </div>
 
                         <!-- Select All Checkbox -->
