@@ -42,17 +42,26 @@ class AssessmentExcelService
         $teacherName = $package->teacher->user?->name ?? 'Guru Pengampu';
         $classSubject = $package->schoolClass->name.'/'.$package->subject->name;
 
-        for ($sheetNum = 1; $sheetNum <= 15; $sheetNum++) {
+        $isSingleSheet = $package->isSts() || $package->isSas();
+        $sheetCount = $isSingleSheet ? 1 : 15;
+
+        for ($sheetNum = 1; $sheetNum <= $sheetCount; $sheetNum++) {
             $sheet = $spreadsheet->createSheet();
-            $sheetTitle = "SUM {$sheetNum}";
+            $sheetTitle = $package->isSts() ? 'STS' : ($package->isSas() ? 'SAS' : "SUM {$sheetNum}");
             $sheet->setTitle($sheetTitle);
 
-            $existingAssessment = $package->assessments->firstWhere('sheet_number', $sheetNum);
-            $materi = $existingAssessment?->materi ?? '';
+            $existingAssessment = $package->assessments->firstWhere('sheet_number', $sheetNum)
+                ?? $package->assessments->first();
+            $materi = $existingAssessment?->materi ?? ($package->isSts() ? 'Asesmen Sumatif Tengah Semester' : ($package->isSas() ? 'Asesmen Sumatif Akhir Semester' : ''));
             $kktp = $existingAssessment?->kktp ?? $package->kktp_default;
 
             // Baris 1: Judul
-            $sheet->setCellValue('A1', 'Template Nilai Sumatif');
+            $mainTitle = match ($package->type) {
+                'sts' => 'Template Asesmen Sumatif Tengah Semester (STS)',
+                'sas' => 'Template Asesmen Sumatif Akhir Semester (SAS)',
+                default => 'Template Nilai Sumatif',
+            };
+            $sheet->setCellValue('A1', $mainTitle);
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
             // Baris 2: Informasi Guru & Rombel/Mapel
@@ -154,7 +163,12 @@ class AssessmentExcelService
         }
 
         $spreadsheet->setActiveSheetIndex(0);
-        $cleanFileName = 'Template_Sumatif_'.str_replace([' ', '/', '\\'], '_', $classSubject).'.xlsx';
+        $typePrefix = match ($package->type) {
+            'sts' => 'Template_STS_',
+            'sas' => 'Template_SAS_',
+            default => 'Template_Sumatif_',
+        };
+        $cleanFileName = $typePrefix.str_replace([' ', '/', '\\'], '_', $classSubject).'.xlsx';
 
         return response()->streamDownload(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
@@ -190,14 +204,26 @@ class AssessmentExcelService
         foreach ($spreadsheet->getAllSheets() as $sheet) {
             $title = trim($sheet->getTitle());
 
-            // Filter hanya sheet berformat SUM 1 s.d. SUM 15
-            if (! preg_match('/^SUM\s*(\d+)$/i', $title, $matches)) {
-                continue;
-            }
+            if ($package->isSts()) {
+                if (! preg_match('/^(STS|SUM\s*1)$/i', $title)) {
+                    continue;
+                }
+                $sheetNum = 1;
+            } elseif ($package->isSas()) {
+                if (! preg_match('/^(SAS|SUM\s*1)$/i', $title)) {
+                    continue;
+                }
+                $sheetNum = 1;
+            } else {
+                // Filter hanya sheet berformat SUM 1 s.d. SUM 15
+                if (! preg_match('/^SUM\s*(\d+)$/i', $title, $matches)) {
+                    continue;
+                }
 
-            $sheetNum = (int) $matches[1];
-            if ($sheetNum < 1 || $sheetNum > 15) {
-                continue;
+                $sheetNum = (int) $matches[1];
+                if ($sheetNum < 1 || $sheetNum > 15) {
+                    continue;
+                }
             }
 
             // Validasi kelas/mapel di E2 jika terisi
@@ -354,13 +380,19 @@ class AssessmentExcelService
                     continue;
                 }
 
+                $defaultSheetName = match ($package->type) {
+                    'sts' => 'STS',
+                    'sas' => 'SAS',
+                    default => "SUM {$sheetNum}",
+                };
+
                 $assessment = Assessment::firstOrCreate(
                     [
                         'assessment_package_id' => $package->id,
                         'sheet_number' => (int) $sheetNum,
                     ],
                     [
-                        'sheet_name' => "SUM {$sheetNum}",
+                        'sheet_name' => $defaultSheetName,
                         'kktp' => (int) ($sheet['kktp'] ?? $package->kktp_default),
                         'materi' => $sheet['materi'] ?? null,
                     ]
@@ -429,10 +461,20 @@ class AssessmentExcelService
 
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Rekap Sumatif');
+        $sheetTitle = match ($package->type) {
+            'sts' => 'Rekap STS',
+            'sas' => 'Rekap SAS',
+            default => 'Rekap Sumatif',
+        };
+        $sheet->setTitle($sheetTitle);
 
         // Judul Laporan
-        $sheet->setCellValue('A1', 'REKAPITULASI PENILAIAN SUMATIF SISWA');
+        $mainReportTitle = match ($package->type) {
+            'sts' => 'REKAPITULASI ASESMEN SUMATIF TENGAH SEMESTER (STS)',
+            'sas' => 'REKAPITULASI ASESMEN SUMATIF AKHIR SEMESTER (SAS)',
+            default => 'REKAPITULASI PENILAIAN SUMATIF SISWA',
+        };
+        $sheet->setCellValue('A1', $mainReportTitle);
         $sheet->setCellValue('A2', 'Mata Pelajaran: '.$package->subject->name.' | Kelas: '.$package->schoolClass->name);
         $sheet->setCellValue('A3', 'Tahun Ajaran: '.$package->academicYear->name.' ('.ucfirst($package->academicYear->semester).') | Guru: '.($package->teacher->user?->name ?? '-'));
         $sheet->getStyle('A1:A3')->getFont()->setBold(true);
@@ -440,7 +482,7 @@ class AssessmentExcelService
         // Header Kolom Dinamis Sesuai Sumatif Aktif
         $headers = ['No', 'NIS', 'Nama Siswa'];
         foreach ($activeAssessments as $asm) {
-            $headers[] = "SUM {$asm->sheet_number}";
+            $headers[] = $asm->sheet_name ?: "SUM {$asm->sheet_number}";
         }
         $headers[] = 'Rata-Rata';
         $headers[] = 'Status Akhir';
@@ -492,7 +534,12 @@ class AssessmentExcelService
             $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
 
-        $fileName = 'Rekap_Nilai_'.str_replace([' ', '/', '\\'], '_', $package->schoolClass->name.'_'.$package->subject->name).'.xlsx';
+        $typePrefix = match ($package->type) {
+            'sts' => 'Rekap_STS_',
+            'sas' => 'Rekap_SAS_',
+            default => 'Rekap_Nilai_',
+        };
+        $fileName = $typePrefix.str_replace([' ', '/', '\\'], '_', $package->schoolClass->name.'_'.$package->subject->name).'.xlsx';
 
         return response()->streamDownload(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);

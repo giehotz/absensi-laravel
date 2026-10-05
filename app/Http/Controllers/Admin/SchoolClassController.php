@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\StudentCardService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -141,19 +142,28 @@ class SchoolClassController extends Controller
             ->with('success', "Berhasil memindahkan {$count} siswa dari {$sourceClass->name} ke {$targetClass->name}.");
     }
 
-    public function students(SchoolClass $class): View
+    public function students(SchoolClass $class, StudentCardService $cardService): View
     {
         $class->load(['academicYear', 'homeroomTeacher.user']);
-        $students = Student::with('user')
+        $students = Student::with(['user', 'schoolClass'])
             ->where('school_class_id', $class->id)
-            ->latest()
+            ->leftJoin('users', 'students.user_id', '=', 'users.id')
+            ->orderBy('users.name', 'asc')
+            ->orderBy('users.email', 'asc')
+            ->select('students.*')
             ->get();
 
-        $studentsTotal = $class->students()->count();
-        $maleCount = $class->students()->where('gender', 'L')->count();
-        $femaleCount = $class->students()->where('gender', 'P')->count();
+        foreach ($students as $student) {
+            $cardService->prepareStudent($student);
+        }
 
-        return view('admin.classes.students', compact('class', 'students', 'studentsTotal', 'maleCount', 'femaleCount'));
+        $cardSetting = $cardService->getSetting();
+
+        $studentsTotal = $students->count();
+        $maleCount = $students->where('gender', 'L')->count();
+        $femaleCount = $students->where('gender', 'P')->count();
+
+        return view('admin.classes.students', compact('class', 'students', 'studentsTotal', 'maleCount', 'femaleCount', 'cardSetting'));
     }
 
     public function downloadStudentsTemplate(SchoolClass $class): StreamedResponse

@@ -17,6 +17,7 @@ class AssessmentPackage extends Model
         'subject_id',
         'teacher_id',
         'title',
+        'type',
         'kktp_default',
         'status',
         'locked_at',
@@ -97,5 +98,77 @@ class AssessmentPackage extends Model
     public function isDraft(): bool
     {
         return $this->status === 'draft';
+    }
+
+    public function isMateri(): bool
+    {
+        return ($this->type ?? 'materi') === 'materi';
+    }
+
+    public function isSts(): bool
+    {
+        return $this->type === 'sts';
+    }
+
+    public function isSas(): bool
+    {
+        return $this->type === 'sas';
+    }
+
+    public function scopeMateri($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('type', 'materi')->orWhereNull('type');
+        });
+    }
+
+    public function scopeSts($query)
+    {
+        return $query->where('type', 'sts');
+    }
+
+    public function scopeSas($query)
+    {
+        return $query->where('type', 'sas');
+    }
+
+    public function scopeOfType($query, ?string $type)
+    {
+        if (! $type || $type === 'all') {
+            return $query;
+        }
+
+        if ($type === 'materi') {
+            return $this->scopeMateri($query);
+        }
+
+        return $query->where('type', $type);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'sts' => 'Sumatif Tengah Semester (STS)',
+            'sas' => 'Sumatif Akhir Semester (SAS)',
+            default => 'Sumatif Lingkup Materi',
+        };
+    }
+
+    public function getTypeShortLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'sts' => 'STS',
+            'sas' => 'SAS',
+            default => 'Materi',
+        };
+    }
+
+    public function getTypeBadgeBgAttribute(): string
+    {
+        return match ($this->type) {
+            'sts' => 'bg-[#FFF3BF] text-amber-950 border-amber-950',
+            'sas' => 'bg-[#FFE3E3] text-rose-950 border-rose-950',
+            default => 'bg-[#D3F9D8] text-emerald-950 border-emerald-950',
+        };
     }
 }

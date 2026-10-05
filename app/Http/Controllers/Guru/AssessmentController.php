@@ -44,6 +44,10 @@ class AssessmentController extends Controller
         $classId = $request->input('school_class_id');
         $subjectId = $request->input('subject_id');
         $status = $request->input('status');
+        $activeType = $request->input('type', $request->input('tab', 'materi'));
+        if (! in_array($activeType, ['materi', 'sts', 'sas'])) {
+            $activeType = 'materi';
+        }
 
         $query = AssessmentPackage::with(['schoolClass', 'subject', 'teacher.user', 'academicYear'])
             ->where(function ($q) use ($teacher) {
@@ -53,6 +57,14 @@ class AssessmentController extends Controller
                     });
             })
             ->latest();
+
+        if ($activeType === 'materi') {
+            $query->materi();
+        } elseif ($activeType === 'sts') {
+            $query->sts();
+        } elseif ($activeType === 'sas') {
+            $query->sas();
+        }
 
         if ($classId) {
             $query->where('school_class_id', $classId);
@@ -87,7 +99,18 @@ class AssessmentController extends Controller
             ->orderBy('name')
             ->get();
 
-        // KPI Metrics
+        // Tab Counts & KPI Metrics
+        $teacherScope = function ($q) use ($teacher) {
+            $q->where('teacher_id', $teacher->id)
+                ->orWhereHas('schoolClass', function ($sq) use ($teacher) {
+                    $sq->where('homeroom_teacher_id', $teacher->id);
+                });
+        };
+
+        $countMateri = AssessmentPackage::where($teacherScope)->materi()->count();
+        $countSts = AssessmentPackage::where($teacherScope)->sts()->count();
+        $countSas = AssessmentPackage::where($teacherScope)->sas()->count();
+
         $totalPackages = AssessmentPackage::where('teacher_id', $teacher->id)->count();
         $draftPackages = AssessmentPackage::where('teacher_id', $teacher->id)->where('status', 'draft')->count();
         $lockedPackages = AssessmentPackage::where('teacher_id', $teacher->id)->where('status', 'locked')->count();
@@ -98,6 +121,10 @@ class AssessmentController extends Controller
             'classes',
             'subjects',
             'teacher',
+            'activeType',
+            'countMateri',
+            'countSts',
+            'countSas',
             'totalPackages',
             'draftPackages',
             'lockedPackages',
@@ -108,10 +135,14 @@ class AssessmentController extends Controller
     /**
      * Form pembuatan paket penilaian baru.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
         $teacher = $this->getTeacher();
         $activeYear = AcademicYear::activeSemester() ?? AcademicYear::latest('start_date')->first();
+        $selectedType = $request->input('type', $request->input('tab', 'materi'));
+        if (! in_array($selectedType, ['materi', 'sts', 'sas'])) {
+            $selectedType = 'materi';
+        }
 
         // Batasi pilihan sesuai penugasan jika memiliki pembatasan
         if ($teacher->hasTeachingRestrictions()) {
@@ -122,11 +153,11 @@ class AssessmentController extends Controller
             $subjects = Subject::orderBy('name')->get();
         }
 
-        return view('guru.assessments.create', compact('teacher', 'activeYear', 'classes', 'subjects'));
+        return view('guru.assessments.create', compact('teacher', 'activeYear', 'classes', 'subjects', 'selectedType'));
     }
 
     /**
-     * Simpan paket penilaian baru dan inisialisasi 15 sheet sumatif.
+     * Simpan paket penilaian baru dan inisialisasi sheet sumatif.
      */
     public function store(Request $request): RedirectResponse
     {
@@ -136,8 +167,11 @@ class AssessmentController extends Controller
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'subject_id' => ['required', 'exists:subjects,id'],
             'title' => ['required', 'string', 'max:255'],
+            'type' => ['nullable', 'string', 'in:materi,sts,sas'],
             'kktp_default' => ['required', 'integer', 'min:0', 'max:100'],
         ]);
+
+        $type = $validated['type'] ?? 'materi';
 
         // Verifikasi izin mengajar guru
         if (! $teacher->canTeach((int) $validated['subject_id'], (int) $validated['school_class_id'])) {
@@ -149,15 +183,16 @@ class AssessmentController extends Controller
             return back()->withInput()->with('error', 'Belum ada Tahun Ajaran aktif di sistem.');
         }
 
-        // Cek duplikasi paket
+        // Cek duplikasi paket untuk tipe yang sama
         $existing = AssessmentPackage::where('academic_year_id', $activeYear->id)
             ->where('school_class_id', $validated['school_class_id'])
             ->where('subject_id', $validated['subject_id'])
+            ->where('type', $type)
             ->first();
 
         if ($existing) {
             return redirect()->route('guru.penilaian.show', $existing)
-                ->with('info', 'Paket penilaian untuk kelas dan mapel ini sudah ada.');
+                ->with('info', "Paket {$existing->type_label} untuk kelas dan mapel ini sudah ada.");
         }
 
         $package = AssessmentPackage::create([
@@ -166,24 +201,47 @@ class AssessmentController extends Controller
             'subject_id' => $validated['subject_id'],
             'teacher_id' => $teacher->id,
             'title' => $validated['title'],
+            'type' => $type,
             'kktp_default' => $validated['kktp_default'],
             'status' => 'draft',
         ]);
 
-        // Inisialisasi 15 lembar sumatif (SUM 1 s.d. SUM 15), dengan SUM 1 aktif secara default
-        for ($i = 1; $i <= 15; $i++) {
+        if ($type === 'materi') {
+            // Inisialisasi 15 lembar sumatif (SUM 1 s.d. SUM 15), dengan SUM 1 aktif secara default
+            for ($i = 1; $i <= 15; $i++) {
+                Assessment::create([
+                    'assessment_package_id' => $package->id,
+                    'sheet_number' => $i,
+                    'sheet_name' => "SUM {$i}",
+                    'kktp' => $package->kktp_default,
+                    'max_score' => 100,
+                    'is_active' => ($i === 1),
+                ]);
+            }
+        } elseif ($type === 'sts') {
             Assessment::create([
                 'assessment_package_id' => $package->id,
-                'sheet_number' => $i,
-                'sheet_name' => "SUM {$i}",
+                'sheet_number' => 1,
+                'sheet_name' => 'STS',
+                'materi' => 'Asesmen Sumatif Tengah Semester',
                 'kktp' => $package->kktp_default,
                 'max_score' => 100,
-                'is_active' => ($i === 1),
+                'is_active' => true,
+            ]);
+        } elseif ($type === 'sas') {
+            Assessment::create([
+                'assessment_package_id' => $package->id,
+                'sheet_number' => 1,
+                'sheet_name' => 'SAS',
+                'materi' => 'Asesmen Sumatif Akhir Semester',
+                'kktp' => $package->kktp_default,
+                'max_score' => 100,
+                'is_active' => true,
             ]);
         }
 
         return redirect()->route('guru.penilaian.show', $package)
-            ->with('success', 'Paket Penilaian Sumatif berhasil dibuat!');
+            ->with('success', "Paket {$package->type_label} berhasil dibuat!");
     }
 
     /**
@@ -209,7 +267,7 @@ class AssessmentController extends Controller
         $assessmentsByNum = $package->assessments->keyBy('sheet_number');
         $activeAssessments = $package->getActiveAssessments();
         $maxActiveSheet = $activeAssessments->max('sheet_number') ?? 1;
-        $nextSheetNum = $maxActiveSheet < 15 ? $maxActiveSheet + 1 : null;
+        $nextSheetNum = ($package->isMateri() && $maxActiveSheet < 15) ? $maxActiveSheet + 1 : null;
 
         // Statistik Keseluruhan
         $totalStudents = $students->count();
@@ -403,6 +461,10 @@ class AssessmentController extends Controller
 
         if ($package->isLocked()) {
             return back()->with('error', 'Paket penilaian telah dikunci.');
+        }
+
+        if (! $package->isMateri()) {
+            return back()->with('error', 'Paket asesmen ini hanya menggunakan satu lembar evaluasi.');
         }
 
         $validated = $request->validate([

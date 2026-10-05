@@ -104,7 +104,15 @@
                     <tr>
                         <th class="p-3.5 border-r border-black">No</th>
                         <th class="p-3.5 border-r border-black">NIS / NISN</th>
-                        <th class="p-3.5 border-r border-black">Nama Siswa & Email Akun</th>
+                        <th class="p-3.5 border-r border-black">
+                            <div class="flex items-center gap-1.5">
+                                <span>Nama Siswa & Email Akun</span>
+                                <span class="text-[9px] bg-black text-[#FFD43B] px-1.5 py-0.5 rounded font-mono font-bold tracking-wider inline-flex items-center gap-0.5" title="Diurutkan A-Z">
+                                    <span>A-Z</span>
+                                    <span>↓</span>
+                                </span>
+                            </div>
+                        </th>
                         <th class="p-3.5 border-r border-black text-center">L/P</th>
                         <th class="p-3.5 border-r border-black">No. Kontak</th>
                         <th class="p-3.5 border-r border-black">QR Identifier</th>
@@ -149,15 +157,40 @@
                             {{ $student->phone ?? '-' }}
                         </td>
                         <td class="p-3.5 border-r border-black">
-                            <button onclick="previewQr({{ json_encode([
-                                'name' => $student->user->name ?? '-',
-                                'nis' => $student->nis,
-                                'class' => $class->name,
-                                'qr' => $student->qr_code_identifier,
-                            ]) }})" class="neo-badge bg-black text-white hover:bg-slate-800 cursor-pointer font-mono text-[10px] flex items-center gap-1.5 w-fit">
-                                <span>📱</span>
-                                <span class="truncate max-w-[130px]">{{ $student->qr_code_identifier }}</span>
-                            </button>
+                            <div class="flex items-center gap-2.5">
+                                <button type="button" 
+                                        onclick="previewCardBack({{ json_encode([
+                                            'id' => $student->id,
+                                            'name' => $student->user->name ?? '-',
+                                            'nis' => $student->nis,
+                                            'class' => $class->name,
+                                            'qr' => $student->qr_code_identifier,
+                                            'qr_image' => $student->back_qr_data_uri,
+                                            'card_url' => route('admin.students.card.single', $student),
+                                        ]) }})" 
+                                        class="p-1 bg-white border-2 border-black rounded shadow-[1.5px_1.5px_0px_#000] hover:bg-[#FFF9DB] shrink-0 cursor-pointer transition-transform hover:scale-105"
+                                        title="Klik untuk melihat pratinjau QR kartu belakang">
+                                    <img src="{{ $student->back_qr_data_uri }}" alt="QR {{ $student->nis }}" class="w-8 h-8 object-contain">
+                                </button>
+                                <div>
+                                    <button type="button" 
+                                            onclick="previewCardBack({{ json_encode([
+                                                'id' => $student->id,
+                                                'name' => $student->user->name ?? '-',
+                                                'nis' => $student->nis,
+                                                'class' => $class->name,
+                                                'qr' => $student->qr_code_identifier,
+                                                'qr_image' => $student->back_qr_data_uri,
+                                                'card_url' => route('admin.students.card.single', $student),
+                                            ]) }})"
+                                            class="font-mono font-bold text-xs text-black block hover:underline text-left cursor-pointer">
+                                        {{ $student->qr_code_identifier }}
+                                    </button>
+                                    <span class="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> Siap Scan
+                                    </span>
+                                </div>
+                            </div>
                         </td>
                         <td class="p-3.5 text-center">
                             <form action="{{ route('admin.students.destroy', $student) }}" method="POST" onsubmit="return confirm('Hapus siswa {{ $student->user->name ?? '' }} dari kelas dan sistem?')">
@@ -340,55 +373,88 @@
     </div>
 </div>
 
-<!-- Modal Preview Kartu QR Siswa -->
+<!-- Modal Preview Kartu QR Siswa (Sisi Belakang Kartu Pelajar) -->
 <div id="qrPreviewModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white neo-box-lg max-w-sm w-full p-6 space-y-5 text-center relative">
-        <div class="flex items-center justify-between border-b-2 border-black pb-2">
-            <span class="neo-badge bg-[#FFD43B] text-black">KARTU ABSENSI</span>
+    <div class="bg-white neo-box-lg max-w-md w-full p-5 space-y-4 text-center relative max-h-[95vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b-2 border-black pb-2.5">
+            <span class="neo-badge bg-[#FFD43B] text-black flex items-center gap-1.5">
+                <span>🪪</span> SISI BELAKANG KARTU • SCAN PRESENSI
+            </span>
             <button onclick="closeModal('qrPreviewModal')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer">✕</button>
         </div>
 
-        <div id="printableCard" class="bg-[#FFF9DB] neo-box p-5 space-y-3">
-            <div class="w-12 h-12 bg-[#5294FF] text-white border-2 border-black mx-auto flex items-center justify-center font-heading font-black text-xl neo-box-sm">
-                A
-            </div>
-            <div>
-                <h4 id="qr_preview_name" class="font-heading font-black text-base text-black">Nama Siswa</h4>
-                <p id="qr_preview_details" class="text-xs font-bold text-slate-700">Kelas • NIS: 12345</p>
-            </div>
+        <!-- Kartu Sisi Belakang Format Resmi Studio Kartu (8.7 x 5.4 cm) -->
+        <div class="flex justify-center my-2">
+            <div class="student-card-side card-back bg-white border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_#000] overflow-hidden text-left relative select-none"
+                 style="width: 8.7cm; max-width: 100%; height: 5.4cm; box-sizing: border-box;">
+                <div class="p-3.5 flex items-center justify-between gap-3 h-full">
+                    <!-- Sisi Kiri: Biodata Singkat & Petunjuk -->
+                    <div class="flex-1 min-w-0 space-y-1 leading-tight flex flex-col justify-between h-full">
+                        <div>
+                            <div id="qr_preview_name" class="font-heading font-black text-xs uppercase text-black border-b-2 border-black pb-1 truncate">
+                                Nama Siswa
+                            </div>
+                            <div class="text-[9px] font-mono font-bold text-slate-700 mt-1 flex items-center gap-1.5">
+                                <span>NIS: <strong id="qr_preview_nis" class="text-black">-</strong></span>
+                                <span>•</span>
+                                <span id="qr_preview_class" class="text-slate-600">Kelas -</span>
+                            </div>
+                            <div class="bg-amber-50 border border-black p-1.5 rounded text-[8px] leading-relaxed text-slate-800 mt-1.5">
+                                {{ $cardSetting->resolved_card_back_instructions }}
+                            </div>
+                        </div>
 
-            <div class="bg-white border-2 border-black p-3 inline-block shadow-[2px_2px_0px_0px_#000]">
-                <svg class="w-28 h-28 mx-auto" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect width="100" height="100" fill="white"/>
-                    <rect x="10" y="10" width="25" height="25" fill="black"/>
-                    <rect x="15" y="15" width="15" height="15" fill="white"/>
-                    <rect x="18" y="18" width="9" height="9" fill="black"/>
-                    <rect x="65" y="10" width="25" height="25" fill="black"/>
-                    <rect x="70" y="15" width="15" height="15" fill="white"/>
-                    <rect x="73" y="18" width="9" height="9" fill="black"/>
-                    <rect x="10" y="65" width="25" height="25" fill="black"/>
-                    <rect x="15" y="70" width="15" height="15" fill="white"/>
-                    <rect x="18" y="73" width="9" height="9" fill="black"/>
-                    <rect x="42" y="12" width="6" height="18" fill="black"/>
-                    <rect x="42" y="38" width="18" height="6" fill="black"/>
-                    <rect x="65" y="42" width="12" height="12" fill="black"/>
-                    <rect x="42" y="65" width="18" height="18" fill="black"/>
-                    <rect x="70" y="70" width="15" height="15" fill="black"/>
-                </svg>
-            </div>
+                        @if($cardSetting->card_show_signature && !empty($cardSetting->card_principal_name))
+                            <div class="pt-1 text-[7.5px] leading-tight text-right font-medium">
+                                <div>Mengetahui, Kepala Madrasah</div>
+                                @if($cardSetting->card_signature_url)
+                                    <div class="h-6 flex justify-end items-center my-0.5">
+                                        <img src="{{ $cardSetting->card_signature_url }}" alt="TTD" class="h-full object-contain">
+                                    </div>
+                                @else
+                                    <div class="h-2"></div>
+                                @endif
+                                <div class="font-bold underline text-black">{{ $cardSetting->card_principal_name }}</div>
+                                <div class="text-[6.5px] font-mono">NIP. {{ $cardSetting->card_principal_nip ?? '-' }}</div>
+                            </div>
+                        @else
+                            <div class="text-[7.5px] font-mono text-slate-500 font-semibold uppercase">
+                                {{ $cardSetting->resolved_card_school_name }}
+                            </div>
+                        @endif
+                    </div>
 
-            <div id="qr_preview_code" class="text-[11px] font-mono font-bold text-black break-all">
-                QR-IDENTIFIER
+                    <!-- Sisi Kanan: Real QR Code Presensi Besar & Token -->
+                    <div class="flex flex-col items-center justify-center shrink-0">
+                        <div class="bg-white p-1 border-2 border-black rounded shadow-[2px_2px_0px_#000]">
+                            <img id="qr_preview_image" 
+                                 src="" 
+                                 alt="QR Presensi Masuk" 
+                                 class="w-[28mm] h-[28mm] object-contain">
+                        </div>
+                        <div id="qr_preview_code" class="mt-1 bg-amber-100 border border-black px-1.5 py-0.5 rounded text-[8px] font-mono font-black text-black">
+                            -
+                        </div>
+                        <span class="text-[7px] font-black uppercase text-black tracking-wider mt-0.5">
+                            SCAN PRESENSI MASUK
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center justify-center gap-2 pt-2">
-            <button onclick="window.print()" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-2 text-xs font-heading cursor-pointer">
-                🖨️ Cetak Kartu
-            </button>
-            <button onclick="closeModal('qrPreviewModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs cursor-pointer">
-                Tutup
-            </button>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+            <a href="{{ route('admin.students.cards', ['class_id' => $class->id]) }}" class="text-xs font-bold text-blue-700 hover:underline flex items-center gap-1">
+                <span>🪪</span> Studio Kartu
+            </a>
+            <div class="flex items-center gap-2">
+                <a id="qr_print_single_btn" href="#" target="_blank" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-2 text-xs font-heading font-bold flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#000]">
+                    <span>🖨️</span> Cetak Kartu Siswa
+                </a>
+                <button onclick="closeModal('qrPreviewModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs cursor-pointer">
+                    Tutup
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -409,12 +475,20 @@
         }
     }
 
-    function previewQr(data) {
+    function previewCardBack(data) {
         document.getElementById('qr_preview_name').innerText = data.name;
-        document.getElementById('qr_preview_details').innerText = data.class + ' • NIS: ' + data.nis;
+        document.getElementById('qr_preview_nis').innerText = data.nis;
+        document.getElementById('qr_preview_class').innerText = data.class;
         document.getElementById('qr_preview_code').innerText = data.qr;
+        document.getElementById('qr_preview_image').src = data.qr_image || '';
+        document.getElementById('qr_print_single_btn').href = data.card_url || '#';
         openModal('qrPreviewModal');
+    }
+
+    function previewQr(data) {
+        previewCardBack(data);
     }
 </script>
 @endpush
+
 @endsection

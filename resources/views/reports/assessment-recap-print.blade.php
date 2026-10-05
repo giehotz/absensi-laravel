@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Rekapitulasi Penilaian Sumatif - {{ $package->schoolClass->name }} - {{ $package->subject->name }}</title>
+    <title>Rekapitulasi {{ $package->type_label }} - {{ $package->schoolClass->name }} - {{ $package->subject->name }}</title>
     <style>
         @page {
             size: A4 landscape;
@@ -180,6 +180,7 @@
         <!-- Document Title -->
         <div class="title-section">
             <h2>REKAPITULASI PENILAIAN SUMATIF SISWA</h2>
+            <div style="font-size: 11pt; font-weight: bold; margin-top: 2px;">{{ strtoupper($package->type_label) }}</div>
             <p>TAHUN AJARAN {{ strtoupper($package->academicYear->name) }} (SEMESTER {{ strtoupper($package->academicYear->semester) }})</p>
         </div>
 
@@ -210,13 +211,13 @@
                     <th rowspan="2" style="width: 25px;">No</th>
                     <th rowspan="2" style="width: 65px;">NIS</th>
                     <th rowspan="2">Nama Siswa</th>
-                    <th colspan="{{ $activeAssessments->count() }}">Lembar Sumatif (SUM)</th>
+                    <th colspan="{{ $activeAssessments->count() }}">{{ $package->isSts() ? 'Asesmen Tengah Semester (STS)' : ($package->isSas() ? 'Asesmen Akhir Semester (SAS)' : 'Lembar Sumatif (SUM)') }}</th>
                     <th rowspan="2" style="width: 48px;">Rata-Rata</th>
                     <th rowspan="2" style="width: 55px;">Status</th>
                 </tr>
                 <tr>
                     @foreach($activeAssessments as $asm)
-                        <th style="min-width: 28px;">S{{ $asm->sheet_number }}</th>
+                        <th style="min-width: 28px;">{{ $asm->sheet_name ?: 'S' . $asm->sheet_number }}</th>
                     @endforeach
                 </tr>
             </thead>

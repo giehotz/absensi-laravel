@@ -7,14 +7,17 @@
 <div class="space-y-6 pb-16">
     <!-- Breadcrumb & Back -->
     <div class="flex items-center justify-between">
-        <a href="{{ route('guru.penilaian.index') }}" class="text-xs font-bold text-slate-600 hover:text-black flex items-center gap-1.5 transition-colors">
+        <a href="{{ route('guru.penilaian.index', ['type' => $package->type ?? 'materi']) }}" class="text-xs font-bold text-slate-600 hover:text-black flex items-center gap-1.5 transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
             </svg>
-            <span>Kembali ke Daftar Paket</span>
+            <span>Kembali ke Daftar Paket ({{ $package->type_label }})</span>
         </a>
 
         <div class="flex items-center gap-2">
+            <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded border-2 border-black {{ $package->type_badge_bg }} shadow-[2px_2px_0px_0px_#000]">
+                {{ $package->type_label }}
+            </span>
             <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded border-2 border-black {{ $package->isLocked() ? 'bg-[#D3F9D8] text-emerald-950 shadow-[2px_2px_0px_0px_#000]' : 'bg-[#FFF9DB] text-amber-950 shadow-[2px_2px_0px_0px_#000]' }}">
                 Status: {{ $package->isLocked() ? 'TERKUNCI (FINAL)' : 'DRAFT (AKTIF)' }}
             </span>
@@ -173,10 +176,24 @@
         <div class="p-4 bg-slate-100 border-b-2 border-black flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
                 <h3 class="font-heading font-black text-base text-black flex items-center gap-2">
-                    <span>Matriks Capaian Sumatif Aktif ({{ $activeAssessments->count() }} Penilaian)</span>
-                    <span class="text-[11px] font-bold px-2 py-0.5 bg-white border border-black rounded shadow-[1px_1px_0px_0px_#000]">
-                        S1 @if($activeAssessments->count() > 1) s.d. S{{ $activeAssessments->max('sheet_number') }} @endif
+                    <span>
+                        @if($package->isSts())
+                            Matriks Asesmen Sumatif Tengah Semester (STS)
+                        @elseif($package->isSas())
+                            Matriks Asesmen Sumatif Akhir Semester (SAS)
+                        @else
+                            Matriks Capaian Sumatif Aktif ({{ $activeAssessments->count() }} Penilaian)
+                        @endif
                     </span>
+                    @if($package->isMateri())
+                        <span class="text-[11px] font-bold px-2 py-0.5 bg-white border border-black rounded shadow-[1px_1px_0px_0px_#000]">
+                            S1 @if($activeAssessments->count() > 1) s.d. S{{ $activeAssessments->max('sheet_number') }} @endif
+                        </span>
+                    @else
+                        <span class="text-[11px] font-bold px-2 py-0.5 bg-white border border-black rounded shadow-[1px_1px_0px_0px_#000]">
+                            {{ $package->type_short_label }}
+                        </span>
+                    @endif
                 </h3>
                 <p class="text-xs text-slate-600">
                     Menampilkan kolom penilaian aktif. Nilai baru dari upload atau input web akan tersimpan secara bertahap tanpa menimpa nilai lama.
@@ -210,8 +227,8 @@
                                 $i = $asm->sheet_number;
                                 $hasScore = ($sheetAverages[$i] ?? null) !== null;
                             @endphp
-                            <th class="py-2 px-2 border-r border-slate-300 text-center min-w-[55px] {{ $hasScore ? 'bg-amber-50/60' : '' }}" title="{{ $asm->materi ? 'Materi: ' . $asm->materi : 'SUM ' . $i }}">
-                                <div class="font-black text-black">S{{ $i }}</div>
+                            <th class="py-2 px-2 border-r border-slate-300 text-center min-w-[55px] {{ $hasScore ? 'bg-amber-50/60' : '' }}" title="{{ $asm->materi ? 'Materi: ' . $asm->materi : ($asm->sheet_name ?: 'SUM ' . $i) }}">
+                                <div class="font-black text-black">{{ $asm->sheet_name ?: 'S' . $i }}</div>
                                 <div class="text-[9px] font-normal text-slate-500">KKTP {{ $asm->kktp ?? $package->kktp_default }}</div>
                             </th>
                         @endforeach
@@ -241,7 +258,7 @@
                                 <td class="py-2 px-1 border-r border-slate-200 text-center font-bold {{ $sc !== null ? ($isRemed ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700') : 'text-slate-300' }}">
                                     @if(! $package->isLocked())
                                         <button type="button" 
-                                                onclick="editQuickScore({{ $asm->id }}, {{ $student->id }}, '{{ addslashes($student->user?->name ?? 'Siswa') }}', 'SUM {{ $i }}', {{ $sc !== null ? $sc : 'null' }})"
+                                                onclick="editQuickScore({{ $asm->id }}, {{ $student->id }}, '{{ addslashes($student->user?->name ?? 'Siswa') }}', '{{ addslashes($asm->sheet_name ?: 'SUM ' . $i) }}', {{ $sc !== null ? $sc : 'null' }})"
                                                 class="w-full py-1 rounded hover:bg-black/10 cursor-pointer font-mono text-xs">
                                             {{ $sc !== null ? (float)$sc : '-' }}
                                         </button>

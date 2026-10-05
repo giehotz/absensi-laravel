@@ -41,7 +41,16 @@
 
     <!-- Filter Bar -->
     <div class="bg-white border-2 border-black p-4 rounded-lg shadow-[3px_3px_0px_0px_#000]">
-        <form action="{{ route('admin.penilaian.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+        <form action="{{ route('admin.penilaian.index') }}" method="GET" class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+            <div>
+                <label class="block text-[11px] font-black text-black uppercase tracking-wider mb-1">Jenis Asesmen</label>
+                <select name="type" class="w-full text-xs font-bold border-2 border-black p-2 rounded bg-slate-50 focus:bg-white focus:outline-none">
+                    <option value="">-- Semua Jenis --</option>
+                    <option value="materi" {{ request('type') === 'materi' ? 'selected' : '' }}>Lingkup Materi</option>
+                    <option value="sts" {{ request('type') === 'sts' ? 'selected' : '' }}>Sumatif STS</option>
+                    <option value="sas" {{ request('type') === 'sas' ? 'selected' : '' }}>Sumatif SAS</option>
+                </select>
+            </div>
             <div>
                 <label class="block text-[11px] font-black text-black uppercase tracking-wider mb-1">Tahun Ajaran</label>
                 <select name="academic_year_id" class="w-full text-xs font-bold border-2 border-black p-2 rounded bg-slate-50 focus:bg-white focus:outline-none">
@@ -87,7 +96,7 @@
                 <button type="submit" class="w-full bg-black hover:bg-slate-800 text-white font-black text-xs py-2 rounded border-2 border-black shadow-[2px_2px_0px_0px_#FFD43B] cursor-pointer">
                     Filter
                 </button>
-                @if(request()->hasAny(['academic_year_id', 'school_class_id', 'subject_id', 'status']))
+                @if(request()->hasAny(['type', 'academic_year_id', 'school_class_id', 'subject_id', 'status']))
                     <a href="{{ route('admin.penilaian.index') }}" class="bg-slate-200 hover:bg-slate-300 text-black font-bold text-xs p-2 rounded border-2 border-black">
                         Reset
                     </a>
@@ -118,9 +127,14 @@
                                 {{ $packages->firstItem() + $idx }}
                             </td>
                             <td class="py-3 px-3 border-r border-slate-200">
-                                <a href="{{ route('admin.penilaian.show', $pkg) }}" class="font-black text-black hover:text-[#5294FF] block">
-                                    {{ $pkg->title }}
-                                </a>
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded border border-black {{ $pkg->type_badge_bg }}">
+                                        {{ $pkg->type_short_label }}
+                                    </span>
+                                    <a href="{{ route('admin.penilaian.show', $pkg) }}" class="font-black text-black hover:text-[#5294FF] block">
+                                        {{ $pkg->title }}
+                                    </a>
+                                </div>
                                 <div class="text-[11px] text-slate-500 mt-0.5">
                                     <span class="font-bold text-slate-700">{{ $pkg->schoolClass->name }}</span> • {{ $pkg->subject->name }}
                                 </div>

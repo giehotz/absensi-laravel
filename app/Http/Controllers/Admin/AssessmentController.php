@@ -28,8 +28,14 @@ class AssessmentController extends Controller
         $status = $request->input('status');
         $academicYearId = $request->input('academic_year_id');
 
+        $type = $request->input('type');
+
         $query = AssessmentPackage::with(['schoolClass', 'subject', 'teacher.user', 'academicYear'])
             ->latest();
+
+        if ($type && in_array($type, ['materi', 'sts', 'sas'])) {
+            $query->where('type', $type);
+        }
 
         if ($classId) {
             $query->where('school_class_id', $classId);

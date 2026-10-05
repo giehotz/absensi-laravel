@@ -151,19 +151,55 @@
                         </a>
 
                         <!-- Penilaian Siswa -->
-                        <a href="{{ route('guru.penilaian.index') }}" 
-                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('guru.penilaian.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
-                            <div class="flex items-center gap-3">
-                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.penilaian.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                                </svg>
-                                <span>Penilaian Siswa</span>
+                        <div class="space-y-1">
+                            <a href="{{ route('guru.penilaian.index') }}" 
+                               class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('guru.penilaian.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('guru.penilaian.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                    </svg>
+                                    <span>Penilaian Siswa</span>
+                                </div>
+                                <span class="text-[10px] font-black {{ request()->routeIs('guru.penilaian.*') ? 'bg-black text-yellow-300' : 'bg-emerald-200 text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Sumatif</span>
+                            </a>
+
+                            <!-- Sub-menu Penilaian: Lingkup Materi, STS, SAS -->
+                            <div class="pl-4 pr-1 space-y-1 pt-0.5 {{ request()->routeIs('guru.penilaian.*') ? 'block' : 'hidden' }}">
+                                @php
+                                    $routePkg = request()->route('package');
+                                    $activeNavType = request('type', ($routePkg instanceof \App\Models\AssessmentPackage ? $routePkg->type : 'materi'));
+                                @endphp
+                                <a href="{{ route('guru.penilaian.index', ['type' => 'materi']) }}" 
+                                   class="flex items-center justify-between px-2.5 py-1.5 rounded text-[11px] transition-all duration-150 border {{ request()->routeIs('guru.penilaian.*') && $activeNavType === 'materi' ? 'bg-[#D3F9D8] text-emerald-950 border-black font-black shadow-[2px_2px_0px_0px_#000]' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800' }}">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('guru.penilaian.*') && $activeNavType === 'materi' ? 'bg-black' : 'bg-slate-500' }}"></span>
+                                        <span>Lingkup Materi</span>
+                                    </div>
+                                    <span class="text-[9px] font-mono font-bold">SUM 1-15</span>
+                                </a>
+
+                                <a href="{{ route('guru.penilaian.index', ['type' => 'sts']) }}" 
+                                   class="flex items-center justify-between px-2.5 py-1.5 rounded text-[11px] transition-all duration-150 border {{ request()->routeIs('guru.penilaian.*') && $activeNavType === 'sts' ? 'bg-[#FFF3BF] text-amber-950 border-black font-black shadow-[2px_2px_0px_0px_#000]' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800' }}">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('guru.penilaian.*') && $activeNavType === 'sts' ? 'bg-black' : 'bg-slate-500' }}"></span>
+                                        <span>Asesmen STS</span>
+                                    </div>
+                                    <span class="text-[9px] font-mono font-bold">Tengah</span>
+                                </a>
+
+                                <a href="{{ route('guru.penilaian.index', ['type' => 'sas']) }}" 
+                                   class="flex items-center justify-between px-2.5 py-1.5 rounded text-[11px] transition-all duration-150 border {{ request()->routeIs('guru.penilaian.*') && $activeNavType === 'sas' ? 'bg-[#FFE3E3] text-rose-950 border-black font-black shadow-[2px_2px_0px_0px_#000]' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-800' }}">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('guru.penilaian.*') && $activeNavType === 'sas' ? 'bg-black' : 'bg-slate-500' }}"></span>
+                                        <span>Asesmen SAS</span>
+                                    </div>
+                                    <span class="text-[9px] font-mono font-bold">Akhir</span>
+                                </a>
                             </div>
-                            <span class="text-[10px] font-black {{ request()->routeIs('guru.penilaian.*') ? 'bg-black text-yellow-300' : 'bg-emerald-200 text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Sumatif</span>
-                        </a>
+                        </div>
 
                         <!-- Jadwal Mengajar -->
                         <a href="{{ route('guru.jadwal') }}" 
