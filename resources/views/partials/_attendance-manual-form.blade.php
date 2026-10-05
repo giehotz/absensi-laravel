@@ -45,11 +45,57 @@
     .status-cell-alpa {
         background-color: #FFE3E3 !important; /* MERAH soft */
     }
+
+    /* Transformasi Responsif Tabel ke Kartu Siswa di Mobile (< 768px) */
+    @media (max-width: 767.98px) {
+        .attendance-responsive-table {
+            display: block !important;
+            width: 100% !important;
+        }
+        .attendance-responsive-table thead {
+            display: none !important;
+        }
+        .attendance-responsive-table tbody {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0.875rem !important;
+            width: 100% !important;
+            padding: 0.625rem !important;
+        }
+        .attendance-responsive-table .student-row {
+            display: flex !important;
+            flex-direction: column !important;
+            background: #ffffff !important;
+            border: 2px solid #000000 !important;
+            border-radius: 0.75rem !important;
+            padding: 0.875rem !important;
+            box-shadow: 3px 3px 0px 0px #000000 !important;
+            gap: 0.75rem !important;
+            transition: all 0.15s ease !important;
+        }
+        .attendance-responsive-table .student-row:focus-within {
+            box-shadow: 4px 4px 0px 0px #000000 !important;
+        }
+        .attendance-responsive-table .student-row td {
+            display: block !important;
+            border: none !important;
+            padding: 0 !important;
+            width: 100% !important;
+            background: transparent !important;
+        }
+        .attendance-responsive-table .student-row td.status-cell {
+            background-color: transparent !important;
+        }
+        /* Feedback interaksi kartu mobile */
+        .attendance-responsive-table .student-row:active {
+            transform: scale(0.995) !important;
+        }
+    }
 </style>
 
 <div class="space-y-6">
     <!-- Filter Card: Tanggal & Kelas -->
-    <div class="bg-white neo-box p-5">
+    <div class="bg-white neo-box p-4 sm:p-5">
         <form action="{{ $filterRoute }}" method="GET" class="flex flex-col md:flex-row items-start md:items-end gap-4 justify-between">
             <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
                 <!-- Navigasi Tanggal Presensi (Neo-Brutalism) -->
@@ -58,7 +104,7 @@
                         <span>📅</span> Tanggal Presensi
                     </label>
 
-                    <div class="flex items-center gap-2 bg-slate-50 border-2 border-black px-2 py-1.5 neo-box-sm relative min-w-[280px] sm:min-w-[340px] justify-between">
+                    <div class="flex items-center gap-1.5 sm:gap-2 bg-slate-50 border-2 border-black px-2 py-1.5 neo-box-sm relative w-full sm:w-auto min-w-0 sm:min-w-[320px] justify-between">
                         <!-- Tombol Hari Sebelumnya (<) -->
                         <button type="button" 
                                 onclick="setAttendanceFilterDate('{{ $prevDate }}')"
@@ -68,13 +114,13 @@
                         </button>
 
                         <!-- Label & Tanggal di Tengah (Dapat diklik untuk membuka datepicker) -->
-                        <div class="text-center px-2 flex-1 cursor-pointer select-none group" 
+                        <div class="text-center px-1 sm:px-2 flex-1 cursor-pointer select-none group min-w-0" 
                              onclick="triggerAttendanceDatePicker()" 
                              title="Klik untuk memilih tanggal melalui kalender">
                             <div class="text-[11px] font-black text-slate-700 uppercase tracking-wider leading-tight group-hover:text-black">
                                 {{ $dayLabel }}
                             </div>
-                            <div class="text-xs sm:text-[13px] font-black text-[#2b8a3e] font-mono leading-tight group-hover:underline">
+                            <div class="text-xs sm:text-[13px] font-black text-[#2b8a3e] font-mono leading-tight group-hover:underline truncate">
                                 {{ $formattedDateIndo }}
                             </div>
                         </div>
@@ -104,11 +150,11 @@
 
                         <!-- Input Native Date (Tersembunyi tapi aktif) -->
                         <input type="date" 
-                               id="attendanceDateInput" 
-                               name="date" 
-                               value="{{ $date }}" 
-                               onchange="this.form.submit()"
-                               class="absolute opacity-0 pointer-events-none w-0 h-0">
+                                id="attendanceDateInput" 
+                                name="date" 
+                                value="{{ $date }}" 
+                                onchange="this.form.submit()"
+                                class="absolute opacity-0 pointer-events-none w-0 h-0">
                     </div>
                 </div>
 
@@ -129,23 +175,25 @@
                     </select>
                 </div>
 
-                <div class="pt-2 sm:pt-6">
-                    <button type="submit" class="neo-btn bg-black text-white text-xs px-4 py-2 font-bold cursor-pointer hover:bg-slate-800">
+                <div class="pt-1 sm:pt-6 w-full sm:w-auto">
+                    <button type="submit" class="w-full sm:w-auto neo-btn bg-black text-white text-xs px-4 py-2 font-bold cursor-pointer hover:bg-slate-800 text-center">
                         Muat Data
                     </button>
                 </div>
             </div>
 
             @if($selectedClass)
-                <div class="flex items-center gap-2 pt-2 md:pt-0 flex-wrap justify-end">
-                    <span class="text-xs font-mono font-bold bg-[#E7F5FF] text-blue-900 border-2 border-black px-3 py-1.5 rounded-sm">
-                        {{ $students->count() }} Siswa Terdaftar
-                    </span>
-                    @if($selectedClass->homeroomTeacher)
-                        <span class="text-xs font-bold bg-[#D3F9D8] text-emerald-900 border-2 border-black px-3 py-1.5 rounded-sm hidden lg:inline-block">
-                            Wali: {{ $selectedClass->homeroomTeacher->user->name ?? '-' }}
+                <div class="flex items-center gap-2 pt-2 md:pt-0 flex-wrap justify-between md:justify-end w-full md:w-auto border-t md:border-t-0 border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-mono font-bold bg-[#E7F5FF] text-blue-900 border-2 border-black px-2.5 sm:px-3 py-1.5 rounded-sm">
+                            {{ $students->count() }} Siswa
                         </span>
-                    @endif
+                        @if($selectedClass->homeroomTeacher)
+                            <span class="text-xs font-bold bg-[#D3F9D8] text-emerald-900 border-2 border-black px-2.5 sm:px-3 py-1.5 rounded-sm hidden lg:inline-block">
+                                Wali: {{ $selectedClass->homeroomTeacher->user->name ?? '-' }}
+                            </span>
+                        @endif
+                    </div>
 
                     <!-- Tombol Aksi: Icon-Only dengan Tooltip Neo-Brutalism -->
                     <div class="flex items-center gap-1.5">
@@ -153,7 +201,7 @@
                         <div class="relative group">
                             <a href="{{ $templateRoute }}?school_class_id={{ $selectedClassId }}&date={{ $date }}" 
                                title="Download Template Excel"
-                               class="neo-btn bg-[#FFF3BF] hover:bg-[#FFE066] text-black w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 text-sm sm:text-base">
+                               class="neo-btn bg-[#FFF3BF] hover:bg-[#FFE066] text-black w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 text-sm sm:text-base">
                                 📥
                             </a>
                             <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 whitespace-nowrap">
@@ -169,7 +217,7 @@
                             <button type="button" 
                                     onclick="openAttendanceUploadModal()" 
                                     title="Upload Presensi Excel"
-                                    class="neo-btn bg-[#5294FF] hover:bg-[#3b82f6] text-white w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-sm sm:text-base">
+                                    class="neo-btn bg-[#5294FF] hover:bg-[#3b82f6] text-white w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-sm sm:text-base">
                                 📤
                             </button>
                             <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 whitespace-nowrap">
@@ -185,7 +233,7 @@
                             <button type="button" 
                                     onclick="openAttendanceBatchesModal()" 
                                     title="Riwayat Upload Presensi"
-                                    class="neo-btn bg-white hover:bg-slate-100 text-black w-8 h-8 sm:w-8.5 sm:h-8.5 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-sm sm:text-base">
+                                    class="neo-btn bg-white hover:bg-slate-100 text-black w-8.5 h-8.5 sm:w-9 sm:h-9 flex items-center justify-center font-bold border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-sm sm:text-base">
                                 📋
                             </button>
                             <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:flex flex-col items-center pointer-events-none z-30 whitespace-nowrap">
@@ -325,43 +373,43 @@
         @endif
 
         <!-- Main Form Presensi Manual -->
-        <form id="attendanceManualForm" action="{{ $submitRoute }}" method="POST" class="space-y-6">
+        <form id="attendanceManualForm" action="{{ $submitRoute }}" method="POST" class="space-y-6 pb-24 md:pb-0">
             @csrf
             <input type="hidden" name="date" value="{{ $date }}">
             <input type="hidden" name="school_class_id" value="{{ $selectedClassId }}">
 
             <!-- Dual Bulk Action Toolbar -->
-            <div class="bg-[#FFF9DB] neo-box p-4 sm:p-5 space-y-4">
+            <div class="bg-[#FFF9DB] neo-box p-3.5 sm:p-5 space-y-4">
                 <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
                     <!-- Global Set Semua -->
-                    <div class="space-y-1.5 w-full lg:w-auto">
+                    <div class="space-y-2 w-full lg:w-auto">
                         <div class="text-xs font-black uppercase text-black flex items-center gap-1.5">
                             <span>⚡</span> Aksi Cepat (Terapkan ke SEMUA siswa):
                         </div>
-                        <div class="flex flex-wrap gap-2">
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-wrap gap-2">
                             <button type="button" onclick="setAllStatus('hadir')" 
-                                    class="neo-btn bg-[#20C997] text-white text-xs font-bold px-3 py-1.5 cursor-pointer hover:opacity-90">
+                                    class="neo-btn bg-[#20C997] text-white text-xs font-bold px-3 py-2 cursor-pointer hover:opacity-90 flex items-center justify-center gap-1.5 shadow-[1.5px_1.5px_0px_#000]">
                                 ✓ Semua Hadir
                             </button>
                             <button type="button" onclick="setAllStatus('terlambat')" 
-                                    class="neo-btn bg-[#339AF0] text-white text-xs font-bold px-3 py-1.5 cursor-pointer hover:opacity-90">
+                                    class="neo-btn bg-[#339AF0] text-white text-xs font-bold px-3 py-2 cursor-pointer hover:opacity-90 flex items-center justify-center gap-1.5 shadow-[1.5px_1.5px_0px_#000]">
                                 ⏰ Semua Terlambat
                             </button>
                             <button type="button" onclick="setAllStatus('izin')" 
-                                    class="neo-btn bg-[#868E96] text-white text-xs font-bold px-3 py-1.5 cursor-pointer hover:opacity-90">
+                                    class="neo-btn bg-[#868E96] text-white text-xs font-bold px-3 py-2 cursor-pointer hover:opacity-90 flex items-center justify-center gap-1.5 shadow-[1.5px_1.5px_0px_#000]">
                                 📝 Semua Izin
                             </button>
                             <button type="button" onclick="setAllStatus('sakit')" 
-                                    class="neo-btn bg-[#FFD43B] text-black text-xs font-bold px-3 py-1.5 cursor-pointer hover:opacity-90">
+                                    class="neo-btn bg-[#FFD43B] text-black text-xs font-bold px-3 py-2 cursor-pointer hover:opacity-90 flex items-center justify-center gap-1.5 shadow-[1.5px_1.5px_0px_#000]">
                                 🩺 Semua Sakit
                             </button>
                             <button type="button" onclick="setAllStatus('alpa')" 
-                                    class="neo-btn bg-[#FF6B6B] text-white text-xs font-bold px-3 py-1.5 cursor-pointer hover:opacity-90">
+                                    class="neo-btn bg-[#FF6B6B] text-white text-xs font-bold px-3 py-2 cursor-pointer hover:opacity-90 flex items-center justify-center gap-1.5 shadow-[1.5px_1.5px_0px_#000]">
                                 ✕ Semua Alpa
                             </button>
                             @if($role === 'admin')
                                 <button type="button" onclick="openMonthlyFillModal('all')" 
-                                        class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-xs font-black px-3 py-1.5 cursor-pointer flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5">
+                                        class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-xs font-black px-3 py-2 cursor-pointer flex items-center justify-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5 col-span-2 sm:col-span-1">
                                     <span>📅</span> Isi 1 Bulan Penuh
                                 </button>
                             @endif
@@ -369,21 +417,36 @@
                     </div>
 
                     <!-- Live Counter Pills -->
-                    <div class="flex flex-wrap items-center gap-2 bg-white border-2 border-black p-2 rounded-sm text-xs font-bold font-mono">
-                        <span class="text-emerald-700 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#20C997] border border-black inline-block"></span> H: <span id="counter-hadir">0</span></span>
-                        <span class="text-slate-300">|</span>
-                        <span class="text-blue-700 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#339AF0] border border-black inline-block"></span> T: <span id="counter-terlambat">0</span></span>
-                        <span class="text-slate-300">|</span>
-                        <span class="text-slate-600 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#868E96] border border-black inline-block"></span> I: <span id="counter-izin">0</span></span>
-                        <span class="text-slate-300">|</span>
-                        <span class="text-amber-700 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#FFD43B] border border-black inline-block"></span> S: <span id="counter-sakit">0</span></span>
-                        <span class="text-slate-300">|</span>
-                        <span class="text-rose-700 flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-[#FF6B6B] border border-black inline-block"></span> A: <span id="counter-alpa">0</span></span>
+                    <div class="w-full lg:w-auto grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:items-center sm:gap-2 bg-white border-2 border-black p-2 rounded-sm text-xs font-bold font-mono text-center">
+                        <div class="text-emerald-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#20C997] border border-black inline-block"></span>
+                            <span>H: <b id="counter-hadir">0</b></span>
+                        </div>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <div class="text-blue-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#339AF0] border border-black inline-block"></span>
+                            <span>T: <b id="counter-terlambat">0</b></span>
+                        </div>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <div class="text-slate-600 flex flex-col sm:flex-row items-center justify-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#868E96] border border-black inline-block"></span>
+                            <span>I: <b id="counter-izin">0</b></span>
+                        </div>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <div class="text-amber-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#FFD43B] border border-black inline-block"></span>
+                            <span>S: <b id="counter-sakit">0</b></span>
+                        </div>
+                        <span class="text-slate-300 hidden sm:inline">|</span>
+                        <div class="text-rose-700 flex flex-col sm:flex-row items-center justify-center gap-1">
+                            <span class="w-2.5 h-2.5 rounded-full bg-[#FF6B6B] border border-black inline-block"></span>
+                            <span>A: <b id="counter-alpa">0</b></span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Selective Bulk Action Bar (muncul jika ada siswa yang dicentang) -->
-                <div id="selectionActionBar" class="pt-3 border-t-2 border-black/10 flex flex-wrap items-center justify-between gap-3 bg-white/70 p-2.5 rounded-sm border border-black/20">
+                <div id="selectionActionBar" class="flex flex-wrap items-center justify-between gap-3 bg-white/80 p-2.5 rounded-sm border-2 border-black">
                     <div class="flex items-center gap-2 text-xs font-black text-black">
                         <span class="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
                         <span id="selectedCountText">0 Siswa Dipilih</span>
@@ -391,29 +454,29 @@
                     <div class="flex flex-wrap items-center gap-1.5">
                         <span class="text-[11px] font-bold text-slate-600 mr-1">Set Terpilih:</span>
                         <button type="button" onclick="setSelectedStatus('hadir')" 
-                                class="neo-btn bg-[#20C997] text-white text-[11px] font-bold px-2.5 py-1 cursor-pointer">
+                                class="neo-btn bg-[#20C997] text-white text-[11px] font-bold px-2.5 py-1.5 cursor-pointer shadow-[1px_1px_0px_#000]">
                             Hadir
                         </button>
                         <button type="button" onclick="setSelectedStatus('terlambat')" 
-                                class="neo-btn bg-[#339AF0] text-white text-[11px] font-bold px-2.5 py-1 cursor-pointer">
+                                class="neo-btn bg-[#339AF0] text-white text-[11px] font-bold px-2.5 py-1.5 cursor-pointer shadow-[1px_1px_0px_#000]">
                             Terlambat
                         </button>
                         <button type="button" onclick="setSelectedStatus('izin')" 
-                                class="neo-btn bg-[#868E96] text-white text-[11px] font-bold px-2.5 py-1 cursor-pointer">
+                                class="neo-btn bg-[#868E96] text-white text-[11px] font-bold px-2.5 py-1.5 cursor-pointer shadow-[1px_1px_0px_#000]">
                             Izin
                         </button>
                         <button type="button" onclick="setSelectedStatus('sakit')" 
-                                class="neo-btn bg-[#FFD43B] text-black text-[11px] font-bold px-2.5 py-1 cursor-pointer">
+                                class="neo-btn bg-[#FFD43B] text-black text-[11px] font-bold px-2.5 py-1.5 cursor-pointer shadow-[1px_1px_0px_#000]">
                             Sakit
                         </button>
                         <button type="button" onclick="setSelectedStatus('alpa')" 
-                                class="neo-btn bg-[#FF6B6B] text-white text-[11px] font-bold px-2.5 py-1 cursor-pointer">
+                                class="neo-btn bg-[#FF6B6B] text-white text-[11px] font-bold px-2.5 py-1.5 cursor-pointer shadow-[1px_1px_0px_#000]">
                             Alpa
                         </button>
                         @if($role === 'admin')
                             <div class="h-4 w-px bg-slate-400 mx-1"></div>
                             <button type="button" onclick="openMonthlyFillModal('selected')" 
-                                    class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-[11px] font-black px-2.5 py-1 cursor-pointer flex items-center gap-1 border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5">
+                                    class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-black text-[11px] font-black px-2.5 py-1.5 cursor-pointer flex items-center gap-1 border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] transition-transform active:translate-x-0.5 active:translate-y-0.5">
                                 <span>📅</span> Isi 1 Bulan
                             </button>
                         @endif
@@ -421,15 +484,16 @@
                 </div>
             </div>
 
-            <!-- Tabel Siswa -->
+            <!-- Tabel Siswa (Desktop Tabular & Mobile Card Adaptive) -->
             <div class="bg-white neo-box overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 border-b-2 border-black text-xs font-black uppercase text-black">
+                <div class="overflow-x-visible md:overflow-x-auto">
+                    <table class="w-full text-left text-sm attendance-responsive-table">
+                        <thead class="hidden md:table-header-group bg-slate-100 border-b-2 border-black text-xs font-black uppercase text-black">
                             <tr>
                                 <th class="p-3 w-10 text-center border-r-2 border-black">
                                     <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)"
-                                           class="w-4 h-4 cursor-pointer accent-black rounded-sm border-2 border-black">
+                                           class="w-4 h-4 cursor-pointer accent-black rounded-sm border-2 border-black"
+                                           title="Pilih Semua Siswa">
                                 </th>
                                 <th class="p-3 w-12 text-center border-r-2 border-black">No</th>
                                 <th class="p-3 border-r-2 border-black">Siswa</th>
@@ -454,7 +518,7 @@
                                 <th class="p-3 min-w-[180px]">Catatan / Keterangan</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y-2 divide-black">
+                        <tbody class="divide-y-0 md:divide-y-2 md:divide-black">
                             @foreach($students as $index => $stu)
                                 @php
                                     $existingAtt = $stu->attendances->first();
@@ -472,23 +536,36 @@
                                         default => 'status-cell-hadir'
                                     };
                                 @endphp
-                                <tr class="student-row hover:bg-slate-50 transition-colors" data-student-id="{{ $stu->id }}">
-                                    <!-- Checkbox Baris -->
-                                    <td class="p-3 text-center border-r-2 border-black bg-slate-50/50">
-                                        <input type="checkbox" class="row-checkbox w-4 h-4 cursor-pointer accent-black rounded-sm border-2 border-black" 
-                                               value="{{ $stu->id }}" onchange="updateSelectionBar()">
+                                <tr class="student-row hover:bg-slate-50 transition-colors {{ 'card-status-' . $currentStatus }}" data-student-id="{{ $stu->id }}">
+                                    <!-- Checkbox Baris & Header Kartu Mobile -->
+                                    <td class="td-col-check p-0 md:p-3 text-left md:text-center md:border-r-2 md:border-black md:bg-slate-50/50">
+                                        <div class="flex items-center justify-between pb-2 border-b-2 border-black/10 md:border-none md:pb-0 md:justify-center">
+                                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                                <input type="checkbox" class="row-checkbox w-4 h-4 cursor-pointer accent-black rounded-sm border-2 border-black" 
+                                                       value="{{ $stu->id }}" onchange="updateSelectionBar()">
+                                                <span class="md:hidden text-[11px] font-mono font-black bg-slate-100 border border-black px-1.5 py-0.5 rounded-xs text-black shadow-[1px_1px_0px_#000]">
+                                                    #{{ $index + 1 }}
+                                                </span>
+                                                <span class="md:hidden text-xs font-mono font-bold text-slate-700">NIS: {{ $stu->nis }}</span>
+                                            </label>
+                                            <span class="md:hidden text-[10px] font-black uppercase px-2 py-0.5 rounded border border-black {{ $stu->gender == 'L' ? 'bg-blue-100 text-blue-900' : 'bg-pink-100 text-pink-900' }}">
+                                                {{ $stu->gender == 'L' ? 'Laki-laki' : 'Perempuan' }}
+                                            </span>
+                                        </div>
                                     </td>
 
-                                    <!-- No -->
-                                    <td class="p-3 text-center font-mono font-bold text-xs border-r-2 border-black">
+                                    <!-- No (Khusus Tampilan Desktop) -->
+                                    <td class="td-col-no hidden md:table-cell p-3 text-center font-mono font-bold text-xs border-r-2 border-black">
                                         {{ $index + 1 }}
                                     </td>
 
                                     <!-- Identitas Siswa -->
-                                    <td class="p-3 border-r-2 border-black">
+                                    <td class="td-col-student p-0 md:p-3 border-0 md:border-r-2 border-black">
                                         <input type="hidden" name="attendances[{{ $index }}][student_id]" value="{{ $stu->id }}">
-                                        <div class="font-black text-black text-sm">{{ $stu->user->name ?? '-' }}</div>
-                                        <div class="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
+                                        <div class="font-heading font-black text-black text-base md:text-sm leading-tight">
+                                            {{ $stu->user->name ?? '-' }}
+                                        </div>
+                                        <div class="hidden md:flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-mono">
                                             <span>NIS: {{ $stu->nis }}</span>
                                             <span>•</span>
                                             <span class="font-bold text-slate-700">{{ $stu->gender == 'L' ? 'Laki-laki' : 'Perempuan' }}</span>
@@ -496,125 +573,146 @@
                                     </td>
 
                                     <!-- Pilihan Radio Icon Status (Cell Berwarna Sesuai Status) -->
-                                    <td class="status-cell p-2.5 border-r-2 border-black transition-colors duration-200 {{ $cellClass }}">
-                                        <div class="flex items-center justify-center gap-1 sm:gap-1.5">
-                                            <!-- Hadir (Hijau) -->
-                                            <label class="status-pill cursor-pointer relative group" title="Hadir (Tepat Waktu)">
-                                                <input type="radio" name="attendances[{{ $index }}][status]" value="hadir" 
-                                                       {{ $currentStatus === 'hadir' ? 'checked' : '' }}
-                                                       onchange="updateCounters(); updateCellColor(this);"
-                                                       class="sr-only peer">
-                                                <span class="w-8 h-8 flex items-center justify-center border-2 border-black rounded-sm transition-all
-                                                             peer-checked:bg-[#20C997] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-105
-                                                             bg-white text-slate-700 hover:bg-slate-100 hover:scale-105">
-                                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
-                                                    </svg>
-                                                </span>
-                                                <!-- Tooltip Popup -->
-                                                <span class="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
-                                                    Hadir
-                                                    <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
-                                                </span>
-                                            </label>
+                                    <td class="status-cell p-0 md:p-2.5 border-0 md:border-r-2 border-black transition-colors duration-200 {{ $cellClass }}">
+                                        <div class="space-y-1 md:space-y-0">
+                                            <div class="md:hidden text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-between">
+                                                <span>Status Kehadiran:</span>
+                                                <span class="text-[9px] font-mono text-slate-400">Pilih opsi kehadiran</span>
+                                            </div>
+                                            <div class="grid grid-cols-5 gap-1.5 sm:gap-2 md:flex md:items-center md:justify-center md:gap-1.5">
+                                                <!-- Hadir (Hijau) -->
+                                                <label class="status-pill cursor-pointer relative group flex-1 md:flex-initial" title="Hadir (Tepat Waktu)">
+                                                    <input type="radio" name="attendances[{{ $index }}][status]" value="hadir" 
+                                                           {{ $currentStatus === 'hadir' ? 'checked' : '' }}
+                                                           onchange="updateCounters(); updateCellColor(this);"
+                                                           class="sr-only peer">
+                                                    <span class="w-full md:w-8 h-12 md:h-8 flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-0 border-2 border-black rounded-lg md:rounded-sm transition-all
+                                                                 peer-checked:bg-[#20C997] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-[1.02] md:peer-checked:scale-105
+                                                                 bg-white text-slate-700 hover:bg-slate-100 hover:scale-105 active:scale-95">
+                                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                                                        </svg>
+                                                        <span class="md:hidden text-[9px] font-black uppercase tracking-tight leading-none">Hadir</span>
+                                                    </span>
+                                                    <!-- Tooltip Popup (Desktop) -->
+                                                    <span class="hidden md:block pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
+                                                        Hadir
+                                                        <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
+                                                    </span>
+                                                </label>
 
-                                            <!-- Terlambat (Biru) -->
-                                            <label class="status-pill cursor-pointer relative group" title="Terlambat">
-                                                <input type="radio" name="attendances[{{ $index }}][status]" value="terlambat" 
-                                                       {{ $currentStatus === 'terlambat' ? 'checked' : '' }}
-                                                       onchange="updateCounters(); updateCellColor(this);"
-                                                       class="sr-only peer">
-                                                <span class="w-8 h-8 flex items-center justify-center border-2 border-black rounded-sm transition-all
-                                                             peer-checked:bg-[#339AF0] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-105
-                                                             bg-white text-slate-700 hover:bg-slate-100 hover:scale-105">
-                                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                    </svg>
-                                                </span>
-                                                <!-- Tooltip Popup -->
-                                                <span class="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
-                                                    Terlambat
-                                                    <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
-                                                </span>
-                                            </label>
+                                                <!-- Terlambat (Biru) -->
+                                                <label class="status-pill cursor-pointer relative group flex-1 md:flex-initial" title="Terlambat">
+                                                    <input type="radio" name="attendances[{{ $index }}][status]" value="terlambat" 
+                                                           {{ $currentStatus === 'terlambat' ? 'checked' : '' }}
+                                                           onchange="updateCounters(); updateCellColor(this);"
+                                                           class="sr-only peer">
+                                                    <span class="w-full md:w-8 h-12 md:h-8 flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-0 border-2 border-black rounded-lg md:rounded-sm transition-all
+                                                                 peer-checked:bg-[#339AF0] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-[1.02] md:peer-checked:scale-105
+                                                                 bg-white text-slate-700 hover:bg-slate-100 hover:scale-105 active:scale-95">
+                                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                        <span class="md:hidden text-[9px] font-black uppercase tracking-tight leading-none">Telat</span>
+                                                    </span>
+                                                    <!-- Tooltip Popup -->
+                                                    <span class="hidden md:block pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
+                                                        Terlambat
+                                                        <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
+                                                    </span>
+                                                </label>
 
-                                            <!-- Izin (Abu-abu) -->
-                                            <label class="status-pill cursor-pointer relative group" title="Izin">
-                                                <input type="radio" name="attendances[{{ $index }}][status]" value="izin" 
-                                                       {{ $currentStatus === 'izin' ? 'checked' : '' }}
-                                                       onchange="updateCounters(); updateCellColor(this);"
-                                                       class="sr-only peer">
-                                                <span class="w-8 h-8 flex items-center justify-center border-2 border-black rounded-sm transition-all
-                                                             peer-checked:bg-[#868E96] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-105
-                                                             bg-white text-slate-700 hover:bg-slate-100 hover:scale-105">
-                                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                    </svg>
-                                                </span>
-                                                <!-- Tooltip Popup -->
-                                                <span class="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
-                                                    Izin
-                                                    <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
-                                                </span>
-                                            </label>
+                                                <!-- Izin (Abu-abu) -->
+                                                <label class="status-pill cursor-pointer relative group flex-1 md:flex-initial" title="Izin">
+                                                    <input type="radio" name="attendances[{{ $index }}][status]" value="izin" 
+                                                           {{ $currentStatus === 'izin' ? 'checked' : '' }}
+                                                           onchange="updateCounters(); updateCellColor(this);"
+                                                           class="sr-only peer">
+                                                    <span class="w-full md:w-8 h-12 md:h-8 flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-0 border-2 border-black rounded-lg md:rounded-sm transition-all
+                                                                 peer-checked:bg-[#868E96] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-[1.02] md:peer-checked:scale-105
+                                                                 bg-white text-slate-700 hover:bg-slate-100 hover:scale-105 active:scale-95">
+                                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                        </svg>
+                                                        <span class="md:hidden text-[9px] font-black uppercase tracking-tight leading-none">Izin</span>
+                                                    </span>
+                                                    <!-- Tooltip Popup -->
+                                                    <span class="hidden md:block pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
+                                                        Izin
+                                                        <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
+                                                    </span>
+                                                </label>
 
-                                            <!-- Sakit (Kuning) -->
-                                            <label class="status-pill cursor-pointer relative group" title="Sakit">
-                                                <input type="radio" name="attendances[{{ $index }}][status]" value="sakit" 
-                                                       {{ $currentStatus === 'sakit' ? 'checked' : '' }}
-                                                       onchange="updateCounters(); updateCellColor(this);"
-                                                       class="sr-only peer">
-                                                <span class="w-8 h-8 flex items-center justify-center border-2 border-black rounded-sm transition-all
-                                                             peer-checked:bg-[#FFD43B] peer-checked:text-black peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-105
-                                                             bg-white text-slate-700 hover:bg-slate-100 hover:scale-105">
-                                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
-                                                    </svg>
-                                                </span>
-                                                <!-- Tooltip Popup -->
-                                                <span class="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
-                                                    Sakit
-                                                    <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
-                                                </span>
-                                            </label>
+                                                <!-- Sakit (Kuning) -->
+                                                <label class="status-pill cursor-pointer relative group flex-1 md:flex-initial" title="Sakit">
+                                                    <input type="radio" name="attendances[{{ $index }}][status]" value="sakit" 
+                                                           {{ $currentStatus === 'sakit' ? 'checked' : '' }}
+                                                           onchange="updateCounters(); updateCellColor(this);"
+                                                           class="sr-only peer">
+                                                    <span class="w-full md:w-8 h-12 md:h-8 flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-0 border-2 border-black rounded-lg md:rounded-sm transition-all
+                                                                 peer-checked:bg-[#FFD43B] peer-checked:text-black peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-[1.02] md:peer-checked:scale-105
+                                                                 bg-white text-slate-700 hover:bg-slate-100 hover:scale-105 active:scale-95">
+                                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                                                        </svg>
+                                                        <span class="md:hidden text-[9px] font-black uppercase tracking-tight leading-none">Sakit</span>
+                                                    </span>
+                                                    <!-- Tooltip Popup -->
+                                                    <span class="hidden md:block pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
+                                                        Sakit
+                                                        <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
+                                                    </span>
+                                                </label>
 
-                                            <!-- Alpa (Merah) -->
-                                            <label class="status-pill cursor-pointer relative group" title="Alpa">
-                                                <input type="radio" name="attendances[{{ $index }}][status]" value="alpa" 
-                                                       {{ $currentStatus === 'alpa' ? 'checked' : '' }}
-                                                       onchange="updateCounters(); updateCellColor(this);"
-                                                       class="sr-only peer">
-                                                <span class="w-8 h-8 flex items-center justify-center border-2 border-black rounded-sm transition-all
-                                                             peer-checked:bg-[#FF6B6B] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-105
-                                                             bg-white text-slate-700 hover:bg-slate-100 hover:scale-105">
-                                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                                                    </svg>
-                                                </span>
-                                                <!-- Tooltip Popup -->
-                                                <span class="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
-                                                    Alpa
-                                                    <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
-                                                </span>
-                                            </label>
+                                                <!-- Alpa (Merah) -->
+                                                <label class="status-pill cursor-pointer relative group flex-1 md:flex-initial" title="Alpa">
+                                                    <input type="radio" name="attendances[{{ $index }}][status]" value="alpa" 
+                                                           {{ $currentStatus === 'alpa' ? 'checked' : '' }}
+                                                           onchange="updateCounters(); updateCellColor(this);"
+                                                           class="sr-only peer">
+                                                    <span class="w-full md:w-8 h-12 md:h-8 flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-0 border-2 border-black rounded-lg md:rounded-sm transition-all
+                                                                 peer-checked:bg-[#FF6B6B] peer-checked:text-white peer-checked:shadow-[2px_2px_0px_0px_#000] peer-checked:scale-[1.02] md:peer-checked:scale-105
+                                                                 bg-white text-slate-700 hover:bg-slate-100 hover:scale-105 active:scale-95">
+                                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                                                        </svg>
+                                                        <span class="md:hidden text-[9px] font-black uppercase tracking-tight leading-none">Alpa</span>
+                                                    </span>
+                                                    <!-- Tooltip Popup -->
+                                                    <span class="hidden md:block pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 z-30 whitespace-nowrap bg-black text-white text-[10px] font-black px-2 py-0.5 rounded shadow-[2px_2px_0px_#000] border border-black scale-90 group-hover:scale-100">
+                                                        Alpa
+                                                        <span class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></span>
+                                                    </span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </td>
 
                                     <!-- Jam Masuk Manual (WIB) -->
-                                    <td class="p-2 text-center border-r-2 border-black bg-slate-50/50">
-                                        <input type="time" 
-                                               name="attendances[{{ $index }}][check_in_time]" 
-                                               value="{{ $currentCheckInTime }}" 
-                                               class="check-in-time-input w-24 sm:w-28 bg-white border-2 border-black px-1.5 py-1 text-xs font-mono font-black text-center rounded-xs shadow-[1.5px_1.5px_0px_0px_#000] focus:ring-1 focus:ring-black transition-opacity {{ in_array($currentStatus, ['hadir', 'terlambat']) ? '' : 'opacity-25 pointer-events-none bg-slate-200' }}"
-                                               {{ in_array($currentStatus, ['hadir', 'terlambat']) ? '' : 'disabled' }}
-                                               title="Jam Masuk Siswa (WIB)">
+                                    <td class="td-col-time p-0 md:p-2 text-left md:text-center border-0 md:border-r-2 border-black bg-transparent md:bg-slate-50/50">
+                                        <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 border border-black/10 md:bg-transparent md:border-none md:p-0 md:justify-center">
+                                            <label class="md:hidden text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                                <span>⏰</span> Jam Masuk (WIB):
+                                            </label>
+                                            <input type="time" 
+                                                   name="attendances[{{ $index }}][check_in_time]" 
+                                                   value="{{ $currentCheckInTime }}" 
+                                                   class="check-in-time-input w-28 sm:w-32 md:w-24 lg:w-28 bg-white border-2 border-black px-2 py-1 text-xs font-mono font-black text-center rounded-md md:rounded-xs shadow-[1.5px_1.5px_0px_0px_#000] focus:ring-1 focus:ring-black transition-opacity {{ in_array($currentStatus, ['hadir', 'terlambat']) ? '' : 'opacity-25 pointer-events-none bg-slate-200' }}"
+                                                   {{ in_array($currentStatus, ['hadir', 'terlambat']) ? '' : 'disabled' }}
+                                                   title="Jam Masuk Siswa (WIB)">
+                                        </div>
                                     </td>
 
                                     <!-- Catatan -->
-                                    <td class="p-3">
-                                        <input type="text" name="attendances[{{ $index }}][notes]" value="{{ $currentNotes }}" 
-                                               placeholder="Catatan jika izin/sakit/terlambat..."
-                                               class="w-full bg-slate-50 border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-black rounded-sm focus:bg-white focus:outline-hidden focus:border-black">
+                                    <td class="td-col-notes p-0 md:p-3 border-0">
+                                        <div class="space-y-1 md:space-y-0">
+                                            <label class="md:hidden text-xs font-bold text-slate-700 flex items-center gap-1">
+                                                <span>📝</span> Catatan / Keterangan:
+                                            </label>
+                                            <input type="text" name="attendances[{{ $index }}][notes]" value="{{ $currentNotes }}" 
+                                                   placeholder="Catatan jika izin/sakit/terlambat..."
+                                                   class="w-full bg-slate-50 border-2 md:border border-black md:border-slate-300 px-3 py-1.5 text-xs font-medium text-black rounded-lg md:rounded-sm focus:bg-white focus:outline-hidden focus:border-black transition-colors">
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -623,7 +721,7 @@
                 </div>
             </div>
 
-            <!-- Bottom Submit Bar -->
+            <!-- Bottom Submit Bar (Desktop View) -->
             <div class="bg-white neo-box-lg p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-2">
                     <span class="text-xl">📋</span>
@@ -643,6 +741,29 @@
                         <span>💾</span> Simpan Presensi
                     </button>
                 </div>
+            </div>
+
+            <!-- Mobile Sticky Bottom Action Bar -->
+            <div class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t-4 border-black px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.15)] flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <div class="text-[10px] font-black uppercase text-slate-500 truncate">
+                        {{ $selectedClass->name ?? 'Kelas' }} • {{ \Carbon\Carbon::parse($date)->translatedFormat('d M') }}
+                    </div>
+                    <div class="flex items-center gap-1.5 text-xs font-mono font-black text-black">
+                        <span class="text-emerald-700">H:<span class="counter-hadir-mobile">0</span></span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-blue-700">T:<span class="counter-terlambat-mobile">0</span></span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-amber-700">S:<span class="counter-sakit-mobile">0</span></span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-rose-700">A:<span class="counter-alpa-mobile">0</span></span>
+                    </div>
+                </div>
+
+                <button type="button" onclick="confirmSaveAttendance()" 
+                        class="neo-btn bg-[#20C997] hover:bg-emerald-400 text-black px-4 py-2.5 text-xs font-black uppercase flex items-center gap-1.5 shrink-0 shadow-[2px_2px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer">
+                    <span>💾</span> Simpan
+                </button>
             </div>
         </form>
     @endif
@@ -666,6 +787,7 @@
     // Update warna cell status kehadiran saat radio status dipilih
     function updateCellColor(radio) {
         const td = radio.closest('.status-cell');
+        const row = radio.closest('.student-row');
         if (!td) return;
 
         td.classList.remove(
@@ -682,6 +804,18 @@
         );
 
         td.classList.add('status-cell-' + radio.value);
+
+        if (row) {
+            row.classList.remove(
+                'card-status-hadir',
+                'card-status-terlambat',
+                'card-status-izin',
+                'card-status-sakit',
+                'card-status-alpa'
+            );
+            row.classList.add('card-status-' + radio.value);
+        }
+
         updateRowTimeInput(radio);
     }
 
@@ -724,11 +858,22 @@
             }
         });
 
-        document.getElementById('counter-hadir').innerText = counts.hadir;
-        document.getElementById('counter-terlambat').innerText = counts.terlambat;
-        document.getElementById('counter-izin').innerText = counts.izin;
-        document.getElementById('counter-sakit').innerText = counts.sakit;
-        document.getElementById('counter-alpa').innerText = counts.alpa;
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.innerText = val;
+        };
+
+        setVal('counter-hadir', counts.hadir);
+        setVal('counter-terlambat', counts.terlambat);
+        setVal('counter-izin', counts.izin);
+        setVal('counter-sakit', counts.sakit);
+        setVal('counter-alpa', counts.alpa);
+
+        document.querySelectorAll('.counter-hadir-mobile').forEach(el => el.innerText = counts.hadir);
+        document.querySelectorAll('.counter-terlambat-mobile').forEach(el => el.innerText = counts.terlambat);
+        document.querySelectorAll('.counter-izin-mobile').forEach(el => el.innerText = counts.izin);
+        document.querySelectorAll('.counter-sakit-mobile').forEach(el => el.innerText = counts.sakit);
+        document.querySelectorAll('.counter-alpa-mobile').forEach(el => el.innerText = counts.alpa);
     }
 
     // Set Status untuk SEMUA siswa

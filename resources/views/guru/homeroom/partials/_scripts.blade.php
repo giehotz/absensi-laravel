@@ -138,8 +138,13 @@
     function switchTab(tabId) {
         document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('bg-white', 'text-black', '-mb-[2px]', 'font-black');
+            btn.classList.remove('bg-white', 'text-black', '-mb-[2px]', 'font-black', 'border-black');
             btn.classList.add('text-slate-600', 'border-transparent', 'font-bold');
+            const badge = btn.querySelector('.tab-badge');
+            if (badge && !badge.classList.contains('animate-pulse')) {
+                badge.classList.remove('bg-black', 'text-white');
+                badge.classList.add('bg-slate-200', 'text-slate-700');
+            }
         });
 
         const activeContent = document.getElementById('tabContent-' + tabId);
@@ -148,7 +153,12 @@
         if (activeContent) activeContent.classList.remove('hidden');
         if (activeBtn) {
             activeBtn.classList.remove('text-slate-600', 'border-transparent', 'font-bold');
-            activeBtn.classList.add('bg-white', 'text-black', '-mb-[2px]', 'font-black');
+            activeBtn.classList.add('bg-white', 'text-black', '-mb-[2px]', 'font-black', 'border-black');
+            const badge = activeBtn.querySelector('.tab-badge');
+            if (badge && !badge.classList.contains('animate-pulse')) {
+                badge.classList.remove('bg-slate-200', 'text-slate-700');
+                badge.classList.add('bg-black', 'text-white');
+            }
         }
     }
 
