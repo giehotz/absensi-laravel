@@ -8,7 +8,6 @@ use App\Models\Assessment;
 use App\Models\AssessmentPackage;
 use App\Models\AssessmentScore;
 use App\Models\AttendanceSetting;
-use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Teacher;
 use App\Services\Assessment\AssessmentExcelService;
@@ -66,8 +65,10 @@ class AssessmentController extends Controller
             $query->sas();
         }
 
-        if ($classId) {
+        if ($classId && $teacher->canAccessClass((int) $classId)) {
             $query->where('school_class_id', $classId);
+        } elseif ($classId) {
+            $query->whereRaw('1 = 0');
         }
 
         if ($subjectId) {
@@ -81,15 +82,7 @@ class AssessmentController extends Controller
         $packages = $query->paginate(12)->withQueryString();
 
         // Opsi Filter
-        $assignedClassIds = $teacher->assignedClasses()->pluck('school_classes.id');
-        $homeroomClassIds = $teacher->homeroomClasses()->pluck('id');
-        $packageClassIds = AssessmentPackage::where('teacher_id', $teacher->id)->pluck('school_class_id');
-        $allClassIds = $assignedClassIds->merge($homeroomClassIds)->merge($packageClassIds)->unique();
-
-        $classes = SchoolClass::whereIn('id', $allClassIds)
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
+        $classes = $teacher->getAccessibleClasses();
 
         $assignedSubjectIds = $teacher->assignedSubjects()->pluck('subjects.id');
         $packageSubjectIds = AssessmentPackage::where('teacher_id', $teacher->id)->pluck('subject_id');
@@ -149,7 +142,7 @@ class AssessmentController extends Controller
             $classes = $teacher->assignedClasses()->orderBy('level')->orderBy('name')->get();
             $subjects = $teacher->assignedSubjects()->orderBy('name')->get();
         } else {
-            $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+            $classes = $teacher->getAccessibleClasses();
             $subjects = Subject::orderBy('name')->get();
         }
 
@@ -173,9 +166,9 @@ class AssessmentController extends Controller
 
         $type = $validated['type'] ?? 'materi';
 
-        // Verifikasi izin mengajar guru
-        if (! $teacher->canTeach((int) $validated['subject_id'], (int) $validated['school_class_id'])) {
-            return back()->withInput()->with('error', 'Anda tidak memiliki penugasan untuk mengajar mata pelajaran ini di kelas tersebut.');
+        // Verifikasi izin mengajar guru & akses kelas
+        if (! $teacher->canTeach((int) $validated['subject_id'], (int) $validated['school_class_id']) || ! $teacher->canAccessClass((int) $validated['school_class_id'])) {
+            return back()->withInput()->with('error', 'Anda tidak memiliki penugasan atau hak akses untuk kelas tersebut.');
         }
 
         $activeYear = AcademicYear::activeSemester() ?? AcademicYear::latest('start_date')->first();

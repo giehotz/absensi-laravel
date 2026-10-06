@@ -618,6 +618,11 @@
         document.getElementById('scheduleForm').action = "{{ route('admin.schedules.store') }}";
         document.getElementById('methodContainer').innerHTML = '';
 
+        const classInput = document.querySelector('#scheduleForm input[name="school_class_id"]');
+        if (classInput) {
+            classInput.value = "{{ $selectedClassId }}";
+        }
+
         document.getElementById('form_subject_id').value = '';
         document.getElementById('form_teacher_id').value = '';
 
@@ -644,6 +649,11 @@
         document.getElementById('modalTitle').innerHTML = '<span>✏️</span> Edit Jadwal Pelajaran';
         document.getElementById('scheduleForm').action = `/admin/schedules/${sch.id}`;
         document.getElementById('methodContainer').innerHTML = '@method("PUT")';
+
+        const classInput = document.querySelector('#scheduleForm input[name="school_class_id"]');
+        if (classInput) {
+            classInput.value = sch.school_class_id || "{{ $selectedClassId }}";
+        }
 
         document.getElementById('form_day_of_week').value = sch.day_of_week;
         populateJamOptions(sch.day_of_week);

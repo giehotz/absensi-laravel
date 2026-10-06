@@ -22,15 +22,16 @@ class ScheduleController extends Controller
     {
         $academicYear = AcademicYear::where('is_active', true)->first();
         $classes = SchoolClass::with('academicYear')
+            ->when($academicYear, fn ($q) => $q->where('academic_year_id', $academicYear->id))
             ->orderBy('level')
             ->orderBy('name')
             ->get();
 
         $selectedClassId = $request->input('school_class_id', $classes->first()?->id);
-        $selectedClass = $classes->firstWhere('id', $selectedClassId);
+        $selectedClass = $classes->firstWhere('id', (int) $selectedClassId);
 
         $schedules = Schedule::with(['subject', 'teacher.user', 'schoolClass'])
-            ->when($selectedClassId, fn ($q) => $q->where('school_class_id', $selectedClassId))
+            ->when($selectedClassId, fn ($q) => $q->where('school_class_id', (int) $selectedClassId))
             ->orderBy('day_of_week')
             ->orderBy('start_time')
             ->get();

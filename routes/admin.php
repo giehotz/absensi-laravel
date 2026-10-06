@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AssessmentController as AdminAssessmentController
 use App\Http\Controllers\Admin\AttendanceReportController;
 use App\Http\Controllers\Admin\AttendanceUploadController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
+use App\Http\Controllers\Admin\EffectiveWeekController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\QrGeneratorController;
 use App\Http\Controllers\Admin\SavingsController as AdminSavingsController;
@@ -99,6 +100,12 @@ Route::prefix('academic-calendar')->name('academic-calendar.')->group(function (
     Route::post('/store', [AcademicCalendarController::class, 'store'])->name('store');
     Route::put('/{calendar}', [AcademicCalendarController::class, 'update'])->name('update');
     Route::delete('/{calendar}', [AcademicCalendarController::class, 'destroy'])->name('destroy');
+});
+
+// Analisis Minggu Efektif
+Route::prefix('effective-weeks')->name('effective-weeks.')->group(function () {
+    Route::get('/', [EffectiveWeekController::class, 'index'])->name('index');
+    Route::get('/print', [EffectiveWeekController::class, 'print'])->name('print');
 });
 
 // Laporan Presensi Siswa

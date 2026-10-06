@@ -49,6 +49,10 @@ class HomeroomClassController extends Controller
             ->orderBy('name')
             ->get();
 
+        if ($request->filled('school_class_id') && ! $homeroomClasses->contains('id', (int) $request->input('school_class_id'))) {
+            abort(403, 'Akses ditolak: Anda bukan merupakan wali kelas untuk kelas ini.');
+        }
+
         $selectedClassId = $request->input('school_class_id', $homeroomClasses->first()?->id);
         $selectedClass = $homeroomClasses->firstWhere('id', $selectedClassId);
 

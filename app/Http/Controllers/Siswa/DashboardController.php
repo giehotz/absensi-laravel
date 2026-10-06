@@ -79,12 +79,14 @@ class DashboardController extends Controller
             'sakit' => Attendance::where('student_id', $student->id)->whereMonth('date', $now->month)->whereYear('date', $now->year)->where('status', 'sakit')->count(),
         ];
 
-        // 4. Jadwal Pelajaran Kelas Siswa
-        $schedules = Schedule::with(['subject', 'teacher.user'])
-            ->where('school_class_id', $student->school_class_id)
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get();
+        // 4. Jadwal Pelajaran Kelas Siswa (Strict Isolation per school_class_id)
+        $schedules = $student->school_class_id
+            ? Schedule::with(['subject', 'teacher.user'])
+                ->where('school_class_id', $student->school_class_id)
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
+                ->get()
+            : collect();
 
         $daysMap = [
             1 => 'Senin',

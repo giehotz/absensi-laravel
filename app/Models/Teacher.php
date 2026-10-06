@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 class Teacher extends Model
 {
@@ -104,6 +105,60 @@ class Teacher extends Model
     public function isHomeroom(): bool
     {
         return $this->homeroomClasses()->exists();
+    }
+
+    /**
+     * Memeriksa apakah guru adalah wali kelas untuk kelas tertentu.
+     */
+    public function isHomeroomFor(int|SchoolClass $schoolClass): bool
+    {
+        $classId = $schoolClass instanceof SchoolClass ? $schoolClass->id : (int) $schoolClass;
+
+        return $this->homeroomClasses()->where('id', $classId)->exists();
+    }
+
+    /**
+     * Ambil seluruh ID kelas yang berhak diakses oleh guru ini
+     * (Gabungan Kelas Binaan/Wali Kelas + Jadwal KBM Terjadwal + Penugasan Mengajar Resmi).
+     */
+    public function getAccessibleClassIds(): Collection
+    {
+        $homeroomIds = $this->homeroomClasses()->pluck('id');
+        $scheduledIds = $this->schedules()->pluck('school_class_id');
+        $assignedIds = $this->assignedClasses()->pluck('school_classes.id');
+
+        return $homeroomIds
+            ->merge($scheduledIds)
+            ->merge($assignedIds)
+            ->unique()
+            ->values();
+    }
+
+    /**
+     * Ambil koleksi SchoolClass yang berhak diakses guru.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, SchoolClass>
+     */
+    public function getAccessibleClasses(?int $academicYearId = null): \Illuminate\Database\Eloquent\Collection
+    {
+        $classIds = $this->getAccessibleClassIds();
+
+        return SchoolClass::with(['academicYear', 'homeroomTeacher.user'])
+            ->whereIn('id', $classIds)
+            ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
+            ->orderBy('level')
+            ->orderBy('name')
+            ->get();
+    }
+
+    /**
+     * Cek apakah guru berhak mengakses data kelas tertentu.
+     */
+    public function canAccessClass(int|SchoolClass $schoolClass): bool
+    {
+        $classId = $schoolClass instanceof SchoolClass ? $schoolClass->id : (int) $schoolClass;
+
+        return $this->getAccessibleClassIds()->contains($classId);
     }
 
     public function managedSavingsClasses(): BelongsToMany

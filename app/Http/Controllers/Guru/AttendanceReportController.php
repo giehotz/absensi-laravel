@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
@@ -92,18 +91,12 @@ class AttendanceReportController extends Controller
         $search = $request->input('search');
         $activeTab = $request->input('tab', 'summary');
 
-        // Kelas yang diampu guru (Wali Kelas + Jadwal Mengajar)
-        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-        $teachingClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-        $allowedClassIds = $homeroomClassIds->merge($teachingClassIds)->unique();
-
-        $classes = SchoolClass::whereIn('id', $allowedClassIds)
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
+        // Kelas yang diampu guru (Wali Kelas + Jadwal Mengajar + Penugasan)
+        $classes = $teacher->getAccessibleClasses();
+        $allowedClassIds = $teacher->getAccessibleClassIds();
 
         // Tentukan ID kelas yang menjadi target query
-        $targetClassIds = ($schoolClassId && $schoolClassId !== 'all' && $allowedClassIds->contains((int) $schoolClassId))
+        $targetClassIds = ($schoolClassId && $schoolClassId !== 'all' && $teacher->canAccessClass((int) $schoolClassId))
             ? collect([(int) $schoolClassId])
             : $allowedClassIds;
 
@@ -279,11 +272,13 @@ class AttendanceReportController extends Controller
         $search = $request->input('search');
 
         // Kelas yang diampu guru
-        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-        $teachingClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-        $allowedClassIds = $homeroomClassIds->merge($teachingClassIds)->unique();
+        $allowedClassIds = $teacher->getAccessibleClassIds();
 
-        $targetClassIds = ($schoolClassId && $schoolClassId !== 'all' && $allowedClassIds->contains((int) $schoolClassId))
+        if ($schoolClassId && $schoolClassId !== 'all' && ! $teacher->canAccessClass((int) $schoolClassId)) {
+            abort(403, 'Anda tidak memiliki hak akses untuk mengunduh rekap kelas ini.');
+        }
+
+        $targetClassIds = ($schoolClassId && $schoolClassId !== 'all' && $teacher->canAccessClass((int) $schoolClassId))
             ? collect([(int) $schoolClassId])
             : $allowedClassIds;
 

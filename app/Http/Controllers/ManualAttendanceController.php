@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Attendance;
 use App\Models\AttendanceSetting;
 use App\Models\Holiday;
-use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
@@ -32,17 +31,15 @@ class ManualAttendanceController extends Controller
 
         $date = $request->input('date', Carbon::today()->toDateString());
 
-        // Ambil kelas yang diampu guru (wali kelas + jadwal mengajar)
-        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-        $teachingClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-        $allowedClassIds = $homeroomClassIds->merge($teachingClassIds)->unique();
+        // Ambil kelas yang diampu guru (wali kelas + jadwal mengajar + penugasan)
+        $classes = $teacher->getAccessibleClasses();
 
-        $classes = SchoolClass::whereIn('id', $allowedClassIds)
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
-
-        $selectedClassId = $request->input('school_class_id', $classes->first()?->id);
+        $requestedClassId = (int) $request->input('school_class_id', 0);
+        if ($requestedClassId > 0 && $classes->contains('id', $requestedClassId)) {
+            $selectedClassId = $requestedClassId;
+        } else {
+            $selectedClassId = $classes->first()?->id;
+        }
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 
         $students = collect();
@@ -157,11 +154,7 @@ class ManualAttendanceController extends Controller
                 abort(403, 'Profil guru tidak ditemukan.');
             }
 
-            $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-            $teachingClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-            $allowedClassIds = $homeroomClassIds->merge($teachingClassIds)->unique();
-
-            if (! $allowedClassIds->contains($classId)) {
+            if (! $teacher->canAccessClass($classId)) {
                 abort(403, 'Anda tidak memiliki hak akses mencatat presensi untuk kelas ini.');
             }
         }

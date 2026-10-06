@@ -16,6 +16,7 @@
         <a href="#rekap" class="px-3 py-1.5 bg-white text-black border-2 border-black rounded-xs shadow-[2px_2px_0px_#000] shrink-0 active:translate-x-0.5">
             📊 Tren 7 Hari
         </a>
+        @if($teacher->isHomeroom())
         <a href="#leave-requests" class="px-3 py-1.5 bg-white text-black border-2 border-black rounded-xs shadow-[2px_2px_0px_#000] shrink-0 active:translate-x-0.5 flex items-center gap-1.5">
             <span>📝 Izin Siswa</span>
             @if($pendingLeaveRequests->isNotEmpty())
@@ -24,6 +25,7 @@
                 </span>
             @endif
         </a>
+        @endif
     </div>
 
     {{-- 2. 4 Stats Cards --}}
@@ -40,8 +42,10 @@
         </div>
     </div>
 
-    {{-- 4. Permohonan Izin / Sakit Pending --}}
-    @include('guru._leave-requests')
+    {{-- 4. Permohonan Izin / Sakit Pending (Khusus Wali Kelas) --}}
+    @if($teacher->isHomeroom())
+        @include('guru._leave-requests')
+    @endif
 </div>
 @endsection
 

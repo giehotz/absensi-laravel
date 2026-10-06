@@ -5,6 +5,7 @@ use App\Http\Controllers\Guru\AssessmentController;
 use App\Http\Controllers\Guru\AttendanceReportController;
 use App\Http\Controllers\Guru\AttendanceUploadController;
 use App\Http\Controllers\Guru\CalendarController;
+use App\Http\Controllers\Guru\EffectiveWeekController;
 use App\Http\Controllers\Guru\HomeroomClassController;
 use App\Http\Controllers\Guru\LeaveRequestController;
 use App\Http\Controllers\Guru\ProfileController;
@@ -29,6 +30,12 @@ Route::resource('/jurnal', TeachingJournalController::class)->names('teaching-jo
 
 // Kalender Pendidikan & Hari Libur Sekolah
 Route::get('/kalender', [CalendarController::class, 'index'])->name('calendar.index');
+
+// Analisis Minggu Efektif
+Route::prefix('effective-weeks')->name('effective-weeks.')->group(function () {
+    Route::get('/', [EffectiveWeekController::class, 'index'])->name('index');
+    Route::get('/print', [EffectiveWeekController::class, 'print'])->name('print');
+});
 
 // Jadwal Mengajar & Jadwal Kelas
 Route::get('/jadwal', [ScheduleController::class, 'index'])->name('jadwal');

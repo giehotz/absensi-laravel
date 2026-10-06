@@ -157,10 +157,8 @@ class DashboardController extends Controller
             $q->where('date', $today);
         }])->where('homeroom_teacher_id', $teacher->id)->get();
 
-        // Kelas & siswa dalam lingkup guru (jadwal mengajar + wali kelas)
-        $taughtClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id')->unique();
-        $homeroomClassIds = $homeroomClasses->pluck('id');
-        $allClassIds = $taughtClassIds->merge($homeroomClassIds)->unique();
+        // Kelas & siswa dalam lingkup guru (jadwal mengajar + wali kelas + penugasan)
+        $allClassIds = $teacher->getAccessibleClassIds();
         $studentIds = Student::whereIn('school_class_id', $allClassIds)->pluck('id');
 
         // Statistik presensi hari ini untuk siswa binaan/ajar
@@ -228,15 +226,16 @@ class DashboardController extends Controller
             ],
         ];
 
-        // Permohonan izin yang pending untuk siswa kelas binaan guru (atau kelas yang diampu)
-        $targetLeaveClassIds = $homeroomClassIds->isNotEmpty() ? $homeroomClassIds : $allClassIds;
-        $pendingLeaveRequests = LeaveRequest::with(['student.user', 'student.schoolClass', 'requester'])
-            ->whereHas('student', function ($q) use ($targetLeaveClassIds) {
-                $q->whereIn('school_class_id', $targetLeaveClassIds);
-            })
-            ->where('status', 'pending')
-            ->latest()
-            ->get();
+        // Permohonan izin yang pending untuk siswa kelas binaan guru (khusus Wali Kelas)
+        $pendingLeaveRequests = $homeroomClasses->isNotEmpty()
+            ? LeaveRequest::with(['student.user', 'student.schoolClass', 'requester'])
+                ->whereHas('student', function ($q) use ($homeroomClasses) {
+                    $q->whereIn('school_class_id', $homeroomClasses->pluck('id'));
+                })
+                ->where('status', 'pending')
+                ->latest()
+                ->get()
+            : collect();
 
         return view('guru.dashboard', compact(
             'teacher',

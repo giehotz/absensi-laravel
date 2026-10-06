@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
 use App\Models\Schedule;
-use App\Models\SchoolClass;
 use App\Models\SlotTemplate;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -61,12 +60,14 @@ class ScheduleController extends Controller
         ];
 
         // 2. Data Jadwal Per Rombel / Kelas (Tampilan Matriks Simpatika)
-        $classes = SchoolClass::with(['academicYear', 'homeroomTeacher.user'])
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
+        $classes = $teacher ? $teacher->getAccessibleClasses($academicYear?->id) : collect();
 
-        $selectedClassId = (int) $request->input('school_class_id', $classes->first()?->id ?? 0);
+        $requestedClassId = (int) $request->input('school_class_id', 0);
+        if ($requestedClassId > 0 && $classes->contains('id', $requestedClassId)) {
+            $selectedClassId = $requestedClassId;
+        } else {
+            $selectedClassId = (int) ($classes->first()?->id ?? 0);
+        }
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 
         $classSchedules = collect();

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Guru;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\LeaveRequest;
-use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
@@ -41,11 +40,8 @@ class LeaveRequestController extends Controller
             ['nip' => 'GURU-DEMO', 'phone' => '081234567800']
         );
 
-        $allowedClassIds = $this->getAllowedClassIds($teacher);
-        $classes = SchoolClass::whereIn('id', $allowedClassIds)
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
+        $classes = $teacher->getAccessibleClasses();
+        $allowedClassIds = $teacher->getAccessibleClassIds();
 
         $status = $request->input('status', 'pending');
         $type = $request->input('type', 'all');
@@ -225,6 +221,10 @@ class LeaveRequestController extends Controller
         $status = $request->input('status', 'all');
         $type = $request->input('type', 'all');
         $classId = $request->input('school_class_id');
+
+        if ($classId && ! $teacher->canAccessClass((int) $classId)) {
+            abort(403, 'Anda tidak memiliki hak akses mengunduh rekap izin kelas ini.');
+        }
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
         $search = $request->input('search');
@@ -398,10 +398,7 @@ class LeaveRequestController extends Controller
             return collect();
         }
 
-        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-        $teachingClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-
-        return $homeroomClassIds->merge($teachingClassIds)->unique();
+        return $teacher->getAccessibleClassIds();
     }
 
     /**
@@ -416,9 +413,7 @@ class LeaveRequestController extends Controller
             abort(403, 'Profil guru tidak ditemukan.');
         }
 
-        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-
-        if (! $homeroomClassIds->contains($leaveRequest->student->school_class_id)) {
+        if (! $teacher->isHomeroomFor($leaveRequest->student->school_class_id)) {
             abort(403, 'Wewenang persetujuan izin siswa khusus untuk Wali Kelas yang bersangkutan.');
         }
     }

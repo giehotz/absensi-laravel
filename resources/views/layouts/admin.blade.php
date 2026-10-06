@@ -224,7 +224,7 @@
 
                         <!-- Menu Kalender (Accordion Dropdown) -->
                         @php
-                            $isCalendarActive = request()->routeIs('admin.holidays.*') || request()->routeIs('admin.academic-calendar.*');
+                            $isCalendarActive = request()->routeIs('admin.holidays.*') || request()->routeIs('admin.academic-calendar.*') || request()->routeIs('admin.effective-weeks.*');
                         @endphp
                         <div class="space-y-1">
                             <button type="button" 
@@ -263,6 +263,16 @@
                                         : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('admin.academic-calendar.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
                                     <span>Kalender Pendidikan</span>
+                                </a>
+
+                                <!-- Sub-menu 3: Analisis Minggu Efektif -->
+                                <a href="{{ route('admin.effective-weeks.index') }}" 
+                                   class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                                   {{ request()->routeIs('admin.effective-weeks.*') 
+                                        ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' 
+                                        : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('admin.effective-weeks.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Minggu Efektif</span>
                                 </a>
                             </div>
                         </div>

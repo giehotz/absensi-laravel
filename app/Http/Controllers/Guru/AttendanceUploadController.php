@@ -27,10 +27,7 @@ class AttendanceUploadController extends Controller
      */
     protected function getAllowedClassIds(Teacher $teacher): Collection
     {
-        $homeroomClassIds = SchoolClass::where('homeroom_teacher_id', $teacher->id)->pluck('id');
-        $teachingClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-
-        return $homeroomClassIds->merge($teachingClassIds)->unique();
+        return $teacher->getAccessibleClassIds();
     }
 
     /**
@@ -50,8 +47,7 @@ class AttendanceUploadController extends Controller
             ['nip' => 'GURU-DEMO', 'phone' => '081234567800']
         );
 
-        $allowedClassIds = $this->getAllowedClassIds($teacher);
-        if (! $allowedClassIds->contains((int) $validated['school_class_id'])) {
+        if (! $teacher->canAccessClass((int) $validated['school_class_id'])) {
             abort(403, 'Anda tidak memiliki hak akses mengunduh template untuk kelas ini.');
         }
 
@@ -86,8 +82,7 @@ class AttendanceUploadController extends Controller
             ['nip' => 'GURU-DEMO', 'phone' => '081234567800']
         );
 
-        $allowedClassIds = $this->getAllowedClassIds($teacher);
-        if (! $allowedClassIds->contains((int) $validated['school_class_id'])) {
+        if (! $teacher->canAccessClass((int) $validated['school_class_id'])) {
             abort(403, 'Anda tidak memiliki hak akses mengunggah presensi untuk kelas ini.');
         }
 

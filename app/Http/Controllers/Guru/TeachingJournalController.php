@@ -63,8 +63,10 @@ class TeachingJournalController extends Controller
             ->orderBy('date', 'desc')
             ->orderBy('meeting_number', 'desc');
 
-        if ($classId) {
+        if ($classId && $teacher->canAccessClass((int) $classId)) {
             $query->where('school_class_id', $classId);
+        } elseif ($classId) {
+            $query->whereRaw('1 = 0');
         }
 
         if ($subjectId) {
@@ -82,12 +84,7 @@ class TeachingJournalController extends Controller
         $journals = $query->paginate(15)->withQueryString();
 
         // Data filter options: classes & subjects taught by this teacher
-        $scheduleClassIds = Schedule::where('teacher_id', $teacher->id)->pluck('school_class_id');
-        $journalClassIds = TeachingJournal::where('teacher_id', $teacher->id)->pluck('school_class_id');
-        $classes = SchoolClass::whereIn('id', $scheduleClassIds->merge($journalClassIds)->unique())
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
+        $classes = $teacher->getAccessibleClasses();
 
         $scheduleSubjectIds = Schedule::where('teacher_id', $teacher->id)->pluck('subject_id');
         $journalSubjectIds = TeachingJournal::where('teacher_id', $teacher->id)->pluck('subject_id');
@@ -145,14 +142,7 @@ class TeachingJournalController extends Controller
         }
 
         // Distinct classes and subjects taught by teacher
-        $classes = SchoolClass::whereIn('id', $schedules->pluck('school_class_id')->unique())
-            ->orderBy('level')
-            ->orderBy('name')
-            ->get();
-
-        if ($classes->isEmpty()) {
-            $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
-        }
+        $classes = $teacher->getAccessibleClasses();
 
         $subjects = Subject::whereIn('id', $schedules->pluck('subject_id')->unique())
             ->orderBy('name')
@@ -188,6 +178,13 @@ class TeachingJournalController extends Controller
                 'success' => false,
                 'message' => 'Kelas dan Tanggal wajib diisi.',
             ], 422);
+        }
+
+        if (! $teacher->canAccessClass($classId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki hak akses ke kelas ini.',
+            ], 403);
         }
 
         $attendances = Attendance::whereDate('date', $date)
@@ -258,6 +255,10 @@ class TeachingJournalController extends Controller
 
         $classId = (int) $validated['school_class_id'];
         $date = $validated['date'];
+
+        if (! $teacher->canAccessClass($classId)) {
+            abort(403, 'Anda tidak memiliki hak akses mencatat jurnal untuk kelas ini.');
+        }
 
         // Strict Prerequisite Check: Attendance must exist
         $attendances = Attendance::whereDate('date', $date)
@@ -330,7 +331,7 @@ class TeachingJournalController extends Controller
             ->where('teacher_id', $teacher->id)
             ->get();
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = $teacher->getAccessibleClasses();
         $subjects = Subject::orderBy('name')->get();
 
         return view('guru.teaching-journals.edit', compact(
@@ -352,6 +353,10 @@ class TeachingJournalController extends Controller
         $validated = $request->validated();
         $classId = (int) $validated['school_class_id'];
         $date = $validated['date'];
+
+        if (! $teacher->canAccessClass($classId)) {
+            abort(403, 'Anda tidak memiliki hak akses memperbarui jurnal untuk kelas ini.');
+        }
 
         // Re-check attendance
         $attendances = Attendance::whereDate('date', $date)
@@ -442,6 +447,10 @@ class TeachingJournalController extends Controller
             ->orderBy('date', 'asc')
             ->orderBy('meeting_number', 'asc');
 
+        if ($classId && ! $teacher->canAccessClass((int) $classId)) {
+            abort(403, 'Anda tidak memiliki hak akses mencetak jurnal untuk kelas ini.');
+        }
+
         if ($classId) {
             $query->where('school_class_id', $classId);
         }
@@ -520,7 +529,8 @@ class TeachingJournalController extends Controller
                 ->with('error', 'Tidak ada data impor yang sedang aktif.');
         }
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $teacher = $this->getTeacher();
+        $classes = $teacher->getAccessibleClasses();
         $subjects = Subject::orderBy('name')->get();
 
         return view('guru.teaching-journals.preview-import', compact('rows', 'classes', 'subjects'));
@@ -555,6 +565,14 @@ class TeachingJournalController extends Controller
 
             if (! $classId || ! $subjectId || ! $date || empty($objective) || empty($activity)) {
                 $skippedCount++;
+
+                continue;
+            }
+
+            if (! $teacher->canAccessClass($classId)) {
+                $skippedCount++;
+                $className = SchoolClass::find($classId)?->name ?? 'Kelas '.$classId;
+                $skippedReasons[] = "Kelas {$className} dilewati karena Anda tidak memiliki hak akses ke kelas ini.";
 
                 continue;
             }
