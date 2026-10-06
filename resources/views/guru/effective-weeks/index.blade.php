@@ -3,8 +3,15 @@
 @section('title', 'Analisis Minggu Efektif')
 @section('page-title', 'Analisis Minggu Efektif & Alokasi Waktu')
 
+@php
+    $currentTab = request('tab', 'ganjil');
+    if (!in_array($currentTab, ['ganjil', 'genap'])) {
+        $currentTab = 'ganjil';
+    }
+@endphp
+
 @section('content')
-<div class="space-y-6" x-data="{ activeTab: 'ganjil', showPrintMenu: false }">
+<div class="space-y-6">
     <!-- Header Card -->
     <div class="bg-[#FFF3BF] neo-box-lg p-5 sm:p-7 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-2 border-black shadow-[4px_4px_0px_0px_#000]">
         <div class="space-y-1.5 z-10">
@@ -36,33 +43,49 @@
 
         <div class="flex items-center gap-2 flex-wrap z-10">
             <!-- Cetak Dropdown Button -->
-            <div class="relative" @click.away="showPrintMenu = false">
-                <button type="button" @click="showPrintMenu = !showPrintMenu"
-                        class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-4 py-2 text-xs uppercase flex items-center gap-2 font-heading font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
-                    <span>🖨️</span>
+            <div class="relative">
+                <button type="button" id="printDropdownBtn" onclick="togglePrintDropdown(event)"
+                        class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 font-heading font-black border-2 border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
                     <span>Cetak Dokumen Resmi</span>
-                    <span class="text-[10px]">▼</span>
+                    <svg id="printDropdownChevron" class="w-3.5 h-3.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                    </svg>
                 </button>
 
-                <div x-show="showPrintMenu" x-cloak
-                     class="absolute right-0 mt-2 w-56 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 py-1 text-xs font-bold divide-y divide-black/10">
+                <div id="printDropdownMenu" 
+                     class="hidden absolute right-0 mt-2 w-64 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 py-1.5 text-xs font-bold divide-y divide-black/10 rounded-sm">
                     <a href="{{ route('guru.effective-weeks.print', array_merge(request()->query(), ['print_semester' => 'all'])) }}" target="_blank"
-                       class="block px-4 py-2 hover:bg-amber-100 text-slate-900 flex items-center justify-between">
-                        <span>📄 Cetak Semua (Gasal & Genap)</span>
+                       class="px-4 py-2.5 hover:bg-[#FFF9DB] text-slate-900 flex items-center gap-2.5 transition-colors">
+                        <span class="w-3 h-3 rounded-full bg-slate-800 border border-black shrink-0"></span>
+                        <div class="flex flex-col">
+                            <span class="font-black text-black">Cetak Semua Semester</span>
+                            <span class="text-[10px] text-slate-500 font-medium">Semester Gasal &amp; Genap Lengkap</span>
+                        </div>
                     </a>
                     <a href="{{ route('guru.effective-weeks.print', array_merge(request()->query(), ['print_semester' => 'ganjil'])) }}" target="_blank"
-                       class="block px-4 py-2 hover:bg-amber-100 text-slate-900 flex items-center justify-between">
-                        <span>📘 Cetak Semester Gasal (1)</span>
+                       class="px-4 py-2.5 hover:bg-[#D0EBFF] text-slate-900 flex items-center gap-2.5 transition-colors">
+                        <span class="w-3 h-3 rounded-full bg-[#5294FF] border border-black shrink-0"></span>
+                        <div class="flex flex-col">
+                            <span class="font-black text-blue-950">Cetak Semester Gasal (1)</span>
+                            <span class="text-[10px] text-blue-700 font-medium">Juli s/d Desember</span>
+                        </div>
                     </a>
                     <a href="{{ route('guru.effective-weeks.print', array_merge(request()->query(), ['print_semester' => 'genap'])) }}" target="_blank"
-                       class="block px-4 py-2 hover:bg-amber-100 text-slate-900 flex items-center justify-between">
-                        <span>📗 Cetak Semester Genap (2)</span>
+                       class="px-4 py-2.5 hover:bg-[#D3F9D8] text-slate-900 flex items-center gap-2.5 transition-colors">
+                        <span class="w-3 h-3 rounded-full bg-[#20C997] border border-black shrink-0"></span>
+                        <div class="flex flex-col">
+                            <span class="font-black text-emerald-950">Cetak Semester Genap (2)</span>
+                            <span class="text-[10px] text-emerald-700 font-medium">Januari s/d Juni</span>
+                        </div>
                     </a>
                 </div>
             </div>
 
             <a href="{{ route('guru.calendar.index') }}"
-               class="neo-btn bg-white hover:bg-slate-100 text-slate-900 px-3.5 py-2 text-xs uppercase flex items-center gap-1.5 font-heading font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
+               class="neo-btn bg-white hover:bg-slate-100 text-slate-900 px-3.5 py-2.5 text-xs uppercase flex items-center gap-1.5 font-heading font-black border-2 border-black shadow-[2px_2px_0px_0px_#000]">
                 <span>📅</span>
                 <span>Kalender</span>
             </a>
@@ -72,6 +95,8 @@
     <!-- Parameter & Filter Panel -->
     <div class="bg-white neo-box p-5 border-2 border-black shadow-[4px_4px_0px_0px_#000]">
         <form method="GET" action="{{ route('guru.effective-weeks.index') }}" class="space-y-4">
+            <input type="hidden" name="tab" id="activeTabInput" value="{{ $currentTab }}">
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <!-- Tahun Ajaran -->
                 <div>
@@ -177,29 +202,27 @@
 
     <!-- Tab Navigation (Gasal vs Genap) -->
     <div class="flex items-center gap-3 border-b-2 border-black pb-1">
-        <button type="button" @click="activeTab = 'ganjil'"
-                :class="activeTab === 'ganjil' ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000] -translate-y-0.5' : 'bg-white text-black hover:bg-slate-100'"
-                class="neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2">
+        <button type="button" id="tabBtnGasal" onclick="switchSemesterTab('ganjil')"
+                class="neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2 cursor-pointer {{ $currentTab === 'ganjil' ? 'bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000] -translate-y-0.5' : 'bg-white text-black hover:bg-slate-100' }}">
             <span>📘</span>
             <span>Semester Gasal (1)</span>
-            <span class="ml-1 text-[10px] bg-black/20 text-white px-2 py-0.5 rounded-full">
+            <span id="tabBadgeGasal" class="ml-1 text-[10px] {{ $currentTab === 'ganjil' ? 'bg-black/20 text-white' : 'bg-slate-200 text-slate-900' }} px-2 py-0.5 rounded-full font-mono">
                 {{ $semesters['ganjil']['analysis']['total_effective_weeks'] }} Pekan Efektif
             </span>
         </button>
 
-        <button type="button" @click="activeTab = 'genap'"
-                :class="activeTab === 'genap' ? 'bg-[#20C997] text-black shadow-[3px_3px_0px_0px_#000] -translate-y-0.5' : 'bg-white text-black hover:bg-slate-100'"
-                class="neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2">
+        <button type="button" id="tabBtnGenap" onclick="switchSemesterTab('genap')"
+                class="neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2 cursor-pointer {{ $currentTab === 'genap' ? 'bg-[#20C997] text-black shadow-[3px_3px_0px_0px_#000] -translate-y-0.5' : 'bg-white text-black hover:bg-slate-100' }}">
             <span>📗</span>
             <span>Semester Genap (2)</span>
-            <span class="ml-1 text-[10px] bg-black/10 text-black px-2 py-0.5 rounded-full">
+            <span id="tabBadgeGenap" class="ml-1 text-[10px] {{ $currentTab === 'genap' ? 'bg-black/10 text-black' : 'bg-slate-200 text-slate-900' }} px-2 py-0.5 rounded-full font-mono">
                 {{ $semesters['genap']['analysis']['total_effective_weeks'] }} Pekan Efektif
             </span>
         </button>
     </div>
 
     <!-- Konten Tab Gasal -->
-    <div x-show="activeTab === 'ganjil'" x-cloak>
+    <div id="tabContentGasal" class="{{ $currentTab === 'ganjil' ? '' : 'hidden' }}">
         @include('admin.effective-weeks._semester', [
             'semesterKey' => 'ganjil',
             'semesterData' => $semesters['ganjil'],
@@ -208,7 +231,7 @@
     </div>
 
     <!-- Konten Tab Genap -->
-    <div x-show="activeTab === 'genap'" x-cloak>
+    <div id="tabContentGenap" class="{{ $currentTab === 'genap' ? '' : 'hidden' }}">
         @include('admin.effective-weeks._semester', [
             'semesterKey' => 'genap',
             'semesterData' => $semesters['genap'],
@@ -216,4 +239,80 @@
         ])
     </div>
 </div>
+
+<script>
+    // Tab Switcher Logika Murni (Vanilla JS)
+    function switchSemesterTab(tab) {
+        const btnGasal = document.getElementById('tabBtnGasal');
+        const btnGenap = document.getElementById('tabBtnGenap');
+        const badgeGasal = document.getElementById('tabBadgeGasal');
+        const badgeGenap = document.getElementById('tabBadgeGenap');
+        const contentGasal = document.getElementById('tabContentGasal');
+        const contentGenap = document.getElementById('tabContentGenap');
+        const activeTabInput = document.getElementById('activeTabInput');
+
+        if (activeTabInput) activeTabInput.value = tab;
+
+        if (tab === 'ganjil') {
+            if (contentGasal) contentGasal.classList.remove('hidden');
+            if (contentGenap) contentGenap.classList.add('hidden');
+
+            if (btnGasal) {
+                btnGasal.className = 'neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2 cursor-pointer bg-[#5294FF] text-white shadow-[3px_3px_0px_0px_#000] -translate-y-0.5';
+            }
+            if (badgeGasal) {
+                badgeGasal.className = 'ml-1 text-[10px] bg-black/20 text-white px-2 py-0.5 rounded-full font-mono';
+            }
+
+            if (btnGenap) {
+                btnGenap.className = 'neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2 cursor-pointer bg-white text-black hover:bg-slate-100';
+            }
+            if (badgeGenap) {
+                badgeGenap.className = 'ml-1 text-[10px] bg-slate-200 text-slate-900 px-2 py-0.5 rounded-full font-mono';
+            }
+        } else {
+            if (contentGasal) contentGasal.classList.add('hidden');
+            if (contentGenap) contentGenap.classList.remove('hidden');
+
+            if (btnGenap) {
+                btnGenap.className = 'neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2 cursor-pointer bg-[#20C997] text-black shadow-[3px_3px_0px_0px_#000] -translate-y-0.5';
+            }
+            if (badgeGenap) {
+                badgeGenap.className = 'ml-1 text-[10px] bg-black/10 text-black px-2 py-0.5 rounded-full font-mono';
+            }
+
+            if (btnGasal) {
+                btnGasal.className = 'neo-btn px-5 py-2.5 text-xs uppercase font-heading font-black border-2 border-black transition-all flex items-center gap-2 cursor-pointer bg-white text-black hover:bg-slate-100';
+            }
+            if (badgeGasal) {
+                badgeGasal.className = 'ml-1 text-[10px] bg-slate-200 text-slate-900 px-2 py-0.5 rounded-full font-mono';
+            }
+        }
+    }
+
+    // Dropdown Cetak Toggle & Click Away
+    function togglePrintDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById('printDropdownMenu');
+        const chevron = document.getElementById('printDropdownChevron');
+        if (menu) {
+            const isHidden = menu.classList.toggle('hidden');
+            if (chevron) {
+                chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        }
+    }
+
+    document.addEventListener('click', function(e) {
+        const menu = document.getElementById('printDropdownMenu');
+        const btn = document.getElementById('printDropdownBtn');
+        const chevron = document.getElementById('printDropdownChevron');
+        if (menu && !menu.classList.contains('hidden')) {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('hidden');
+                if (chevron) chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    });
+</script>
 @endsection
