@@ -13,7 +13,7 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header Card -->
-    <div class="bg-[#FFF3BF] neo-box-lg p-5 sm:p-7 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-2 border-black shadow-[4px_4px_0px_0px_#000]">
+    <div class="bg-[#FFF3BF] neo-box-lg p-5 sm:p-7 text-black relative z-20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-2 border-black shadow-[4px_4px_0px_0px_#000]">
         <div class="space-y-1.5 z-10">
             <div class="flex items-center gap-2 flex-wrap">
                 <span class="neo-badge bg-[#5294FF] text-white font-black text-xs px-2.5 py-0.5 border border-black shadow-[1px_1px_0px_0px_#000]">

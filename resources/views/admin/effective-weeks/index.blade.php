@@ -13,7 +13,7 @@
 @section('content')
 <div class="space-y-6">
     <!-- Header Card -->
-    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white neo-box p-5 border-2 border-black shadow-[4px_4px_0px_0px_#000]">
+    <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-white neo-box p-5 border-2 border-black shadow-[4px_4px_0px_0px_#000] relative z-20">
         <div>
             <div class="flex items-center gap-2.5 flex-wrap">
                 <span class="text-2xl">📅</span>
