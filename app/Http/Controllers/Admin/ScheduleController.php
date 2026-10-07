@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\SlotTemplate;
 use App\Models\Subject;
 use App\Models\Teacher;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,20 +22,41 @@ class ScheduleController extends Controller
     public function index(Request $request): View
     {
         $academicYear = AcademicYear::where('is_active', true)->first();
-        $classes = SchoolClass::with('academicYear')
+        $classes = SchoolClass::with([
+            'academicYear',
+            'homeroomTeacher.user',
+            'schedules:id,school_class_id,start_time,end_time',
+            'students' => fn ($q) => $q->select('id', 'school_class_id'),
+        ])
             ->when($academicYear, fn ($q) => $q->where('academic_year_id', $academicYear->id))
             ->orderBy('level')
             ->orderBy('name')
             ->get();
 
-        $selectedClassId = $request->input('school_class_id', $classes->first()?->id);
-        $selectedClass = $classes->firstWhere('id', (int) $selectedClassId);
+        $targetJpPerClass = 38; // Target standar JP per minggu Kurikulum Merdeka / Kemenag
+        $classes->each(function ($cls) use ($targetJpPerClass) {
+            $totalMinutes = $cls->schedules->sum(function ($sch) {
+                return Carbon::parse($sch->start_time)->diffInMinutes(Carbon::parse($sch->end_time));
+            });
+            $cls->total_jp = max(0, (int) round($totalMinutes / 40));
+            $cls->total_sessions = $cls->schedules->count();
+            $cls->target_jp = $targetJpPerClass;
+            $cls->percent_jp = min(100, (int) round(($cls->total_jp / max(1, $targetJpPerClass)) * 100));
+            $cls->shortage_jp = max(0, $targetJpPerClass - $cls->total_jp);
+        });
 
-        $schedules = Schedule::with(['subject', 'teacher.user', 'schoolClass'])
-            ->when($selectedClassId, fn ($q) => $q->where('school_class_id', (int) $selectedClassId))
-            ->orderBy('day_of_week')
-            ->orderBy('start_time')
-            ->get();
+        $selectedClassId = $request->filled('school_class_id')
+            ? (int) $request->input('school_class_id')
+            : null;
+        $selectedClass = $selectedClassId ? $classes->firstWhere('id', $selectedClassId) : null;
+
+        $schedules = $selectedClassId
+            ? Schedule::with(['subject', 'teacher.user', 'schoolClass'])
+                ->where('school_class_id', $selectedClassId)
+                ->orderBy('day_of_week')
+                ->orderBy('start_time')
+                ->get()
+            : collect();
 
         $daysMap = [
             1 => 'Senin',
