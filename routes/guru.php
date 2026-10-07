@@ -40,6 +40,9 @@ Route::prefix('effective-weeks')->name('effective-weeks.')->group(function () {
 // Jadwal Mengajar & Jadwal Kelas
 Route::get('/jadwal', [ScheduleController::class, 'index'])->name('jadwal');
 Route::get('/jadwal/index', [ScheduleController::class, 'index'])->name('schedule');
+Route::post('/jadwal', [ScheduleController::class, 'store'])->name('schedules.store');
+Route::put('/jadwal/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update');
+Route::delete('/jadwal/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
 
 // Perizinan Siswa (Guru / Wali Kelas)
 Route::get('/perizinan', [LeaveRequestController::class, 'index'])->name('leave-requests.index');

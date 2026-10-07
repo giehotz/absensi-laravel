@@ -150,8 +150,13 @@
                                     </span>
                                 @endif
                             </div>
+                            @php
+                                $dayTotalJtm = $dayItems->sum(function($item) {
+                                    return max(1, (int) round(\Carbon\Carbon::parse($item->start_time)->diffInMinutes(\Carbon\Carbon::parse($item->end_time)) / 40));
+                                });
+                            @endphp
                             <span class="text-[10px] font-mono font-bold bg-[#FFF9DB] border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_#000]">
-                                {{ count($dayItems) }} Sesi
+                                {{ count($dayItems) }} Sesi ({{ $dayTotalJtm }} JTM)
                             </span>
                         </div>
 
@@ -173,7 +178,7 @@
                                     </div>
                                     <div class="text-right shrink-0 flex items-center gap-1.5">
                                         <span class="text-[9px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 border border-black rounded-xs">
-                                            {{ $iJp }} JP
+                                            {{ $iJp }} Sesi {{ $iJp }} JTM
                                         </span>
                                         <span class="font-mono text-[10px] font-bold bg-white border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_#000]">
                                             {{ substr($item->start_time, 0, 5) }} - {{ substr($item->end_time, 0, 5) }}

@@ -5,6 +5,34 @@
 
 @section('content')
 <div class="space-y-6 print:space-y-4">
+    <!-- Flash Alerts -->
+    @if(session('success'))
+        <div class="bg-[#D3F9D8] border-2 border-black p-3.5 neo-box text-emerald-950 font-bold text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span>✅</span> <span>{{ session('success') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-black font-black hover:opacity-75 cursor-pointer">✕</button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="bg-[#FFE3E3] border-2 border-black p-3.5 neo-box text-rose-950 font-bold text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span>⚠️</span> <span>{{ session('error') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-black font-black hover:opacity-75 cursor-pointer">✕</button>
+        </div>
+    @endif
+
+    @if(session('conflict_error'))
+        <div class="bg-[#FFE3E3] border-2 border-black p-3.5 neo-box text-rose-950 font-bold text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span>⛔</span> <span>{{ session('conflict_error') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-black font-black hover:opacity-75 cursor-pointer">✕</button>
+        </div>
+    @endif
+
     <!-- Header Card -->
     <div class="bg-[#FFF3BF] neo-box-lg p-5 sm:p-7 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden">
         <div class="space-y-1.5 z-10">
@@ -54,7 +82,7 @@
             <div>
                 <span class="text-[11px] font-black uppercase text-slate-500">Sesi Mengajar Mingguan</span>
                 <div class="text-2xl font-heading font-black text-black mt-0.5">
-                    {{ $myStats['total_sessions'] }} <span class="text-xs font-bold text-slate-500">Jam/Sesi</span>
+                    {{ $myStats['total_sessions'] }} <span class="text-xs font-bold text-slate-500">Sesi ({{ $myStats['total_jtm'] ?? $myStats['total_sessions'] }} JTM)</span>
                 </div>
             </div>
             <div class="w-11 h-11 bg-[#E7F5FF] border-2 border-black flex items-center justify-center text-xl shadow-[2px_2px_0px_0px_#000]">
@@ -87,18 +115,27 @@
         </div>
     </div>
 
-    <!-- Navigation Tabs: Jadwal Mengajar Saya vs Jadwal Per Kelas -->
-    <div class="flex border-b-2 border-black gap-2 print:hidden">
+    {{-- Navigation Tabs: Jadwal Mengajar Saya vs Jadwal Per Kelas vs Plot Jadwal Kelas (Wali Kelas) --}}
+    <div class="flex border-b-2 border-black gap-2 print:hidden overflow-x-auto">
         <button type="button" onclick="switchScheduleTab('my')" id="tabBtn-my" 
-           class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer
+           class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer whitespace-nowrap
            {{ $activeTab === 'my' ? 'bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-            👨‍🏫 Jadwal Mengajar Saya ({{ $myStats['total_sessions'] }})
+            👨‍🏫 Jadwal Mengajar Saya ({{ $myStats['total_sessions'] }} Sesi / {{ $myStats['total_jtm'] ?? $myStats['total_sessions'] }} JTM)
         </button>
         <button type="button" onclick="switchScheduleTab('class')" id="tabBtn-class" 
-           class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer
+           class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer whitespace-nowrap
            {{ $activeTab === 'class' ? 'bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-            🏫 Jadwal Per Rombel / Kelas
+            🏫 Jadwal Seluruh Rombel / Kelas
         </button>
+        @if($isHomeroom && $homeroomClass)
+            <button type="button" onclick="switchScheduleTab('homeroom')" id="tabBtn-homeroom" 
+               class="px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5
+               {{ $activeTab === 'homeroom' ? 'bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm' : 'bg-[#FFF9DB] text-amber-950 hover:bg-[#FFF3BF]' }}">
+                <span>🗓️</span>
+                <span>Plot Jadwal Kelas ({{ $homeroomClass->name }})</span>
+                <span class="neo-badge bg-[#5294FF] text-white text-[9px] px-1 py-0.2 font-black">Wali Kelas</span>
+            </button>
+        @endif
     </div>
 
     <!-- ========================================================================= -->
@@ -112,7 +149,7 @@
                     {{ $teacher->user->name ?? (Auth::user()->name ?? 'Guru') }}
                 </h3>
                 <p class="text-xs font-semibold text-slate-600">
-                    NIP: {{ $teacher->nip ?? '-' }} • Total: {{ $myStats['total_sessions'] }} Jam Tatap Muka / Minggu
+                    NIP: {{ $teacher->nip ?? '-' }} • Total: {{ $myStats['total_sessions'] }} Sesi ({{ $myStats['total_jtm'] ?? $myStats['total_sessions'] }} JTM) / Minggu
                 </p>
             </div>
             <div class="text-right hidden sm:block print:hidden">
@@ -141,8 +178,13 @@
                                 <span class="neo-badge bg-[#FFD43B] text-black text-[9px] py-0.2 px-1 font-black">Hari Ini</span>
                             @endif
                         </div>
+                        @php
+                            $dayTotalJtm = $items->sum(function($sch) {
+                                return max(1, (int) round(\Carbon\Carbon::parse($sch->start_time)->diffInMinutes(\Carbon\Carbon::parse($sch->end_time)) / 40));
+                            });
+                        @endphp
                         <span class="text-[10px] font-mono font-bold bg-[#E7F5FF] text-blue-950 border border-black px-1.5 py-0.5">
-                            {{ count($items) }} Sesi
+                            {{ count($items) }} Sesi ({{ $dayTotalJtm }} JTM)
                         </span>
                     </div>
 
@@ -152,6 +194,10 @@
                             @php
                                 $startTimeStr = substr($s->start_time, 0, 5);
                                 $endTimeStr = substr($s->end_time, 0, 5);
+                                $sStart = \Carbon\Carbon::parse($s->start_time);
+                                $sEnd = \Carbon\Carbon::parse($s->end_time);
+                                $sDiffMin = $sStart->diffInMinutes($sEnd);
+                                $sJtm = max(1, (int) round($sDiffMin / 40));
                                 $isOngoing = ($isToday && $currentTimeStr >= $s->start_time && $currentTimeStr <= $s->end_time);
                                 $isPassed = ($isToday && $currentTimeStr > $s->end_time);
                             @endphp
@@ -165,8 +211,13 @@
                                         {{ $s->schoolClass->name ?? 'Kelas' }}
                                     </span>
                                 </div>
-                                <div class="font-heading font-black text-sm text-black leading-tight">
-                                    {{ $s->subject->name ?? 'Mata Pelajaran' }}
+                                <div class="flex items-start justify-between gap-1.5">
+                                    <div class="font-heading font-black text-sm text-black leading-tight">
+                                        {{ $s->subject->name ?? 'Mata Pelajaran' }}
+                                    </div>
+                                    <span class="neo-badge bg-[#FFD43B] text-black border border-black text-[10px] font-black shrink-0 px-1.5 py-0.5 shadow-[1px_1px_0px_#000]">
+                                        {{ $sJtm }} Sesi {{ $sJtm }} JTM
+                                    </span>
                                 </div>
                                 <div class="flex items-center justify-between text-[10px] font-semibold text-slate-600 pt-0.5">
                                     <span>Tingkat {{ $s->schoolClass->level ?? '-' }}</span>
@@ -387,27 +438,48 @@
             </div>
         @endif
     </div>
+
+    @if($isHomeroom && $homeroomClass)
+        <!-- ========================================================================= -->
+        <!-- TAB 3: PLOT JADWAL KELAS BINAAN (WALI KELAS) -->
+        <!-- ========================================================================= -->
+        <div id="tabContent-homeroom" class="space-y-5 {{ $activeTab === 'homeroom' ? '' : 'hidden' }}">
+            @include('guru._homeroom-schedule-matrix')
+        </div>
+    @endif
 </div>
 
 <script>
     function switchScheduleTab(tab) {
         const myTab = document.getElementById('tabContent-my');
         const classTab = document.getElementById('tabContent-class');
+        const homeroomTab = document.getElementById('tabContent-homeroom');
+
         const myBtn = document.getElementById('tabBtn-my');
         const classBtn = document.getElementById('tabBtn-class');
+        const homeroomBtn = document.getElementById('tabBtn-homeroom');
+
+        // Hide all tabs
+        if (myTab) myTab.classList.add('hidden');
+        if (classTab) classTab.classList.add('hidden');
+        if (homeroomTab) homeroomTab.classList.add('hidden');
+
+        // Reset all button styles
+        if (myBtn) myBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer whitespace-nowrap";
+        if (classBtn) classBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer whitespace-nowrap";
+        if (homeroomBtn) homeroomBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-[#FFF9DB] text-amber-950 hover:bg-[#FFF3BF] cursor-pointer whitespace-nowrap flex items-center gap-1.5";
+
+        const activeClasses = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm cursor-pointer whitespace-nowrap";
 
         if (tab === 'my') {
-            myTab.classList.remove('hidden');
-            classTab.classList.add('hidden');
-            
-            myBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm cursor-pointer";
-            classBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer";
-        } else {
-            myTab.classList.add('hidden');
-            classTab.classList.remove('hidden');
-            
-            classBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-white -mb-[2px] border-b-2 border-b-white z-10 text-black shadow-sm cursor-pointer";
-            myBtn.className = "px-5 py-2.5 font-heading font-black text-xs uppercase border-t-2 border-x-2 border-black transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer";
+            if (myTab) myTab.classList.remove('hidden');
+            if (myBtn) myBtn.className = activeClasses;
+        } else if (tab === 'class') {
+            if (classTab) classTab.classList.remove('hidden');
+            if (classBtn) classBtn.className = activeClasses;
+        } else if (tab === 'homeroom') {
+            if (homeroomTab) homeroomTab.classList.remove('hidden');
+            if (homeroomBtn) homeroomBtn.className = activeClasses + " flex items-center gap-1.5";
         }
 
         // Update URL query tanpa refresh

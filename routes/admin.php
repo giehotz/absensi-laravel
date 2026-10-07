@@ -73,6 +73,8 @@ Route::resource('subjects', SubjectController::class)->except(['create', 'edit',
 Route::get('schedules/slots', [ScheduleSlotController::class, 'index'])->name('schedules.slots.index');
 Route::post('schedules/slots', [ScheduleSlotController::class, 'store'])->name('schedules.slots.store');
 Route::post('schedules/slots/reset-default', [ScheduleSlotController::class, 'resetDefault'])->name('schedules.slots.reset-default');
+Route::post('schedules/toggle-homeroom-access', [ScheduleController::class, 'toggleHomeroomAccess'])->name('schedules.toggle-homeroom-access');
+Route::post('schedules/set-homeroom-deadline', [ScheduleController::class, 'setHomeroomDeadline'])->name('schedules.set-homeroom-deadline');
 
 // Jadwal Pelajaran (Admin)
 Route::resource('schedules', ScheduleController::class)->except(['create', 'edit', 'show']);

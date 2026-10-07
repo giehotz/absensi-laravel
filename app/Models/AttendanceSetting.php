@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -43,7 +44,8 @@ class AttendanceSetting extends Model
         'card_show_signature',
         'card_principal_name',
         'card_principal_nip',
-        'card_signature_image',
+        'can_homeroom_edit_schedule',
+        'homeroom_schedule_deadline',
     ];
 
     protected function casts(): array
@@ -53,9 +55,46 @@ class AttendanceSetting extends Model
             'kop_is_active' => 'boolean',
             'card_show_back_token' => 'boolean',
             'card_show_signature' => 'boolean',
+            'can_homeroom_edit_schedule' => 'boolean',
+            'homeroom_schedule_deadline' => 'date',
             'card_width_cm' => 'decimal:2',
             'card_height_cm' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Memeriksa apakah akses pengisian jadwal bagi Wali Kelas sedang aktif.
+     * Aktif jika toggle ON dan batas waktu (deadline) belum terlewati.
+     */
+    public function isHomeroomScheduleEditOpen(): bool
+    {
+        if (! $this->can_homeroom_edit_schedule) {
+            return false;
+        }
+
+        if ($this->homeroom_schedule_deadline) {
+            $now = Carbon::now('Asia/Jakarta');
+            $deadline = Carbon::parse($this->homeroom_schedule_deadline)->endOfDay();
+            if ($now->gt($deadline)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Cek apakah batas waktu pengisian sudah kedaluwarsa.
+     */
+    public function isHomeroomScheduleDeadlineExpired(): bool
+    {
+        if (! $this->homeroom_schedule_deadline) {
+            return false;
+        }
+
+        return Carbon::now('Asia/Jakarta')->gt(
+            Carbon::parse($this->homeroom_schedule_deadline)->endOfDay()
+        );
     }
 
     public function getCardLogoUrlAttribute(): ?string

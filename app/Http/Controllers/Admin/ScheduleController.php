@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AcademicYear;
+use App\Models\AttendanceSetting;
 use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\SlotTemplate;
 use App\Models\Subject;
 use App\Models\Teacher;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,6 +23,10 @@ class ScheduleController extends Controller
      */
     public function index(Request $request): View
     {
+        $setting = AttendanceSetting::firstOrCreate([]);
+        $canHomeroomEdit = $setting->isHomeroomScheduleEditOpen();
+        $homeroomDeadline = $setting->homeroom_schedule_deadline;
+        $isDeadlineExpired = $setting->isHomeroomScheduleDeadlineExpired();
         $academicYear = AcademicYear::where('is_active', true)->first();
         $classes = SchoolClass::with([
             'academicYear',
@@ -186,8 +192,80 @@ class ScheduleController extends Controller
             'nonKbmSlotsByDay',
             'kbmSlotsByDay',
             'allSlotsByDay',
-            'maxJam'
+            'maxJam',
+            'canHomeroomEdit',
+            'homeroomDeadline',
+            'isDeadlineExpired',
+            'setting'
         ));
+    }
+
+    /**
+     * Buka atau tutup akses input jadwal pelajaran untuk Wali Kelas.
+     */
+    public function toggleHomeroomAccess(Request $request): JsonResponse|RedirectResponse
+    {
+        $setting = AttendanceSetting::firstOrCreate([]);
+        $setting->can_homeroom_edit_schedule = ! (bool) $setting->can_homeroom_edit_schedule;
+        $setting->save();
+
+        $isOpen = $setting->isHomeroomScheduleEditOpen();
+        $isExpired = $setting->isHomeroomScheduleDeadlineExpired();
+        $statusText = $setting->can_homeroom_edit_schedule ? 'dibuka' : 'ditutup';
+        $message = "Akses input jadwal untuk Wali Kelas berhasil {$statusText}.";
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'enabled' => (bool) $setting->can_homeroom_edit_schedule,
+                'manual_enabled' => (bool) $setting->can_homeroom_edit_schedule,
+                'is_open' => $isOpen,
+                'is_expired' => $isExpired,
+                'deadline' => $setting->homeroom_schedule_deadline?->format('Y-m-d'),
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Atur batas waktu otomatis (deadline) pengisian jadwal pelajaran bagi Wali Kelas.
+     */
+    public function setHomeroomDeadline(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'deadline' => ['nullable', 'date'],
+        ]);
+
+        $setting = AttendanceSetting::firstOrCreate([]);
+        $setting->homeroom_schedule_deadline = $validated['deadline'] ?: null;
+        $setting->save();
+
+        $formatted = $setting->homeroom_schedule_deadline
+            ? Carbon::parse($setting->homeroom_schedule_deadline)->translatedFormat('d F Y')
+            : null;
+
+        $isOpen = $setting->isHomeroomScheduleEditOpen();
+        $isExpired = $setting->isHomeroomScheduleDeadlineExpired();
+
+        $message = $setting->homeroom_schedule_deadline
+            ? "Batas waktu pengisian jadwal Wali Kelas berhasil diatur sampai {$formatted} (23:59 WIB)."
+            : 'Batas waktu pengisian jadwal Wali Kelas berhasil dihapus (Tanpa Batas Waktu).';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'deadline' => $setting->homeroom_schedule_deadline?->format('Y-m-d'),
+                'formatted_deadline' => $formatted,
+                'manual_enabled' => (bool) $setting->can_homeroom_edit_schedule,
+                'is_open' => $isOpen,
+                'is_expired' => $isExpired,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     /**
