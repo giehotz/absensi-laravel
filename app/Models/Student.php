@@ -129,4 +129,64 @@ class Student extends Model
             $q->currentAcademicYear();
         });
     }
+
+    /**
+     * Dapatkan domain email resmi untuk akun siswa.
+     */
+    public static function getEmailDomain(): string
+    {
+        $configured = config('services.student.email_domain');
+        if (filled($configured)) {
+            return trim((string) $configured, '@ ');
+        }
+
+        $host = '';
+        if (app()->runningInConsole()) {
+            $parsedHost = parse_url((string) config('app.url'), PHP_URL_HOST);
+            $host = $parsedHost ?: '127.0.0.1';
+        } else {
+            $host = request()->getHost();
+        }
+
+        $host = strtolower(trim($host));
+
+        if (str_contains($host, 'min2tanggamus.sch.id')) {
+            return 'min2tanggamus.sch.id';
+        }
+
+        if ($host === '127.0.0.1' || $host === 'localhost' || blank($host)) {
+            return 'siswa.sekolah.sch.id';
+        }
+
+        return $host ? "{$host}.sch.id" : 'siswa.sekolah.sch.id';
+    }
+
+    /**
+     * Generate format email unik untuk siswa berdasarkan NIS.
+     */
+    public static function generateDefaultEmail(string $nis): string
+    {
+        $domain = static::getEmailDomain();
+        $cleanNis = trim($nis);
+        $baseEmail = "{$cleanNis}@{$domain}";
+
+        if (! User::where('email', $baseEmail)->exists()) {
+            return $baseEmail;
+        }
+
+        return "{$cleanNis}.".rand(100, 999)."@{$domain}";
+    }
+
+    /**
+     * Tentukan kata sandi default siswa (prioritas: NISN, fallback: NIS).
+     */
+    public static function getDefaultPassword(?string $nisn, string $nis): string
+    {
+        $cleanNisn = trim((string) $nisn);
+        if ($cleanNisn !== '' && $cleanNisn !== '-') {
+            return $cleanNisn;
+        }
+
+        return trim($nis);
+    }
 }

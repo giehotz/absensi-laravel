@@ -44,6 +44,7 @@ Route::get('classes/{class}/transfer-data', [SchoolClassController::class, 'getT
 Route::get('classes/{class}/students', [SchoolClassController::class, 'students'])->name('classes.students');
 Route::get('classes/{class}/students/template', [SchoolClassController::class, 'downloadStudentsTemplate'])->name('classes.students.template');
 Route::post('classes/{class}/students/import', [SchoolClassController::class, 'importStudentsExcel'])->name('classes.students.import');
+Route::post('classes/sync-sis', [SchoolClassController::class, 'syncFromSis'])->name('classes.sync-sis');
 Route::resource('classes', SchoolClassController::class)->except(['create', 'edit', 'show']);
 
 // Kenaikan Kelas & Kelulusan Siswa
@@ -64,6 +65,8 @@ Route::get('students/{student}/card', [StudentCardController::class, 'single'])-
 // Master Data Siswa & Mata Pelajaran
 Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
 Route::post('students/import', [StudentController::class, 'importExcel'])->name('students.import');
+Route::post('students/sync-sis', [StudentController::class, 'syncFromSis'])->name('students.sync-sis');
+Route::get('students/sync-sis-stream', [StudentController::class, 'syncFromSisStream'])->name('students.sync-sis-stream');
 Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->name('students.reset-password');
 Route::resource('students', StudentController::class)->except(['create', 'edit', 'show']);
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
@@ -143,13 +146,15 @@ Route::get('savings/receipt/{transaction}', [AdminSavingsController::class, 'rec
 Route::post('savings/transactions/{transaction}/correct', [AdminSavingsController::class, 'correct'])->name('savings.transactions.correct');
 Route::get('savings/classes/{class}/students', [AdminSavingsController::class, 'classStudents'])->name('savings.class-students');
 
-// Manajemen API Client & Integrasi
-Route::get('api-clients', [ApiClientController::class, 'index'])->name('api-clients.index');
-Route::post('api-clients', [ApiClientController::class, 'store'])->name('api-clients.store');
-Route::put('api-clients/{client}', [ApiClientController::class, 'update'])->name('api-clients.update');
-Route::post('api-clients/{client}/regenerate', [ApiClientController::class, 'regenerateKey'])->name('api-clients.regenerate');
-Route::patch('api-clients/{client}/toggle', [ApiClientController::class, 'toggle'])->name('api-clients.toggle');
-Route::delete('api-clients/{client}', [ApiClientController::class, 'destroy'])->name('api-clients.destroy');
+// Pusat Integrasi API SIS-EMIS
+Route::prefix('api-clients')->name('api-clients.')->group(function () {
+    Route::get('/', [ApiClientController::class, 'index'])->name('index');
+    Route::post('/save-config', [ApiClientController::class, 'saveConfig'])->name('save-config');
+    Route::post('/test-connection', [ApiClientController::class, 'testConnection'])->name('test-connection');
+    Route::post('/sync-classes', [ApiClientController::class, 'syncClasses'])->name('sync-classes');
+    Route::post('/sync-students', [ApiClientController::class, 'syncStudents'])->name('sync-students');
+    Route::get('/sync-students-stream', [ApiClientController::class, 'syncStudentsStream'])->name('sync-students-stream');
+});
 
 // QR Generator
 Route::get('qr-generator/{qrGenerator}/download/{format}', [QrGeneratorController::class, 'download'])->name('qr-generator.download');

@@ -148,7 +148,7 @@
                         </div>
                         <div>
                             <label class="block font-heading font-bold text-xs text-black mb-1">Alamat Email Siswa</label>
-                            <input type="email" id="edit_stu_email" name="email" placeholder="nama@siswa.sekolah.sch.id" class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-mono">
+                            <input type="email" id="edit_stu_email" name="email" placeholder="nis@{{ \App\Models\Student::getEmailDomain() }}" class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-mono">
                         </div>
                     </div>
 

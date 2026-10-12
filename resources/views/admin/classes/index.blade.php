@@ -16,6 +16,9 @@
             </p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="openModal('syncClassesModal')" class="neo-btn bg-[#A5D8FF] hover:bg-[#74c0fc] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 cursor-pointer font-heading" title="Tarik dan sinkronkan seluruh rombel resmi dari SIS-EMIS">
+                <span>🔄</span> Tarik Rombel SIS-EMIS
+            </button>
             <a href="{{ route('admin.classes.transfer') }}" class="neo-btn bg-[#FFF9DB] hover:bg-[#ffec99] text-black px-4 py-2.5 text-xs uppercase flex items-center gap-2 cursor-pointer font-heading" title="Pindahkan siswa yang salah kelas antar rombel">
                 <span>⇄</span> Pindah Kelas
             </a>
@@ -91,6 +94,7 @@
                                             onclick="editClass(this)"
                                             data-id="{{ $class->id }}"
                                             data-name="{{ $class->name }}"
+                                            data-level="{{ $class->level }}"
                                             data-academic-year-id="{{ $class->academic_year_id }}"
                                             data-homeroom-teacher-id="{{ $class->homeroom_teacher_id ?? '' }}"
                                             class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black p-1.5 text-xs cursor-pointer flex items-center justify-center"
@@ -165,7 +169,16 @@
             @csrf
             <div>
                 <label class="block font-heading font-bold text-xs text-black mb-1">Nama Kelas *</label>
-                <input type="text" name="name" required placeholder="Contoh: 7A, 8B, X-MIPA-1" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                <input type="text" name="name" required placeholder="Contoh: Kelas 1 a, Kelas 6 c" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+            </div>
+
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Tingkat / Jenjang *</label>
+                <select name="level" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
+                    @for($lvl = 1; $lvl <= 6; $lvl++)
+                        <option value="{{ $lvl }}">Tingkat {{ $lvl }} (Kelas {{ $lvl }})</option>
+                    @endfor
+                </select>
             </div>
 
             <div>
@@ -220,6 +233,15 @@
             </div>
 
             <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Tingkat / Jenjang *</label>
+                <select id="edit_level" name="level" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
+                    @for($lvl = 1; $lvl <= 6; $lvl++)
+                        <option value="{{ $lvl }}">Tingkat {{ $lvl }} (Kelas {{ $lvl }})</option>
+                    @endfor
+                </select>
+            </div>
+
+            <div>
                 <label class="block font-heading font-bold text-xs text-black mb-1">Tahun Ajaran *</label>
                 <select id="edit_academic_year_id" name="academic_year_id" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
                     @foreach($academicYears as $year)
@@ -252,6 +274,57 @@
     </div>
 </div>
 
+<!-- Modal Tarik Rombel SIS-EMIS -->
+<div id="syncClassesModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white neo-box-lg max-w-lg w-full p-6 space-y-5 relative">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
+                <span>🔄</span> Tarik Rombel dari SIS-EMIS
+            </h3>
+            <button onclick="closeModal('syncClassesModal')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer">✕</button>
+        </div>
+
+        <div class="bg-[#E7F5FF] border-2 border-black p-4 text-xs space-y-2">
+            <p class="font-bold text-black flex items-center gap-1.5">
+                <span>ℹ️</span> Sinkronisasi Rombongan Belajar Resmi
+            </p>
+            <p class="text-slate-700 leading-relaxed">
+                Fitur ini akan menarik seluruh <b>17 Rombongan Belajar resmi</b> dari database <b>SIS-EMIS Kemenag</b> (Tingkat 1 s/d 6) dan menyimpannya ke tabel kelas aplikasi Absensi.
+            </p>
+            <ul class="list-disc list-inside space-y-1 text-slate-700 pl-1">
+                <li>Rombel baru akan otomatis dibuat sesuai nama dan jenjang resminya (misal: <i>Kelas 1 a</i>, <i>Kelas 6 c</i>).</li>
+                <li>Rombel yang sudah ada akan diperbarui secara aman tanpa menghapus siswa yang terhubung.</li>
+            </ul>
+        </div>
+
+        <form action="{{ route('admin.classes.sync-sis') }}" method="POST" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1.5">Pilih Tahun Ajaran Tujuan *</label>
+                <select name="academic_year_id" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
+                    @foreach($academicYears as $year)
+                        <option value="{{ $year->id }}" {{ $year->is_active ? 'selected' : '' }}>
+                            {{ $year->name }} ({{ ucfirst($year->semester) }}) {{ $year->is_active ? '★ Tahun Ajaran Aktif' : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                <span class="text-[11px] text-slate-500 font-semibold block mt-1">
+                    Seluruh rombel yang ditarik akan dikaitkan dengan tahun ajaran yang dipilih di atas.
+                </span>
+            </div>
+
+            <div class="pt-3 border-t-2 border-slate-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeModal('syncClassesModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="neo-btn bg-[#A5D8FF] hover:bg-[#74c0fc] text-black px-5 py-2 text-xs font-heading flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]">
+                    <span>🚀</span> Mulai Sinkronkan Kelas
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     function editClass(target) {
@@ -260,6 +333,7 @@
             data = {
                 id: target.dataset.id || target.getAttribute('data-id'),
                 name: target.dataset.name || target.getAttribute('data-name'),
+                level: target.dataset.level || target.getAttribute('data-level'),
                 academic_year_id: target.dataset.academicYearId || target.getAttribute('data-academic-year-id'),
                 homeroom_teacher_id: target.dataset.homeroomTeacherId || target.getAttribute('data-homeroom-teacher-id'),
             };
@@ -270,11 +344,13 @@
         if (!data) return;
 
         const editName = document.getElementById('edit_name');
+        const editLevel = document.getElementById('edit_level');
         const editYear = document.getElementById('edit_academic_year_id');
         const editTeacher = document.getElementById('edit_homeroom_teacher_id');
         const editForm = document.getElementById('editClassForm');
 
         if (editName) editName.value = data.name || '';
+        if (editLevel) editLevel.value = data.level || '1';
         if (editYear) editYear.value = data.academic_year_id || '';
         if (editTeacher) editTeacher.value = data.homeroom_teacher_id || '';
         if (editForm) editForm.action = '/admin/classes/' + data.id;

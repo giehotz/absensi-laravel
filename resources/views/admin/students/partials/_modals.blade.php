@@ -281,3 +281,179 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Tarik Siswa dari SIS-EMIS -->
+<div id="syncSisModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white neo-box-lg max-w-lg w-full p-6 space-y-5 relative">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-lg text-black flex items-center gap-2">
+                <span>🔄</span> Sinkronisasi Siswa dari SIS-EMIS
+            </h3>
+            <button onclick="closeModal('syncSisModal')" class="text-black font-black text-xl hover:opacity-75 cursor-pointer">✕</button>
+        </div>
+
+        <div class="bg-[#E7F5FF] border-2 border-black p-3.5 text-xs text-blue-950 space-y-1.5 font-medium shadow-[2px_2px_0px_#000]">
+            <div class="font-bold flex items-center gap-1.5 font-heading">
+                <span>⚡</span> Integrasi Otomatis via API:
+            </div>
+            <p class="text-slate-700">
+                Fitur ini akan langsung menarik data siswa resmi dari database <b>SIS-EMIS</b> tanpa perlu ekspor-impor file Excel manual.
+            </p>
+            <ul class="list-disc list-inside space-y-0.5 text-slate-700 pl-1">
+                <li>Siswa baru otomatis dibuatkan akun pengguna dan <b>kode QR absensi unik</b>.</li>
+                <li>Siswa yang sudah ada akan diperbarui biodatanya secara idempoten.</li>
+                <li>Rombel baru akan otomatis dibuat jika belum ada di daftar kelas.</li>
+            </ul>
+        </div>
+
+        <form id="syncSisForm" action="{{ route('admin.students.sync-sis') }}" method="POST" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1.5">
+                    Pilih Kelas / Rombel yang Ingin Ditarik dari SIS-EMIS:
+                </label>
+                <select id="syncSisRombelSelect" name="rombel" class="w-full px-3 py-2 neo-input text-xs bg-slate-50 font-bold">
+                    <option value="">-- Tarik Seluruh Siswa Semua Rombel Sekaligus --</option>
+                    @php
+                        $groupedClasses = $classes->sortBy(['level', 'name'])->groupBy('level');
+                    @endphp
+                    @foreach($groupedClasses as $level => $classList)
+                        <optgroup label="Tingkat {{ $level }} (Kelas {{ $level }})">
+                            @foreach($classList as $cls)
+                                <option value="{{ $cls->name }}">
+                                    {{ $cls->name }} ({{ $cls->students->count() ?? 0 }} Siswa Terdaftar)
+                                </option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+                <span class="text-[11px] text-slate-500 font-semibold block mt-1.5 leading-relaxed">
+                    💡 <b>Tips:</b> Pilih kelas spesifik untuk menarik siswa rombel tersebut saja, atau pilih opsi paling atas untuk <b>menarik seluruh siswa semua kelas</b> sekaligus.
+                </span>
+            </div>
+
+            <div class="pt-3 border-t-2 border-slate-200 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeModal('syncSisModal')" class="neo-btn bg-white text-black px-4 py-2 text-xs cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="neo-btn bg-[#A5D8FF] hover:bg-[#74c0fc] text-black px-5 py-2 text-xs font-heading flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#000]">
+                    <span>🚀</span> Mulai Tarik Data Siswa
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- Modal Dialog Progress Bar Sinkronisasi SIS-EMIS (Neo-brutalism Real-time) -->
+<!-- ========================================================================= -->
+<div id="syncProgressModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs hidden transition-opacity duration-200">
+    <div class="bg-white border-3 border-black shadow-[6px_6px_0px_#000] w-full max-w-xl rounded-xl overflow-hidden flex flex-col">
+        <!-- Header Modal -->
+        <div id="syncModalHeader" class="bg-[#FFD43B] border-b-3 border-black p-4 flex items-center justify-between transition-colors duration-200">
+            <div class="flex items-center gap-2">
+                <span class="text-xl" id="syncModalIcon">🚀</span>
+                <h3 class="font-heading font-black text-sm text-black" id="syncModalTitle">
+                    Sinkronisasi Siswa dari SIS-EMIS
+                </h3>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="syncBadgeStatus" class="neo-badge bg-black text-[#20C997] text-[10px] font-mono font-black uppercase">
+                    Menghubungkan...
+                </span>
+                <button type="button" id="btnHeaderClose" onclick="closeSyncModal()" class="text-black hover:text-red-600 font-black text-sm px-1 cursor-pointer hidden" title="Tutup Modal">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Body Modal -->
+        <div class="p-5 space-y-4">
+            <!-- Progress Bar Section -->
+            <div>
+                <div class="flex items-center justify-between text-xs font-bold text-black mb-1.5">
+                    <span id="syncProgressLabel" class="flex items-center gap-1.5 font-heading">
+                        <span class="animate-spin inline-block" id="syncSpinner">⏳</span>
+                        <span id="syncStatusText">Menghubungkan ke API server SIS-EMIS...</span>
+                    </span>
+                    <span id="syncPercentText" class="font-mono font-black text-sm text-black bg-slate-100 px-2 py-0.5 border border-black rounded shadow-[1px_1px_0px_#000]">
+                        0%
+                    </span>
+                </div>
+
+                <!-- Bar Track & Fill -->
+                <div class="w-full bg-slate-100 h-5 border-2 border-black rounded-lg overflow-hidden p-0.5 relative shadow-[2px_2px_0px_#000]">
+                    <div id="syncProgressBar" 
+                         class="bg-[#20C997] h-full rounded transition-all duration-150 ease-out flex items-center justify-end pr-1 text-[10px] font-black text-black" 
+                         style="width: 0%;">
+                    </div>
+                </div>
+
+                <!-- Sub-info: Counter & Current Student -->
+                <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600 mt-2">
+                    <div class="truncate max-w-[280px]">
+                        <span class="text-slate-400">Sedang diproses:</span>
+                        <span id="syncCurrentStudent" class="font-bold text-black font-mono">Menyiapkan...</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400">Progres:</span>
+                        <span id="syncCounterText" class="font-mono font-bold text-black">0 / 0 Siswa</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini Summary Cards (Baru, Diperbarui, Total Remote) -->
+            <div class="grid grid-cols-3 gap-2 pt-1">
+                <div class="p-2.5 bg-emerald-50 border-2 border-black rounded-lg text-center shadow-[1px_1px_0px_#000]">
+                    <span class="text-[10px] font-bold text-emerald-800 uppercase block">Siswa Baru</span>
+                    <span id="syncSummaryImported" class="font-mono font-black text-base text-emerald-700">0</span>
+                </div>
+                <div class="p-2.5 bg-blue-50 border-2 border-black rounded-lg text-center shadow-[1px_1px_0px_#000]">
+                    <span class="text-[10px] font-bold text-blue-800 uppercase block">Diperbarui</span>
+                    <span id="syncSummaryUpdated" class="font-mono font-black text-base text-blue-700">0</span>
+                </div>
+                <div class="p-2.5 bg-amber-50 border-2 border-black rounded-lg text-center shadow-[1px_1px_0px_#000]">
+                    <span class="text-[10px] font-bold text-amber-800 uppercase block">Total EMIS</span>
+                    <span id="syncSummaryTotal" class="font-mono font-black text-base text-amber-700">0</span>
+                </div>
+            </div>
+
+            <!-- Terminal Log Box (Black background, green text, auto-scroll) -->
+            <div class="space-y-1">
+                <div class="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                    <span class="flex items-center gap-1 font-mono">
+                        <span>📟</span> Log Aktivitas Real-time:
+                    </span>
+                    <button type="button" onclick="clearSyncLogs()" class="text-[10px] text-slate-500 hover:text-black underline cursor-pointer">
+                        Bersihkan Log
+                    </button>
+                </div>
+                <div id="syncLogContainer" class="bg-black text-[#20C997] p-3 rounded-lg border-2 border-black font-mono text-[11px] h-36 overflow-y-auto space-y-1 shadow-inner select-text">
+                    <div class="text-slate-400 italic">[Menunggu stream data dari server...]</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Modal -->
+        <div class="bg-slate-50 border-t-2 border-black p-3.5 flex items-center justify-between gap-3">
+            <span id="syncFooterHint" class="text-[11px] text-slate-500 font-medium">
+                Mohon jangan menutup jendela ini selama proses sinkronisasi berlangsung.
+            </span>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btnCancelSync" onclick="cancelSync()" class="neo-btn bg-slate-200 hover:bg-slate-300 text-black px-3.5 py-1.5 text-xs font-bold border border-black rounded cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" id="btnRetrySync" onclick="retrySync()" class="neo-btn bg-[#FFD43B] hover:bg-[#fcc419] text-black px-4 py-1.5 text-xs font-black border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_#000] hidden">
+                    🔄 Coba Lagi
+                </button>
+                <button type="button" id="btnCloseReloadSync" onclick="finishAndReload()" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-1.5 text-xs font-black border-2 border-black rounded cursor-pointer shadow-[2px_2px_0px_#000] hidden">
+                    ✅ Selesai & Muat Ulang
+                </button>
+                <button type="button" id="btnSimpleClose" onclick="closeSyncModal()" class="neo-btn bg-slate-200 hover:bg-slate-300 text-black px-3.5 py-1.5 text-xs font-bold border border-black rounded cursor-pointer hidden">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

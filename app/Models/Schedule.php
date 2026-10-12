@@ -39,4 +39,9 @@ class Schedule extends Model
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function teachingJournals(): HasMany
+    {
+        return $this->hasMany(TeachingJournal::class);
+    }
 }

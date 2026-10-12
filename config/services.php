@@ -15,24 +15,33 @@ return [
     */
 
     'postmark' => [
-        'key' => env('POSTMARK_API_KEY'),
+        'key' => env('POSTMARK_API_KEY', ''),
     ],
 
     'resend' => [
-        'key' => env('RESEND_API_KEY'),
+        'key' => env('RESEND_API_KEY', ''),
     ],
 
     'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
-        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'key' => env('AWS_ACCESS_KEY_ID', ''),
+        'secret' => env('AWS_SECRET_ACCESS_KEY', ''),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
     'slack' => [
         'notifications' => [
-            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+            'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN', ''),
+            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL', ''),
         ],
+    ],
+
+    'sis_emis' => [
+        'url' => env('SIS_EMIS_API_URL', 'http://127.0.0.1:8000/api/v1'),
+        'token' => env('SIS_EMIS_API_TOKEN', ''),
+    ],
+
+    'student' => [
+        'email_domain' => env('STUDENT_EMAIL_DOMAIN'),
     ],
 
 ];

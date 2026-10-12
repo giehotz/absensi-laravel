@@ -64,6 +64,18 @@
                 </span>
             </button>
 
+            <!-- Tarik Data dari SIS-EMIS API -->
+            <button type="button" onclick="openModal('syncSisModal')" 
+                    class="neo-btn bg-[#A5D8FF] hover:bg-[#74c0fc] text-black p-2.5 text-xs flex items-center justify-center cursor-pointer font-heading shadow-[2px_2px_0px_#000] group relative"
+                    title="Tarik Siswa dari SIS-EMIS API" aria-label="Tarik Siswa dari SIS-EMIS API">
+                <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span class="absolute -top-9 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
+                    Tarik SIS-EMIS
+                </span>
+            </button>
+
             <!-- Studio Cetak Kartu -->
             <a href="{{ route('admin.students.cards', ['class_id' => $selectedClassId]) }}" 
                class="neo-btn bg-white hover:bg-slate-100 text-black p-2.5 text-xs flex items-center justify-center cursor-pointer font-heading shadow-[2px_2px_0px_#000] group relative"

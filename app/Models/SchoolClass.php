@@ -46,6 +46,11 @@ class SchoolClass extends Model
         return $this->hasMany(AssessmentPackage::class);
     }
 
+    public function teachingJournals(): HasMany
+    {
+        return $this->hasMany(TeachingJournal::class);
+    }
+
     /**
      * Scope query untuk rombel berdasarkan nama tahun ajaran induk (contoh: '2026/2027').
      */

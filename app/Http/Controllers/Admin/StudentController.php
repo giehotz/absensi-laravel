@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\ImageUploadService;
+use App\Services\SisEmisSyncService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -248,6 +249,79 @@ class StudentController extends Controller
         ]);
     }
 
+    /**
+     * Sinkronisasi data siswa langsung dari SIS-EMIS API
+     */
+    public function syncFromSis(Request $request, SisEmisSyncService $syncService): RedirectResponse
+    {
+        $rombel = $request->input('rombel') ?: null;
+        $level = $request->integer('level') ?: null;
+        $targetClassId = $request->integer('school_class_id') ?: null;
+
+        $result = $syncService->sync($rombel, $level, $targetClassId);
+
+        if (! $result['success']) {
+            return redirect()->route('admin.students.index')->with('error', $result['message']);
+        }
+
+        return redirect()->route('admin.students.index')->with('success', $result['message']);
+    }
+
+    /**
+     * Endpoint Server-Sent Events (SSE) untuk streaming progres sinkronisasi siswa di halaman data siswa.
+     */
+    public function syncFromSisStream(Request $request, SisEmisSyncService $syncService): StreamedResponse
+    {
+        $rombel = $request->query('rombel') ?: null;
+        $level = $request->integer('level') ?: null;
+        $targetClassId = $request->integer('school_class_id') ?: null;
+
+        return response()->stream(function () use ($rombel, $level, $targetClassId, $syncService) {
+            if (session()->isStarted()) {
+                session()->save();
+            }
+
+            while (ob_get_level() > 0) {
+                ob_end_flush();
+            }
+
+            $sendEvent = function (string $event, array $data): void {
+                echo "event: {$event}\n";
+                echo 'data: '.json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n\n";
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            };
+
+            $sendEvent('log', [
+                'message' => 'Koneksi streaming aktif. Mempersiapkan sinkronisasi data siswa dari SIS-EMIS...',
+                'type' => 'info',
+            ]);
+
+            try {
+                $syncService->sync(
+                    rombel: $rombel,
+                    level: $level,
+                    targetClassId: $targetClassId,
+                    onProgress: function (array $payload) use ($sendEvent) {
+                        $event = $payload['event'] ?? 'progress';
+                        $sendEvent($event, $payload);
+                    }
+                );
+            } catch (\Throwable $e) {
+                $sendEvent('error', [
+                    'message' => 'Terjadi kesalahan sistem: '.$e->getMessage(),
+                ]);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-transform',
+            'Connection' => 'keep-alive',
+            'X-Accel-Buffering' => 'no',
+        ]);
+    }
+
     public function importExcel(Request $request): RedirectResponse
     {
         $request->validate([
@@ -351,8 +425,8 @@ class StudentController extends Controller
                 $birthDate = $this->parseDate($birthDateRaw);
                 $admissionDate = $this->parseDate($admissionDateRaw);
 
-                // Password logic: custom password or NIS fallback
-                $plainPassword = ! empty($passwordRaw) ? $passwordRaw : $nis;
+                // Password logic: custom password or NISN fallback
+                $plainPassword = ! empty($passwordRaw) ? $passwordRaw : Student::getDefaultPassword($nisn, $nis);
 
                 // Check duplicate NIS
                 $existingStudent = Student::with('user')->where('nis', $nis)->first();
@@ -409,10 +483,7 @@ class StudentController extends Controller
                 }
 
                 // New student: build unique email
-                $email = $nis.'@siswa.sekolah.sch.id';
-                if (User::where('email', $email)->exists()) {
-                    $email = $nis.'.'.rand(100, 999).'@siswa.sekolah.sch.id';
-                }
+                $email = Student::generateDefaultEmail($nis);
 
                 $qrCodeIdentifier = 'QR-'.$nis.'-'.strtoupper(bin2hex(random_bytes(3)));
 
@@ -560,12 +631,8 @@ class StudentController extends Controller
         ]);
 
         // Email default otomatis dari NIS jika tidak diinput
-        $email = $validated['email'] ?? ($validated['nis'].'@siswa.sekolah.sch.id');
-
-        // Pastikan email unik jika fallback otomatis
-        if (User::where('email', $email)->exists()) {
-            $email = $validated['nis'].'.'.rand(100, 999).'@siswa.sekolah.sch.id';
-        }
+        $email = ! empty($validated['email']) ? $validated['email'] : Student::generateDefaultEmail($validated['nis']);
+        $plainPassword = Student::getDefaultPassword($validated['nisn'] ?? null, $validated['nis']);
 
         // Generate QR code identifier permanen
         $qrCodeIdentifier = 'QR-'.$validated['nis'].'-'.strtoupper(bin2hex(random_bytes(3)));
@@ -582,11 +649,11 @@ class StudentController extends Controller
             );
         }
 
-        DB::transaction(function () use ($validated, $email, $qrCodeIdentifier, $photoPath) {
+        DB::transaction(function () use ($validated, $email, $plainPassword, $qrCodeIdentifier, $photoPath) {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $email,
-                'password' => Hash::make('password'),
+                'password' => Hash::make($plainPassword),
                 'role' => 'siswa',
                 'is_active' => true,
             ]);
@@ -738,8 +805,8 @@ class StudentController extends Controller
 
     public function resetPassword(Request $request, Student $student): RedirectResponse
     {
-        $defaultPassword = ! empty($student->nisn) ? (string) $student->nisn : (! empty($student->nis) ? (string) $student->nis : 'password');
-        $label = ! empty($student->nisn) ? 'NISN' : (! empty($student->nis) ? 'NIS' : 'default');
+        $defaultPassword = Student::getDefaultPassword($student->nisn, $student->nis);
+        $label = ! empty($student->nisn) ? 'NISN' : 'NIS';
 
         $student->user()->update([
             'password' => Hash::make($defaultPassword),

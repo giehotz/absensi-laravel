@@ -9,6 +9,7 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\User;
+use App\Services\SisEmisSyncService;
 use App\Services\StudentCardService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -384,7 +385,7 @@ class SchoolClassController extends Controller
                 $admissionDate = $this->parseDate($admissionDateRaw);
 
                 // Password logic
-                $plainPassword = ! empty($passwordRaw) ? $passwordRaw : $nis;
+                $plainPassword = ! empty($passwordRaw) ? $passwordRaw : Student::getDefaultPassword($nisn, $nis);
 
                 // Check duplicate NIS
                 $existingStudent = Student::with('user')->where('nis', $nis)->first();
@@ -441,10 +442,7 @@ class SchoolClassController extends Controller
                 }
 
                 // New student: build unique email
-                $email = $nis.'@siswa.sekolah.sch.id';
-                if (User::where('email', $email)->exists()) {
-                    $email = $nis.'.'.rand(100, 999).'@siswa.sekolah.sch.id';
-                }
+                $email = Student::generateDefaultEmail($nis);
 
                 $qrCodeIdentifier = 'QR-'.$nis.'-'.strtoupper(bin2hex(random_bytes(3)));
 
@@ -553,6 +551,22 @@ class SchoolClassController extends Controller
         return null;
     }
 
+    /**
+     * Sinkronisasi data rombel/kelas resmi dari SIS-EMIS API.
+     */
+    public function syncFromSis(Request $request, SisEmisSyncService $syncService): RedirectResponse
+    {
+        $targetYearId = $request->integer('academic_year_id') ?: null;
+
+        $result = $syncService->syncClasses($targetYearId);
+
+        if (! $result['success']) {
+            return redirect()->route('admin.classes.index')->with('error', $result['message']);
+        }
+
+        return redirect()->route('admin.classes.index')->with('success', $result['message']);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -566,12 +580,12 @@ class SchoolClassController extends Controller
 
         if (empty($validated['level'])) {
             $setting = AttendanceSetting::first();
-            $validated['level'] = $setting?->level ?? 'SMP';
+            $validated['level'] = $setting?->level ?? (preg_match('/\b([1-6])\b/', $validated['name'], $m) ? (string) $m[1] : '1');
         }
 
         if (empty($validated['academic_year_id'])) {
             $activeYear = AcademicYear::where('is_active', true)->first();
-            $validated['academic_year_id'] = $activeYear ? $activeYear->id : 1;
+            $validated['academic_year_id'] = $activeYear ? $activeYear->id : (AcademicYear::latest('id')->value('id') ?? 1);
         }
 
         SchoolClass::create($validated);
@@ -593,7 +607,7 @@ class SchoolClassController extends Controller
 
         if (empty($validated['level'])) {
             $setting = AttendanceSetting::first();
-            $validated['level'] = $setting?->level ?? $class->level ?? 'SMP';
+            $validated['level'] = $setting?->level ?? $class->level ?? (preg_match('/\b([1-6])\b/', $validated['name'], $m) ? (string) $m[1] : '1');
         }
 
         $class->update($validated);

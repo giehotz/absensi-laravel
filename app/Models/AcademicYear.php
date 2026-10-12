@@ -32,6 +32,16 @@ class AcademicYear extends Model
         return $this->hasMany(SchoolClass::class);
     }
 
+    public function assessmentPackages(): HasMany
+    {
+        return $this->hasMany(AssessmentPackage::class);
+    }
+
+    public function slotTemplates(): HasMany
+    {
+        return $this->hasMany(SlotTemplate::class);
+    }
+
     public static function activeSemester(): ?self
     {
         return static::where('is_active', true)->first();
