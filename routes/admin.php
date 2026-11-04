@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\AttendanceUploadController;
 use App\Http\Controllers\Admin\DatabaseMaintenanceController;
 use App\Http\Controllers\Admin\EffectiveWeekController;
 use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\MbgUserManagementController;
 use App\Http\Controllers\Admin\QrGeneratorController;
 use App\Http\Controllers\Admin\SavingsController as AdminSavingsController;
 use App\Http\Controllers\Admin\ScheduleController;
@@ -169,3 +170,6 @@ Route::prefix('penilaian')->name('penilaian.')->group(function () {
     Route::get('/{package}/export', [AdminAssessmentController::class, 'exportExcel'])->name('export');
     Route::get('/{package}/cetak', [AdminAssessmentController::class, 'printPdf'])->name('print');
 });
+
+// Manajemen Akun Petugas MBG (Admin)
+Route::resource('petugas-mbg', MbgUserManagementController::class)->except(['create', 'show', 'edit']);

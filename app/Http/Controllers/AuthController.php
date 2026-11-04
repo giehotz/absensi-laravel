@@ -107,6 +107,7 @@ class AuthController extends Controller
             'guru' => redirect()->route('guru.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
             'orangtua' => redirect()->route('orangtua.dashboard'),
+            'petugas_mbg' => redirect()->route('mbg.dashboard'),
             default => redirect()->route('login'),
         };
     }

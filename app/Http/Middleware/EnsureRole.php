@@ -28,6 +28,7 @@ class EnsureRole
                 'guru' => 'guru.dashboard',
                 'siswa' => 'siswa.dashboard',
                 'orangtua' => 'orangtua.dashboard',
+                'petugas_mbg' => 'mbg.dashboard',
                 default => 'login',
             };
 

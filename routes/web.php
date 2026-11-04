@@ -13,6 +13,7 @@ Route::get('/', function () {
             'guru' => redirect()->route('guru.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
             'orangtua' => redirect()->route('orangtua.dashboard'),
+            'petugas_mbg' => redirect()->route('mbg.dashboard'),
             default => redirect()->route('login'),
         };
     }
@@ -36,6 +37,9 @@ Route::middleware(['auth', 'role:orangtua'])->prefix('orangtua')->name('orangtua
 
 // Modul Terisolasi: Pengelolaan Tabungan Siswa
 require base_path('routes/tabungan.php');
+
+// Modul Terisolasi: Distribusi Makan Bergizi Gratis (MBG)
+Route::middleware(['auth', 'role:petugas_mbg,admin'])->prefix('mbg')->name('mbg.')->group(base_path('routes/mbg.php'));
 
 // Rute Publik: Verifikasi Keabsahan Kartu Tanda Pelajar (Scan QR Depan)
 Route::get('validasi/siswa/{identifier}', [PublicVerificationController::class, 'verifyStudent'])->name('public.verify.student');

@@ -333,6 +333,47 @@
                     </div>
                 </div>
 
+                <!-- Group: Makan Bergizi Gratis (MBG) -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                        Makan Bergizi Gratis (MBG)
+                    </div>
+                    <div class="space-y-1">
+                        <!-- Monitoring & Distribusi MBG -->
+                        <a href="{{ route('mbg.dashboard') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('mbg.dashboard') || request()->routeIs('mbg.distributions.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm">🍱</span>
+                                <span>Distribusi & Catat</span>
+                            </div>
+                            <span class="text-[9px] font-black bg-[#20C997] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">MBG</span>
+                        </a>
+
+                        <!-- Rekapitulasi Laporan MBG -->
+                        <a href="{{ route('mbg.rekap.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('mbg.rekap.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <span class="text-sm">📊</span>
+                            <span>Rekapitulasi MBG</span>
+                        </a>
+
+                        <!-- Kelola Petugas MBG -->
+                        <a href="{{ route('admin.petugas-mbg.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('admin.petugas-mbg.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <span class="text-sm">👥</span>
+                            <span>Kelola Petugas MBG</span>
+                        </a>
+                    </div>
+                </div>
+
                 <!-- Group 6: Sistem & Utilitas -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
