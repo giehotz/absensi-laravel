@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
 
 class AttendanceSetting extends Model
@@ -18,6 +19,10 @@ class AttendanceSetting extends Model
         'npsn',
         'level',
         'school_address',
+        'school_province',
+        'school_city',
+        'school_district',
+        'school_village',
         'logo',
         'favicon',
         'kop_government_name',
@@ -44,9 +49,45 @@ class AttendanceSetting extends Model
         'card_show_signature',
         'card_principal_name',
         'card_principal_nip',
+        'headmaster_teacher_id',
         'can_homeroom_edit_schedule',
         'homeroom_schedule_deadline',
     ];
+
+    public function headmasterTeacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'headmaster_teacher_id');
+    }
+
+    public function getHeadmasterNameAttribute(): ?string
+    {
+        return $this->card_principal_name;
+    }
+
+    public function getHeadmasterNipAttribute(): ?string
+    {
+        return $this->card_principal_nip;
+    }
+
+    public function getProvinceAttribute(): ?string
+    {
+        return $this->school_province;
+    }
+
+    public function getCityAttribute(): ?string
+    {
+        return $this->school_city;
+    }
+
+    public function getDistrictAttribute(): ?string
+    {
+        return $this->school_district;
+    }
+
+    public function getVillageAttribute(): ?string
+    {
+        return $this->school_village;
+    }
 
     protected function casts(): array
     {

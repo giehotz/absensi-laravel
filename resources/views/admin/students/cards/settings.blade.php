@@ -233,7 +233,7 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-black uppercase mb-1">
-                                    Nama Kepala Madrasah
+                                    Nama Kepala Madrasah <span class="text-[10px] text-slate-500 font-normal lowercase">(sinkron dengan Profil Lembaga)</span>
                                 </label>
                                 <input type="text" 
                                        name="card_principal_name" 
@@ -244,7 +244,7 @@
 
                             <div>
                                 <label class="block text-xs font-bold text-black uppercase mb-1">
-                                    NIP Kepala Madrasah
+                                    NIP Kepala Madrasah <span class="text-[10px] text-slate-500 font-normal lowercase">(sinkron dengan Profil Lembaga)</span>
                                 </label>
                                 <input type="text" 
                                        name="card_principal_nip" 

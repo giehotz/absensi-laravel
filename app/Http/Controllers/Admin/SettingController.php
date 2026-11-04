@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceArchive;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
+use App\Models\Teacher;
 use App\Services\ImageUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -54,7 +55,9 @@ class SettingController extends Controller
                 ->count();
         }
 
-        return view('admin.settings.index', compact('setting', 'academicYears', 'activeAttendanceCount', 'archivedAttendanceCount'));
+        $teachers = Teacher::with('user')->get()->sortBy(fn ($t) => $t->user?->name ?? '')->values();
+
+        return view('admin.settings.index', compact('setting', 'academicYears', 'activeAttendanceCount', 'archivedAttendanceCount', 'teachers'));
     }
 
     public function update(Request $request): RedirectResponse
@@ -67,6 +70,13 @@ class SettingController extends Controller
             'npsn' => ['nullable', 'string', 'max:30'],
             'level' => ['nullable', 'in:SD,MI,SMP,MTs,SMA,MA,SMK'],
             'school_address' => ['nullable', 'string', 'max:500'],
+            'school_province' => ['nullable', 'string', 'max:100'],
+            'school_city' => ['nullable', 'string', 'max:100'],
+            'school_district' => ['nullable', 'string', 'max:100'],
+            'school_village' => ['nullable', 'string', 'max:100'],
+            'headmaster_teacher_id' => ['nullable', 'exists:teachers,id'],
+            'card_principal_name' => ['nullable', 'string', 'max:255'],
+            'card_principal_nip' => ['nullable', 'string', 'max:50'],
             'logo' => ['nullable', 'image', 'mimes:png,jpg,jpeg,svg,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
             'favicon' => ['nullable', 'file', 'mimes:ico,png,jpg,jpeg,svg,webp', 'max:1024'],
@@ -119,6 +129,36 @@ class SettingController extends Controller
         }
         if (array_key_exists('school_address', $validated)) {
             $setting->school_address = $validated['school_address'];
+        }
+        if (array_key_exists('school_province', $validated)) {
+            $setting->school_province = $validated['school_province'];
+        }
+        if (array_key_exists('school_city', $validated)) {
+            $setting->school_city = $validated['school_city'];
+        }
+        if (array_key_exists('school_district', $validated)) {
+            $setting->school_district = $validated['school_district'];
+        }
+        if (array_key_exists('school_village', $validated)) {
+            $setting->school_village = $validated['school_village'];
+        }
+
+        // Simpan Data Kepala Madrasah (Data Guru atau Input Manual)
+        if (! empty($validated['headmaster_teacher_id'])) {
+            $teacher = Teacher::with('user')->find($validated['headmaster_teacher_id']);
+            if ($teacher) {
+                $setting->headmaster_teacher_id = $teacher->id;
+                $setting->card_principal_name = $teacher->user?->name ?? $validated['card_principal_name'];
+                $setting->card_principal_nip = $teacher->nip ?? $validated['card_principal_nip'];
+            }
+        } else {
+            $setting->headmaster_teacher_id = null;
+            if (array_key_exists('card_principal_name', $validated)) {
+                $setting->card_principal_name = $validated['card_principal_name'];
+            }
+            if (array_key_exists('card_principal_nip', $validated)) {
+                $setting->card_principal_nip = $validated['card_principal_nip'];
+            }
         }
 
         // Simpan Data Kop Surat

@@ -57,10 +57,76 @@
         switchTab(activeTab);
     }
 
+    function handleHeadmasterSelectChange(selectElem, isUserAction = true) {
+        const nameInput = document.getElementById('card_principal_name_input');
+        const nipInput = document.getElementById('card_principal_nip_input');
+        const modeBadge = document.getElementById('headmaster_mode_badge');
+        const nameHint = document.getElementById('headmaster_name_hint');
+        const nipHint = document.getElementById('headmaster_nip_hint');
+
+        if (!selectElem || !nameInput || !nipInput) return;
+
+        const selectedOption = selectElem.options[selectElem.selectedIndex];
+        const teacherId = selectElem.value;
+
+        if (teacherId && selectedOption) {
+            const teacherName = selectedOption.getAttribute('data-name') || '';
+            const teacherNip = selectedOption.getAttribute('data-nip') || '';
+
+            if (isUserAction || !nameInput.value) {
+                nameInput.value = teacherName;
+            }
+            if (isUserAction || (!nipInput.value && teacherNip)) {
+                nipInput.value = teacherNip;
+            }
+
+            nameInput.readOnly = true;
+            nipInput.readOnly = true;
+
+            nameInput.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-700');
+            nameInput.classList.remove('bg-slate-50', 'bg-white');
+            nipInput.classList.add('bg-slate-100', 'cursor-not-allowed', 'text-slate-700');
+            nipInput.classList.remove('bg-slate-50', 'bg-white');
+
+            if (modeBadge) {
+                modeBadge.className = 'neo-badge bg-[#20C997] text-black text-[10px]';
+                modeBadge.textContent = 'Terhubung Data Guru (Otomatis)';
+            }
+            if (nameHint) nameHint.textContent = '🔒 Terkunci otomatis dari master data guru yang dipilih.';
+            if (nipHint) nipHint.textContent = '🔒 Terkunci otomatis dari master data guru yang dipilih.';
+        } else {
+            nameInput.readOnly = false;
+            nipInput.readOnly = false;
+
+            nameInput.classList.remove('bg-slate-100', 'cursor-not-allowed', 'text-slate-700');
+            nameInput.classList.add('bg-slate-50');
+            nipInput.classList.remove('bg-slate-100', 'cursor-not-allowed', 'text-slate-700');
+            nipInput.classList.add('bg-slate-50');
+
+            if (modeBadge) {
+                modeBadge.className = 'neo-badge bg-slate-100 text-slate-700 text-[10px]';
+                modeBadge.textContent = 'Input Manual Bebas';
+            }
+            if (nameHint) nameHint.textContent = '';
+            if (nipHint) nipHint.textContent = '';
+        }
+    }
+
+    function initHeadmasterSettings() {
+        const selectElem = document.getElementById('headmaster_teacher_id');
+        if (selectElem) {
+            handleHeadmasterSelectChange(selectElem, false);
+        }
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initActiveTab);
+        document.addEventListener('DOMContentLoaded', () => {
+            initActiveTab();
+            initHeadmasterSettings();
+        });
     } else {
         initActiveTab();
+        initHeadmasterSettings();
     }
 
     function editAcademicYear(data) {

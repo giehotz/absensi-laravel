@@ -33,11 +33,108 @@
         </div>
 
         <div>
-            <label class="block font-heading font-bold text-xs text-black mb-1">Alamat Lengkap</label>
-            <input type="text" name="school_address" value="{{ old('school_address', $setting->school_address ?? 'Jl. Pendidikan No. 45, Kompleks Pelajar Mandiri') }}" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 text-sm text-black">
-            <span class="text-[11px] text-slate-500 font-semibold mt-1 block">
+            <label class="block font-heading font-bold text-xs text-black mb-1">Alamat Lengkap (Jalan / Dusun / RT / RW)</label>
+            <input type="text" name="school_address" value="{{ old('school_address', $setting->school_address ?? 'Jl. Pendidikan No. 45, Kompleks Pelajar Mandiri') }}" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 text-sm text-black" placeholder="Contoh: Jl. Lapangan Ampera No. 109, RT 02/RW 01">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Provinsi</label>
+                <input type="text" name="school_province" value="{{ old('school_province', $setting->school_province ?? '') }}" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 text-sm text-black" placeholder="Contoh: Lampung">
+            </div>
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Kabupaten / Kota</label>
+                <input type="text" name="school_city" value="{{ old('school_city', $setting->school_city ?? '') }}" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 text-sm text-black" placeholder="Contoh: Tanggamus">
+            </div>
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Kecamatan</label>
+                <input type="text" name="school_district" value="{{ old('school_district', $setting->school_district ?? '') }}" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 text-sm text-black" placeholder="Contoh: Talang Padang">
+            </div>
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Desa / Kelurahan</label>
+                <input type="text" name="school_village" value="{{ old('school_village', $setting->school_village ?? '') }}" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 text-sm text-black" placeholder="Contoh: Negeri Agung">
+            </div>
+        </div>
+
+        <div>
+            <span class="text-[11px] text-slate-500 font-semibold block">
                 Jenjang di atas berfungsi sebagai <strong>sumber data utama</strong> yang otomatis diterapkan pada seluruh rombel/kelas.
             </span>
+        </div>
+
+        <!-- Konfigurasi Kepala Madrasah / Penanggung Jawab Lembaga -->
+        <div class="border-2 border-black bg-white p-5 neo-box space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-black pb-3">
+                <div>
+                    <span class="neo-badge bg-[#20C997] text-black text-[10px]">PIMPINAN LEMBAGA</span>
+                    <h3 class="font-heading font-black text-base text-black mt-1 flex items-center gap-2">
+                        <span>👨‍🏫</span> Kepala Madrasah / Sekolah
+                    </h3>
+                    <p class="text-xs text-slate-600 font-semibold mt-0.5">
+                        Nama dan NIP otomatis dicetak pada tanda tangan Kartu Siswa, Rekap MBG, Jurnal Guru, dan Laporan Resmi.
+                    </p>
+                </div>
+                <div id="headmaster_mode_badge_container">
+                    <span id="headmaster_mode_badge" class="neo-badge bg-slate-100 text-slate-700 text-[10px]">
+                        Input Manual Bebas
+                    </span>
+                </div>
+            </div>
+
+            <!-- Pilih Sumber Data Guru atau Manual -->
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">
+                    Ambil dari Data Guru (Master Data)
+                </label>
+                <select name="headmaster_teacher_id" id="headmaster_teacher_id" onchange="handleHeadmasterSelectChange(this)" class="w-full px-3.5 py-2.5 neo-input bg-slate-50 font-medium text-sm text-black cursor-pointer">
+                    <option value="" data-name="" data-nip="">-- Input Manual / Ketik Sendiri --</option>
+                    @if(isset($teachers))
+                        @foreach($teachers as $t)
+                            @php
+                                $tName = $t->user?->name ?? 'Guru';
+                                $tNip = $t->nip ?? '';
+                            @endphp
+                            <option value="{{ $t->id }}" 
+                                    data-name="{{ $tName }}" 
+                                    data-nip="{{ $tNip }}"
+                                    {{ (string) old('headmaster_teacher_id', $setting->headmaster_teacher_id) === (string) $t->id ? 'selected' : '' }}>
+                                {{ $tName }} (NIP: {{ $tNip ?: '-' }})
+                            </option>
+                        @endforeach
+                    @endif
+                </select>
+                <span class="text-[11px] text-slate-500 font-semibold mt-1 block">
+                    Pilih nama guru di atas untuk mengisi Nama & NIP secara otomatis dari master data guru, atau pilih <em>Input Manual</em> untuk mengetik nama pimpinan luar/Plt secara bebas.
+                </span>
+            </div>
+
+            <!-- Input Nama & NIP Kepala Madrasah -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div>
+                    <label class="block font-heading font-bold text-xs text-black mb-1">
+                        Nama Kepala Madrasah / Sekolah *
+                    </label>
+                    <input type="text" 
+                           name="card_principal_name" 
+                           id="card_principal_name_input"
+                           value="{{ old('card_principal_name', $setting->card_principal_name ?? '') }}" 
+                           placeholder="Contoh: Drs. H. Ahmad Subarjo, M.Pd." 
+                           class="w-full px-3.5 py-2.5 neo-input text-sm text-black font-bold transition-all">
+                    <span id="headmaster_name_hint" class="text-[10px] text-slate-500 mt-0.5 block font-medium"></span>
+                </div>
+                <div>
+                    <label class="block font-heading font-bold text-xs text-black mb-1">
+                        NIP Kepala Madrasah / Sekolah
+                    </label>
+                    <input type="text" 
+                           name="card_principal_nip" 
+                           id="card_principal_nip_input"
+                           value="{{ old('card_principal_nip', $setting->card_principal_nip ?? '') }}" 
+                           placeholder="Contoh: 19750812 200003 1 002" 
+                           class="w-full px-3.5 py-2.5 neo-input text-sm text-black font-mono transition-all">
+                    <span id="headmaster_nip_hint" class="text-[10px] text-slate-500 mt-0.5 block font-medium"></span>
+                </div>
+            </div>
         </div>
 
         <!-- Upload Logo Satuan Pendidikan -->
