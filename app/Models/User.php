@@ -75,4 +75,13 @@ class User extends Authenticatable
     {
         return $this->role === 'petugas_mbg';
     }
+
+    public function isPanitiaUjian(?int $periodeId = null): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return $this->isGuru() && (bool) ($this->teacher?->isPanitiaUjian($periodeId));
+    }
 }

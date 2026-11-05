@@ -90,7 +90,7 @@
             </div>
 
             <!-- Navigation Links -->
-            <nav class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
+            <nav id="sidebarNav" class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
                 <!-- Group 1: Menu Utama -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
@@ -275,6 +275,31 @@
                             <span class="text-[10px] font-black {{ request()->routeIs('guru.savings.*') ? 'bg-black text-yellow-300' : 'bg-[#D3F9D8] text-emerald-950' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Kas</span>
                         </a>
                         @endif
+                    </div>
+                </div>
+                @endif
+
+                @if(Auth::user()->isPanitiaUjian())
+                <!-- Group: Kepanitiaan Ujian -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading flex items-center justify-between">
+                        <span>Panitia Ujian</span>
+                        <span class="text-[9px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                            {{ Auth::user()->teacher?->activePanitiaUjianRole() ?: 'Panitia' }}
+                        </span>
+                    </div>
+                    <div class="space-y-1">
+                        <a href="{{ route('ujian.dashboard') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('ujian.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm">📝</span>
+                                <span>Manajemen Ujian</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('ujian.*') ? 'bg-black text-yellow-300' : 'bg-[#5294FF] text-white' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Modul</span>
+                        </a>
                     </div>
                 </div>
                 @endif
@@ -586,6 +611,7 @@
             }
         }
     </script>
+    @include('partials._sidebar-scroll-persistence', ['portalKey' => 'guru'])
     @stack('scripts')
 </body>
 </html>

@@ -41,5 +41,8 @@ require base_path('routes/tabungan.php');
 // Modul Terisolasi: Distribusi Makan Bergizi Gratis (MBG)
 Route::middleware(['auth', 'role:petugas_mbg,admin'])->prefix('mbg')->name('mbg.')->group(base_path('routes/mbg.php'));
 
+// Modul Terisolasi: Manajemen Ujian & Cetak Kartu Ujian (Admin & Panitia Ujian)
+require base_path('routes/ujian.php');
+
 // Rute Publik: Verifikasi Keabsahan Kartu Tanda Pelajar (Scan QR Depan)
 Route::get('validasi/siswa/{identifier}', [PublicVerificationController::class, 'verifyStudent'])->name('public.verify.student');

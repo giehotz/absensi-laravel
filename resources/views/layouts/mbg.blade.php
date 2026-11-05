@@ -25,6 +25,19 @@
         .font-heading {
             font-family: 'Space Grotesk', sans-serif;
         }
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: #0F172A;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
     </style>
     <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
     <script>
@@ -66,7 +79,7 @@
             </div>
 
             <!-- Navigation Links -->
-            <nav class="flex-1 overflow-y-auto px-3.5 py-4 space-y-4">
+            <nav id="sidebarNav" class="flex-1 overflow-y-auto sidebar-scroll px-3.5 py-4 space-y-4">
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
                         Menu Utama
@@ -234,6 +247,7 @@
             }
         }
     </script>
+    @include('partials._sidebar-scroll-persistence', ['portalKey' => 'mbg'])
     @stack('scripts')
 </body>
 </html>

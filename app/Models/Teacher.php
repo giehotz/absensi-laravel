@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Ujian\UjianPanitia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -58,6 +59,30 @@ class Teacher extends Model
     public function homeroomClass()
     {
         return $this->hasOne(SchoolClass::class, 'homeroom_teacher_id');
+    }
+
+    public function ujianPanitia(): HasMany
+    {
+        return $this->hasMany(UjianPanitia::class);
+    }
+
+    public function isPanitiaUjian(?int $periodeId = null): bool
+    {
+        return $this->ujianPanitia()
+            ->where('is_active', true)
+            ->when($periodeId, fn ($q) => $q->where('ujian_periode_id', $periodeId))
+            ->exists();
+    }
+
+    public function activePanitiaUjianRole(?int $periodeId = null): ?string
+    {
+        $panitia = $this->ujianPanitia()
+            ->where('is_active', true)
+            ->when($periodeId, fn ($q) => $q->where('ujian_periode_id', $periodeId))
+            ->latest()
+            ->first();
+
+        return $panitia?->jabatan_label;
     }
 
     public function assignments(): HasMany

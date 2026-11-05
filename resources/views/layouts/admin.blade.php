@@ -79,7 +79,7 @@
             </div>
 
             <!-- Navigation Links -->
-            <nav class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
+            <nav id="sidebarNav" class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
                 <!-- Group 1: Menu Utama -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
@@ -221,6 +221,61 @@
                             </svg>
                             <span>Penilaian Sumatif</span>
                         </a>
+
+                        <!-- Menu Manajemen Ujian (Accordion Dropdown) -->
+                        @php
+                            $isUjianActive = request()->routeIs('ujian.*');
+                        @endphp
+                        <div class="space-y-1">
+                            <button type="button" 
+                                    onclick="toggleUjianMenu()" 
+                                    id="ujianMenuBtn"
+                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                                    {{ $isUjianActive 
+                                        ? 'bg-slate-800 text-white font-black border-2 border-slate-700' 
+                                        : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-sm">📝</span>
+                                    <span class="font-heading">Manajemen Ujian</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[9px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">SAS</span>
+                                    <svg id="ujianChevron" class="w-3.5 h-3.5 shrink-0 transition-transform duration-200 text-slate-400 group-hover:text-white {{ $isUjianActive ? 'rotate-180 text-[#FFD43B]' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </button>
+                            <div id="ujianSubmenu" class="pl-3 pr-1 py-1 space-y-1 {{ $isUjianActive ? '' : 'hidden' }}">
+                                <a href="{{ route('ujian.dashboard') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.dashboard') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.dashboard') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Dashboard & Panitia</span>
+                                </a>
+                                <a href="{{ route('ujian.jenis.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.jenis.*') || request()->routeIs('ujian.periode.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.jenis.*') || request()->routeIs('ujian.periode.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Jenis & Periode</span>
+                                </a>
+                                <a href="{{ route('ujian.jadwal.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.jadwal.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.jadwal.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Jadwal Ujian</span>
+                                </a>
+                                <a href="{{ route('ujian.ruang.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.ruang.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.ruang.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Master Ruang</span>
+                                </a>
+                                <a href="{{ route('ujian.pengawas.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengawas.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengawas.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Pengawas Ruang</span>
+                                </a>
+                                <a href="{{ route('ujian.kartu.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.kartu.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.kartu.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Peserta & Cetak Kartu</span>
+                                </a>
+                                <a href="{{ route('ujian.pengaturan-ttd.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Pengaturan Kop & TTD</span>
+                                </a>
+                            </div>
+                        </div>
 
                         <!-- Menu Kalender (Accordion Dropdown) -->
                         @php
@@ -660,7 +715,19 @@
                 chevron.classList.toggle('rotate-180');
             }
         }
+
+        function toggleUjianMenu() {
+            const submenu = document.getElementById('ujianSubmenu');
+            const chevron = document.getElementById('ujianChevron');
+            if (submenu) {
+                submenu.classList.toggle('hidden');
+            }
+            if (chevron) {
+                chevron.classList.toggle('rotate-180');
+            }
+        }
     </script>
+    @include('partials._sidebar-scroll-persistence', ['portalKey' => 'admin'])
     @stack('scripts')
 </body>
 </html>
