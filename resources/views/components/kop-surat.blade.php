@@ -46,8 +46,8 @@
         ? ($logo_right_base64 ?: $logo_right_url) 
         : ($logo_right_url ?: $logo_right_base64);
 
-    $hasLogoLeft = !empty($logoLeftSrc);
-    $hasLogoRight = !empty($logoRightSrc);
+    $hasLogoLeft = !empty($logoLeftSrc) && trim((string)$logoLeftSrc) !== '';
+    $hasLogoRight = !empty($logoRightSrc) && trim((string)$logoRightSrc) !== '';
 @endphp
 
 @if($is_active)

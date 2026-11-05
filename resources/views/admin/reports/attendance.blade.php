@@ -5,6 +5,11 @@
 
 @section('content')
 <div class="space-y-6 pb-12">
+    {{-- Kop Surat Resmi untuk Mode Cetak / Dokumen Fisik --}}
+    <div class="hidden print:block mb-4">
+        <x-kop-surat :useBase64="true" />
+    </div>
+
     <!-- Header Section -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border-2 border-black p-5 rounded-lg shadow-[4px_4px_0px_0px_#000]">
         <div>

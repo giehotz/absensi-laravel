@@ -18,28 +18,6 @@
             margin: 0;
             padding: 20px;
         }
-        .header-kop {
-            text-align: center;
-            border-bottom: 3px double #000;
-            padding-bottom: 8px;
-            margin-bottom: 15px;
-        }
-        .header-kop h2 {
-            margin: 0;
-            font-size: 14pt;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-        .header-kop h3 {
-            margin: 2px 0;
-            font-size: 12pt;
-            text-transform: uppercase;
-            font-weight: bold;
-        }
-        .header-kop p {
-            margin: 0;
-            font-size: 9.5pt;
-        }
         .judul-dokumen {
             text-align: center;
             margin: 15px 0;
@@ -103,11 +81,8 @@
         🖨️ Cetak / Simpan PDF
     </button>
 
-    <div class="header-kop">
-        <h2>{{ $setting->kop_government_name ?? 'KEMENTERIAN AGAMA REPUBLIK INDONESIA' }}</h2>
-        <h3>{{ $setting->school_name ?? 'MIN 2 TANGGAMUS' }}</h3>
-        <p>{{ $setting->school_address ?? 'Kabupaten Tanggamus, Provinsi Lampung' }}</p>
-    </div>
+    {{-- Kop Surat Resmi Lembaga --}}
+    <x-kop-surat :useBase64="true" />
 
     <div class="judul-dokumen">
         <h4>DAFTAR HADIR PENGAWAS RUANG UJIAN</h4>

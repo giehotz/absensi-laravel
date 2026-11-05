@@ -29,19 +29,27 @@ class JadwalConflictService
                     ->where('jam_selesai', '>', $startTime);
             });
 
-        if ($schoolClassId) {
-            $query->where(function ($q) use ($schoolClassId, $tingkat) {
-                $q->where('school_class_id', $schoolClassId);
-                if ($tingkat) {
-                    $q->orWhere('tingkat', $tingkat);
-                }
-            });
-        } elseif ($tingkat) {
-            $query->where('tingkat', $tingkat);
-        }
-
         if ($ignoreJadwalId) {
             $query->where('id', '!=', $ignoreJadwalId);
+        }
+
+        $levels = $tingkat ? array_filter(array_map('trim', explode(',', $tingkat))) : [];
+
+        if ($schoolClassId && ! empty($levels)) {
+            $query->where(function ($q) use ($schoolClassId, $levels) {
+                $q->where('school_class_id', $schoolClassId);
+                foreach ($levels as $lvl) {
+                    $q->orWhere('tingkat', 'LIKE', "%{$lvl}%");
+                }
+            });
+        } elseif ($schoolClassId) {
+            $query->where('school_class_id', $schoolClassId);
+        } elseif (! empty($levels)) {
+            $query->where(function ($q) use ($levels) {
+                foreach ($levels as $lvl) {
+                    $q->orWhere('tingkat', 'LIKE', "%{$lvl}%");
+                }
+            });
         }
 
         return $query->first();

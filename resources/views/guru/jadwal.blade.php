@@ -63,7 +63,10 @@
         </div>
     </div>
 
-    <!-- Print-Only Header -->
+    <!-- Print-Only Kop Surat & Header -->
+    <div class="hidden print:block mb-4">
+        <x-kop-surat :useBase64="true" />
+    </div>
     <div class="hidden print:block border-b-4 border-black pb-4 mb-4 text-black">
         <div class="text-center space-y-1">
             <h2 class="font-heading font-black text-xl uppercase tracking-wider">JADWAL PELAJARAN MADRASAH</h2>

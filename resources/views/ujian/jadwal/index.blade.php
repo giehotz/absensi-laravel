@@ -83,7 +83,7 @@
                         <th class="p-2.5 border-r border-black">Mata Pelajaran</th>
                         <th class="p-2.5 border-r border-black">Rombel / Tingkat</th>
                         <th class="p-2.5 border-r border-black text-center">Jenis Soal</th>
-                        <th class="p-2.5 text-center w-20">Aksi</th>
+                        <th class="p-2.5 text-center w-28">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-black font-medium">
@@ -117,13 +117,20 @@
                                 </span>
                             </td>
                             <td class="p-2.5 text-center">
-                                <form action="{{ route('ujian.jadwal.destroy', $j) }}" method="POST" onsubmit="return confirm('Hapus slot jadwal ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="px-2 py-1 bg-[#FF6B6B] hover:bg-red-400 text-white rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
-                                        Hapus
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button type="button" 
+                                            onclick="openEditJadwalModal({{ json_encode($j) }})" 
+                                            class="px-2 py-1 bg-[#FFD43B] hover:bg-yellow-400 text-black rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
+                                        Edit
                                     </button>
-                                </form>
+                                    <form action="{{ route('ujian.jadwal.destroy', $j) }}" method="POST" onsubmit="return confirm('Hapus slot jadwal ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="px-2 py-1 bg-[#FF6B6B] hover:bg-red-400 text-white rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -168,27 +175,26 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-2.5">
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">Target Rombel Spesifik</label>
+                    <label class="block text-slate-700 font-bold mb-1">Target Rombel Spesifik (Opsional jika berlaku per tingkat)</label>
                     <select name="school_class_id" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="">-- Semua Kelas / Pilih Tingkat --</option>
+                        <option value="">-- Semua Kelas / Sesuai Pilihan Tingkat --</option>
                         @foreach($classes as $c)
                             <option value="{{ $c->id }}">{{ $c->name }} (Tingkat {{ $c->level }})</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">Atau Berlaku 1 Tingkat</label>
-                    <select name="tingkat" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="">-- Bukan per Tingkat --</option>
-                        <option value="1">Tingkat 1 (Kelas 1)</option>
-                        <option value="2">Tingkat 2 (Kelas 2)</option>
-                        <option value="3">Tingkat 3 (Kelas 3)</option>
-                        <option value="4">Tingkat 4 (Kelas 4)</option>
-                        <option value="5">Tingkat 5 (Kelas 5)</option>
-                        <option value="6">Tingkat 6 (Kelas 6)</option>
-                    </select>
+                    <label class="block text-slate-700 font-bold mb-1">Ditetapkan di Tingkat Ini (Bisa Pilih > 1 Tingkat)</label>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-2 bg-slate-50 border-2 border-black rounded-lg">
+                        @for($t = 1; $t <= 6; $t++)
+                            <label class="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-white border border-black rounded cursor-pointer hover:bg-amber-100 text-[11px] font-bold">
+                                <input type="checkbox" name="tingkat[]" value="{{ $t }}" class="rounded border-black accent-black">
+                                <span>Kls {{ $t }}</span>
+                            </label>
+                        @endfor
+                    </div>
                 </div>
             </div>
 
@@ -227,12 +233,120 @@
                 </div>
             </div>
 
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Catatan (Opsional)</label>
+                <input type="text" name="catatan" placeholder="Catatan khusus slot jadwal..." class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+            </div>
+
             <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
                 <button type="button" onclick="document.getElementById('modalTambahJadwal').classList.add('hidden')" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
                     Batal
                 </button>
                 <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
                     Simpan Jadwal
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Modal Edit Jadwal --}}
+<div id="modalEditJadwal" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b-2 border-black mb-4">
+            <h3 class="text-sm font-black font-heading text-black flex items-center gap-2">
+                <span>✏️</span>
+                <span>Edit Slot Jadwal Ujian</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modalEditJadwal').classList.add('hidden')" class="text-sm font-black text-slate-500 hover:text-black">✕</button>
+        </div>
+
+        <form id="formEditJadwal" method="POST" action="" class="space-y-3 text-xs font-semibold">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Mata Pelajaran</label>
+                <select id="edit_subject_id" name="subject_id" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
+                    <option value="">-- Pilih dari 16 Mapel Madrasah --</option>
+                    @foreach($subjects as $sub)
+                        <option value="{{ $sub->id }}">{{ $sub->name }} ({{ $sub->code ?: '-' }})</option>
+                    @endforeach
+                </select>
+                <div class="mt-1">
+                    <input type="text" id="edit_nama_mapel_kustom" name="nama_mapel_kustom" placeholder="Atau ketik nama mapel kustom (jika tidak ada di daftar)" class="w-full px-3 py-1.5 border border-slate-400 rounded bg-white text-[11px]">
+                </div>
+            </div>
+
+            <div class="space-y-2.5">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Target Rombel Spesifik (Opsional jika berlaku per tingkat)</label>
+                    <select id="edit_school_class_id" name="school_class_id" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                        <option value="">-- Semua Kelas / Sesuai Pilihan Tingkat --</option>
+                        @foreach($classes as $c)
+                            <option value="{{ $c->id }}">{{ $c->name }} (Tingkat {{ $c->level }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Ditetapkan di Tingkat Ini (Bisa Pilih > 1 Tingkat)</label>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 p-2 bg-slate-50 border-2 border-black rounded-lg">
+                        @for($t = 1; $t <= 6; $t++)
+                            <label class="flex items-center justify-center gap-1.5 px-2 py-1.5 bg-white border border-black rounded cursor-pointer hover:bg-amber-100 text-[11px] font-bold">
+                                <input type="checkbox" name="tingkat[]" value="{{ $t }}" class="edit-tingkat-cb rounded border-black accent-black">
+                                <span>Kls {{ $t }}</span>
+                            </label>
+                        @endfor
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Tanggal</label>
+                    <input type="date" id="edit_tanggal_ujian" name="tanggal_ujian" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Jam Mulai</label>
+                    <input type="time" id="edit_jam_mulai" name="jam_mulai" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Jam Selesai</label>
+                    <input type="time" id="edit_jam_selesai" name="jam_selesai" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Sesi Ke-</label>
+                    <input type="number" id="edit_sesi_ke" name="sesi_ke" min="1" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Durasi (Menit)</label>
+                    <input type="number" id="edit_durasi_menit" name="durasi_menit" min="15" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Bentuk Ujian</label>
+                    <select id="edit_jenis_soal" name="jenis_soal" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                        <option value="Tertulis">Tertulis</option>
+                        <option value="CBT / Digital">CBT / Digital</option>
+                        <option value="Praktik">Praktik</option>
+                        <option value="Portofolio">Portofolio</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Catatan (Opsional)</label>
+                <input type="text" id="edit_catatan" name="catatan" placeholder="Catatan khusus slot jadwal..." class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+            </div>
+
+            <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
+                <button type="button" onclick="document.getElementById('modalEditJadwal').classList.add('hidden')" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
+                    Batal
+                </button>
+                <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
+                    Simpan Perubahan
                 </button>
             </div>
         </form>
@@ -288,4 +402,32 @@
     </div>
 </div>
 @endif
+
+@push('scripts')
+<script>
+    function openEditJadwalModal(j) {
+        const form = document.getElementById('formEditJadwal');
+        form.action = `/ujian/jadwal-ujian/${j.id}`;
+
+        document.getElementById('edit_subject_id').value = j.subject_id || '';
+        document.getElementById('edit_nama_mapel_kustom').value = j.nama_mapel_kustom || '';
+        document.getElementById('edit_school_class_id').value = j.school_class_id || '';
+
+        document.getElementById('edit_tanggal_ujian').value = j.tanggal_ujian ? j.tanggal_ujian.substring(0, 10) : '';
+        document.getElementById('edit_jam_mulai').value = j.jam_mulai ? j.jam_mulai.substring(0, 5) : '';
+        document.getElementById('edit_jam_selesai').value = j.jam_selesai ? j.jam_selesai.substring(0, 5) : '';
+        document.getElementById('edit_sesi_ke').value = j.sesi_ke || 1;
+        document.getElementById('edit_durasi_menit').value = j.durasi_menit || 90;
+        document.getElementById('edit_jenis_soal').value = j.jenis_soal || 'Tertulis';
+        document.getElementById('edit_catatan').value = j.catatan || '';
+
+        const selectedLevels = (j.tingkat || '').split(',').map(s => s.trim()).filter(Boolean);
+        document.querySelectorAll('.edit-tingkat-cb').forEach(cb => {
+            cb.checked = selectedLevels.includes(cb.value);
+        });
+
+        document.getElementById('modalEditJadwal').classList.remove('hidden');
+    }
+</script>
+@endpush
 @endsection

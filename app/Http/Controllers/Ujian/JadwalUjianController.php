@@ -42,6 +42,15 @@ class JadwalUjianController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $tingkatInput = $request->input('tingkat');
+        if (is_array($tingkatInput)) {
+            $cleaned = array_filter(array_map('trim', $tingkatInput));
+            sort($cleaned, SORT_NATURAL);
+            $request->merge(['tingkat' => ! empty($cleaned) ? implode(', ', $cleaned) : null]);
+        } else {
+            $request->merge(['tingkat' => $tingkatInput ?: null]);
+        }
+
         $validated = $request->validate([
             'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
             'subject_id' => ['nullable', 'exists:subjects,id'],
@@ -64,7 +73,7 @@ class JadwalUjianController extends Controller
         // Cek Bentrok Jadwal Kelas
         $conflict = $this->conflictService->checkClassScheduleConflict(
             (int) $validated['ujian_periode_id'],
-            $validated['school_class_id'] ? (int) $validated['school_class_id'] : null,
+            ! empty($validated['school_class_id']) ? (int) $validated['school_class_id'] : null,
             $validated['tingkat'] ?? null,
             $validated['tanggal_ujian'],
             $validated['jam_mulai'],
@@ -85,6 +94,15 @@ class JadwalUjianController extends Controller
 
     public function update(Request $request, UjianJadwal $jadwal): RedirectResponse
     {
+        $tingkatInput = $request->input('tingkat');
+        if (is_array($tingkatInput)) {
+            $cleaned = array_filter(array_map('trim', $tingkatInput));
+            sort($cleaned, SORT_NATURAL);
+            $request->merge(['tingkat' => ! empty($cleaned) ? implode(', ', $cleaned) : null]);
+        } else {
+            $request->merge(['tingkat' => $tingkatInput ?: null]);
+        }
+
         $validated = $request->validate([
             'subject_id' => ['nullable', 'exists:subjects,id'],
             'nama_mapel_kustom' => ['nullable', 'string', 'max:150'],
@@ -99,9 +117,13 @@ class JadwalUjianController extends Controller
             'catatan' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (empty($validated['subject_id']) && empty($validated['nama_mapel_kustom'])) {
+            return back()->withInput()->with('error', 'Pilih mata pelajaran atau isi nama mata pelajaran kustom.');
+        }
+
         $conflict = $this->conflictService->checkClassScheduleConflict(
             $jadwal->ujian_periode_id,
-            $validated['school_class_id'] ? (int) $validated['school_class_id'] : null,
+            ! empty($validated['school_class_id']) ? (int) $validated['school_class_id'] : null,
             $validated['tingkat'] ?? null,
             $validated['tanggal_ujian'],
             $validated['jam_mulai'],
