@@ -77,13 +77,15 @@
                 <thead class="bg-slate-100 uppercase font-black text-black border-b-2 border-black">
                     <tr>
                         <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                        <th class="p-2.5 border-r border-black">Hari / Tanggal</th>
-                        <th class="p-2.5 border-r border-black text-center">Waktu (Jam)</th>
-                        <th class="p-2.5 border-r border-black text-center">Sesi</th>
+                        <th class="p-2.5 border-r border-black">Tanggal</th>
+                        <th class="p-2.5 border-r border-black text-center w-20">Sesi Ke-</th>
+                        <th class="p-2.5 border-r border-black text-center w-24">Jam Mulai</th>
+                        <th class="p-2.5 border-r border-black text-center w-24">Jam Selesai</th>
+                        <th class="p-2.5 border-r border-black text-center w-28">Durasi (Menit)</th>
+                        <th class="p-2.5 border-r border-black text-center w-28">Bentuk Ujian</th>
                         <th class="p-2.5 border-r border-black">Mata Pelajaran</th>
                         <th class="p-2.5 border-r border-black">Rombel / Tingkat</th>
-                        <th class="p-2.5 border-r border-black text-center">Jenis Soal</th>
-                        <th class="p-2.5 text-center w-28">Aksi</th>
+                        <th class="p-2.5 text-center w-24">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-black font-medium">
@@ -94,13 +96,25 @@
                                 <div>{{ $j->tanggal_ujian->locale('id')->translatedFormat('l') }}</div>
                                 <div class="text-[11px] font-mono font-normal text-slate-600">{{ $j->tanggal_ujian->format('d/m/Y') }}</div>
                             </td>
-                            <td class="p-2.5 border-r border-black text-center font-mono font-bold whitespace-nowrap">
-                                {{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }}
-                                <div class="text-[10px] font-normal text-slate-500">({{ $j->durasi_menit }} menit)</div>
-                            </td>
-                            <td class="p-2.5 border-r border-black text-center font-mono">
-                                <span class="px-2 py-0.5 rounded bg-slate-100 border border-black font-bold text-[10px]">
+                            <td class="p-2.5 border-r border-black text-center">
+                                <span class="px-2 py-0.5 rounded bg-[#FFD43B] border border-black font-black text-[11px] shadow-[1px_1px_0px_0px_#000]">
                                     Sesi {{ $j->sesi_ke }}
+                                </span>
+                            </td>
+                            <td class="p-2.5 border-r border-black text-center font-mono font-bold text-black">
+                                {{ substr($j->jam_mulai, 0, 5) }}
+                            </td>
+                            <td class="p-2.5 border-r border-black text-center font-mono font-bold text-black">
+                                {{ substr($j->jam_selesai, 0, 5) }}
+                            </td>
+                            <td class="p-2.5 border-r border-black text-center font-bold">
+                                <span class="px-2 py-0.5 rounded bg-blue-100 border border-blue-400 text-blue-950 text-[11px]">
+                                    {{ $j->durasi_menit }} Menit
+                                </span>
+                            </td>
+                            <td class="p-2.5 border-r border-black text-center">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 border border-slate-400">
+                                    {{ $j->jenis_soal }}
                                 </span>
                             </td>
                             <td class="p-2.5 border-r border-black font-bold text-black text-sm">
@@ -109,11 +123,6 @@
                             <td class="p-2.5 border-r border-black">
                                 <span class="px-2 py-0.5 rounded font-black text-[11px] bg-[#E7F5FF] text-blue-950 border border-black">
                                     {{ $j->target_kelas }}
-                                </span>
-                            </td>
-                            <td class="p-2.5 border-r border-black text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 border border-slate-400">
-                                    {{ $j->jenis_soal }}
                                 </span>
                             </td>
                             <td class="p-2.5 text-center">
@@ -135,7 +144,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="p-6 text-center text-slate-500 italic">
+                            <td colspan="10" class="p-6 text-center text-slate-500 italic">
                                 Belum ada slot jadwal ujian untuk periode ini. Klik <strong>+ Tambah Slot Jadwal</strong> untuk mulai menyusun.
                             </td>
                         </tr>
@@ -198,39 +207,58 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                     <label class="block text-slate-700 font-bold mb-1">Tanggal</label>
-                    <input type="date" name="tanggal_ujian" required value="{{ date('Y-m-d') }}" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <input type="date" name="tanggal_ujian" required value="{{ date('Y-m-d') }}" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
                 </div>
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">Jam Mulai</label>
-                    <input type="time" name="jam_mulai" required value="07:30" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Jam Selesai</label>
-                    <input type="time" name="jam_selesai" required value="09:00" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <label class="block text-slate-700 font-bold mb-1">Sesi Ke-</label>
+                    <select name="sesi_ke" id="add_sesi_ke" onchange="applySesiTime('add', this)" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
+                        @forelse($sesis as $s)
+                            <option value="{{ $s->sesi_ke }}"
+                                    data-mulai="{{ substr($s->jam_mulai, 0, 5) }}"
+                                    data-selesai="{{ substr($s->jam_selesai, 0, 5) }}"
+                                    data-durasi="{{ $s->durasi_menit }}"
+                                    {{ $loop->first ? 'selected' : '' }}>
+                                Sesi {{ $s->sesi_ke }} ({{ substr($s->jam_mulai, 0, 5) }} - {{ substr($s->jam_selesai, 0, 5) }})
+                            </option>
+                        @empty
+                            <option value="1" data-mulai="07:30" data-selesai="09:30" data-durasi="120" selected>Sesi 1 (07:30 - 09:30)</option>
+                            <option value="2" data-mulai="10:00" data-selesai="12:00" data-durasi="120">Sesi 2 (10:00 - 12:00)</option>
+                        @endforelse
+                        @for($extra = 1; $extra <= 6; $extra++)
+                            @if(!$sesis->contains('sesi_ke', $extra))
+                                <option value="{{ $extra }}">Sesi {{ $extra }} (Manual)</option>
+                            @endif
+                        @endfor
+                    </select>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">Sesi Ke-</label>
-                    <input type="number" name="sesi_ke" min="1" value="1" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <label class="block text-slate-700 font-bold mb-1">Jam Mulai</label>
+                    <input type="time" name="jam_mulai" id="add_jam_mulai" required value="{{ $sesis->first()?->jam_mulai ? substr($sesis->first()->jam_mulai, 0, 5) : '07:30' }}" onchange="autoCalcJadwalDuration('add')" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Jam Selesai</label>
+                    <input type="time" name="jam_selesai" id="add_jam_selesai" required value="{{ $sesis->first()?->jam_selesai ? substr($sesis->first()->jam_selesai, 0, 5) : '09:30' }}" onchange="autoCalcJadwalDuration('add')" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
                 </div>
                 <div>
                     <label class="block text-slate-700 font-bold mb-1">Durasi (Menit)</label>
-                    <input type="number" name="durasi_menit" min="15" value="90" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <input type="number" name="durasi_menit" id="add_durasi_menit" min="15" value="{{ $sesis->first()?->durasi_menit ?? 120 }}" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
                 </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Bentuk Ujian</label>
-                    <select name="jenis_soal" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="Tertulis">Tertulis</option>
-                        <option value="CBT / Digital">CBT / Digital</option>
-                        <option value="Praktik">Praktik</option>
-                        <option value="Portofolio">Portofolio</option>
-                    </select>
-                </div>
+            </div>
+
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Bentuk Ujian</label>
+                <select name="jenis_soal" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
+                    <option value="Tertulis">Tertulis</option>
+                    <option value="CBT / Digital">CBT / Digital</option>
+                    <option value="Praktik">Praktik</option>
+                    <option value="Portofolio">Portofolio</option>
+                </select>
             </div>
 
             <div>
@@ -301,39 +329,57 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                     <label class="block text-slate-700 font-bold mb-1">Tanggal</label>
-                    <input type="date" id="edit_tanggal_ujian" name="tanggal_ujian" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <input type="date" id="edit_tanggal_ujian" name="tanggal_ujian" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
                 </div>
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">Jam Mulai</label>
-                    <input type="time" id="edit_jam_mulai" name="jam_mulai" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Jam Selesai</label>
-                    <input type="time" id="edit_jam_selesai" name="jam_selesai" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <label class="block text-slate-700 font-bold mb-1">Sesi Ke-</label>
+                    <select name="sesi_ke" id="edit_sesi_ke" onchange="applySesiTime('edit', this)" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
+                        @forelse($sesis as $s)
+                            <option value="{{ $s->sesi_ke }}"
+                                    data-mulai="{{ substr($s->jam_mulai, 0, 5) }}"
+                                    data-selesai="{{ substr($s->jam_selesai, 0, 5) }}"
+                                    data-durasi="{{ $s->durasi_menit }}">
+                                Sesi {{ $s->sesi_ke }} ({{ substr($s->jam_mulai, 0, 5) }} - {{ substr($s->jam_selesai, 0, 5) }})
+                            </option>
+                        @empty
+                            <option value="1" data-mulai="07:30" data-selesai="09:30" data-durasi="120">Sesi 1 (07:30 - 09:30)</option>
+                            <option value="2" data-mulai="10:00" data-selesai="12:00" data-durasi="120">Sesi 2 (10:00 - 12:00)</option>
+                        @endforelse
+                        @for($extra = 1; $extra <= 6; $extra++)
+                            @if(!$sesis->contains('sesi_ke', $extra))
+                                <option value="{{ $extra }}">Sesi {{ $extra }} (Manual)</option>
+                            @endif
+                        @endfor
+                    </select>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-2">
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">Sesi Ke-</label>
-                    <input type="number" id="edit_sesi_ke" name="sesi_ke" min="1" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <label class="block text-slate-700 font-bold mb-1">Jam Mulai</label>
+                    <input type="time" id="edit_jam_mulai" name="jam_mulai" required onchange="autoCalcJadwalDuration('edit')" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Jam Selesai</label>
+                    <input type="time" id="edit_jam_selesai" name="jam_selesai" required onchange="autoCalcJadwalDuration('edit')" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
                 </div>
                 <div>
                     <label class="block text-slate-700 font-bold mb-1">Durasi (Menit)</label>
-                    <input type="number" id="edit_durasi_menit" name="durasi_menit" min="15" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    <input type="number" id="edit_durasi_menit" name="durasi_menit" min="15" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
                 </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Bentuk Ujian</label>
-                    <select id="edit_jenis_soal" name="jenis_soal" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="Tertulis">Tertulis</option>
-                        <option value="CBT / Digital">CBT / Digital</option>
-                        <option value="Praktik">Praktik</option>
-                        <option value="Portofolio">Portofolio</option>
-                    </select>
-                </div>
+            </div>
+
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Bentuk Ujian</label>
+                <select id="edit_jenis_soal" name="jenis_soal" required class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
+                    <option value="Tertulis">Tertulis</option>
+                    <option value="CBT / Digital">CBT / Digital</option>
+                    <option value="Praktik">Praktik</option>
+                    <option value="Portofolio">Portofolio</option>
+                </select>
             </div>
 
             <div>
@@ -405,6 +451,46 @@
 
 @push('scripts')
 <script>
+    function applySesiTime(prefix, selectEl) {
+        const opt = selectEl.options[selectEl.selectedIndex];
+        if (!opt) return;
+
+        const mulai = opt.getAttribute('data-mulai');
+        const selesai = opt.getAttribute('data-selesai');
+        const durasi = opt.getAttribute('data-durasi');
+
+        if (mulai) {
+            const elMulai = document.getElementById(`${prefix}_jam_mulai`);
+            if (elMulai) elMulai.value = mulai;
+        }
+        if (selesai) {
+            const elSelesai = document.getElementById(`${prefix}_jam_selesai`);
+            if (elSelesai) elSelesai.value = selesai;
+        }
+        if (durasi) {
+            const elDurasi = document.getElementById(`${prefix}_durasi_menit`);
+            if (elDurasi) elDurasi.value = durasi;
+        }
+    }
+
+    function autoCalcJadwalDuration(prefix) {
+        const elMulai = document.getElementById(`${prefix}_jam_mulai`);
+        const elSelesai = document.getElementById(`${prefix}_jam_selesai`);
+        const elDurasi = document.getElementById(`${prefix}_durasi_menit`);
+        if (!elMulai || !elSelesai || !elDurasi) return;
+
+        const mulai = elMulai.value;
+        const selesai = elSelesai.value;
+        if (!mulai || !selesai) return;
+
+        const [h1, m1] = mulai.split(':').map(Number);
+        const [h2, m2] = selesai.split(':').map(Number);
+        const diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (diffMinutes > 0) {
+            elDurasi.value = diffMinutes;
+        }
+    }
+
     function openEditJadwalModal(j) {
         const form = document.getElementById('formEditJadwal');
         form.action = `/ujian/jadwal-ujian/${j.id}`;
@@ -414,9 +500,23 @@
         document.getElementById('edit_school_class_id').value = j.school_class_id || '';
 
         document.getElementById('edit_tanggal_ujian').value = j.tanggal_ujian ? j.tanggal_ujian.substring(0, 10) : '';
+
+        // Sesi Ke-
+        const sesiSelect = document.getElementById('edit_sesi_ke');
+        if (sesiSelect) {
+            const sesiVal = (j.sesi_ke || 1).toString();
+            let hasOption = Array.from(sesiSelect.options).some(o => o.value === sesiVal);
+            if (!hasOption) {
+                const opt = document.createElement('option');
+                opt.value = sesiVal;
+                opt.textContent = `Sesi ${sesiVal}`;
+                sesiSelect.appendChild(opt);
+            }
+            sesiSelect.value = sesiVal;
+        }
+
         document.getElementById('edit_jam_mulai').value = j.jam_mulai ? j.jam_mulai.substring(0, 5) : '';
         document.getElementById('edit_jam_selesai').value = j.jam_selesai ? j.jam_selesai.substring(0, 5) : '';
-        document.getElementById('edit_sesi_ke').value = j.sesi_ke || 1;
         document.getElementById('edit_durasi_menit').value = j.durasi_menit || 90;
         document.getElementById('edit_jenis_soal').value = j.jenis_soal || 'Tertulis';
         document.getElementById('edit_catatan').value = j.catatan || '';

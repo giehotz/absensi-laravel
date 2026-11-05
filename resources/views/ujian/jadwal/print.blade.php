@@ -98,13 +98,15 @@
     <table class="tabel-jadwal">
         <thead>
             <tr>
-                <th style="width: 35px;">No</th>
-                <th style="width: 110px;">Hari, Tanggal</th>
-                <th style="width: 90px;">Waktu</th>
-                <th style="width: 50px;">Sesi</th>
+                <th style="width: 30px;">No</th>
+                <th style="width: 95px;">Hari, Tanggal</th>
+                <th style="width: 45px;">Sesi</th>
+                <th style="width: 55px;">Mulai</th>
+                <th style="width: 55px;">Selesai</th>
+                <th style="width: 55px;">Durasi</th>
+                <th style="width: 75px;">Bentuk</th>
                 <th>Mata Pelajaran</th>
-                <th style="width: 110px;">Rombel / Kelas</th>
-                <th style="width: 80px;">Bentuk</th>
+                <th style="width: 90px;">Rombel / Kelas</th>
             </tr>
         </thead>
         <tbody>
@@ -115,17 +117,17 @@
                         {{ $j->tanggal_ujian->locale('id')->translatedFormat('l') }},<br>
                         {{ $j->tanggal_ujian->format('d/m/Y') }}
                     </td>
-                    <td class="text-center">
-                        {{ substr($j->jam_mulai, 0, 5) }} - {{ substr($j->jam_selesai, 0, 5) }}
-                    </td>
-                    <td class="text-center">{{ $j->sesi_ke }}</td>
+                    <td class="text-center font-bold">Sesi {{ $j->sesi_ke }}</td>
+                    <td class="text-center">{{ substr($j->jam_mulai, 0, 5) }}</td>
+                    <td class="text-center">{{ substr($j->jam_selesai, 0, 5) }}</td>
+                    <td class="text-center">{{ $j->durasi_menit }} mnt</td>
+                    <td class="text-center">{{ $j->jenis_soal }}</td>
                     <td style="font-weight: bold;">{{ $j->nama_mapel }}</td>
                     <td class="text-center">{{ $j->target_kelas }}</td>
-                    <td class="text-center">{{ $j->jenis_soal }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 20px;">Belum ada jadwal yang ditetapkan.</td>
+                    <td colspan="9" class="text-center" style="padding: 20px;">Belum ada jadwal yang ditetapkan.</td>
                 </tr>
             @endforelse
         </tbody>

@@ -8,6 +8,7 @@ use App\Http\Controllers\Ujian\PanitiaUjianController;
 use App\Http\Controllers\Ujian\PengaturanTtdController;
 use App\Http\Controllers\Ujian\PesertaKartuUjianController;
 use App\Http\Controllers\Ujian\RuangUjianController;
+use App\Http\Controllers\Ujian\SesiUjianController;
 use App\Http\Middleware\EnsurePanitiaUjian;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +50,14 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/sync', [RuangUjianController::class, 'syncFromClasses'])->name('sync');
             Route::put('/{ruang}', [RuangUjianController::class, 'update'])->name('update');
             Route::delete('/{ruang}', [RuangUjianController::class, 'destroy'])->name('destroy');
+
+            // Setting Master Sesi Ujian
+            Route::prefix('sesi')->name('sesi.')->group(function () {
+                Route::post('/', [SesiUjianController::class, 'store'])->name('store');
+                Route::put('/{sesi}', [SesiUjianController::class, 'update'])->name('update');
+                Route::delete('/{sesi}', [SesiUjianController::class, 'destroy'])->name('destroy');
+                Route::post('/reset-default', [SesiUjianController::class, 'resetDefault'])->name('reset-default');
+            });
         });
 
         Route::prefix('jadwal-pengawas')->name('pengawas.')->group(function () {

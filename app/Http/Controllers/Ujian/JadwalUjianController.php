@@ -8,6 +8,7 @@ use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianPeriode;
+use App\Models\Ujian\UjianSesi;
 use App\Services\Ujian\JadwalConflictService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,8 +37,9 @@ class JadwalUjianController extends Controller
 
         $subjects = Subject::orderBy('name')->get();
         $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $sesis = UjianSesi::where('is_active', true)->orderBy('sesi_ke')->get();
 
-        return view('ujian.jadwal.index', compact('periodes', 'activePeriode', 'jadwals', 'subjects', 'classes'));
+        return view('ujian.jadwal.index', compact('periodes', 'activePeriode', 'jadwals', 'subjects', 'classes', 'sesis'));
     }
 
     public function store(Request $request): RedirectResponse

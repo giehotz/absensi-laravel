@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SchoolClass;
 use App\Models\Ujian\UjianPeserta;
 use App\Models\Ujian\UjianRuang;
+use App\Models\Ujian\UjianSesi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,8 +22,9 @@ class RuangUjianController extends Controller
 
         $totalKelas = SchoolClass::count();
         $totalKelasNon6 = SchoolClass::where('level', '!=', '6')->count();
+        $sesis = UjianSesi::orderBy('sesi_ke')->get();
 
-        return view('ujian.ruang.index', compact('ruangs', 'totalKelas', 'totalKelasNon6'));
+        return view('ujian.ruang.index', compact('ruangs', 'totalKelas', 'totalKelasNon6', 'sesis'));
     }
 
     public function syncFromClasses(Request $request): RedirectResponse
