@@ -11,6 +11,10 @@ class PanitiaUjianController extends Controller
 {
     public function store(Request $request): RedirectResponse
     {
+        if (! $request->user()?->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang memiliki wewenang untuk menetapkan atau mencabut Panitia Ujian.');
+        }
+
         $validated = $request->validate([
             'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
             'teacher_id' => ['required', 'exists:teachers,id'],
@@ -35,8 +39,12 @@ class PanitiaUjianController extends Controller
         return back()->with('success', 'Guru berhasil ditetapkan sebagai Panitia Ujian.');
     }
 
-    public function destroy(UjianPanitia $panitia): RedirectResponse
+    public function destroy(Request $request, UjianPanitia $panitia): RedirectResponse
     {
+        if (! $request->user()?->isAdmin()) {
+            abort(403, 'Akses Ditolak: Hanya Administrator yang memiliki wewenang untuk menetapkan atau mencabut Panitia Ujian.');
+        }
+
         $panitia->delete();
 
         return back()->with('success', 'Status kepanitiaan guru berhasil dicabut.');

@@ -1,4 +1,4 @@
-@extends(auth()->user()->role === 'admin' ? 'layouts.admin' : 'layouts.guru')
+@extends(auth()->user()->role === 'admin' ? 'layouts.admin' : 'layouts.ujian')
 
 @section('title', 'Dashboard Manajemen Ujian - ' . ($activePeriode->nama_periode ?? 'Ujian Madrasah'))
 
