@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'nip', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -73,7 +73,20 @@ class User extends Authenticatable
 
     public function isPetugasMbg(): bool
     {
-        return $this->role === 'petugas_mbg';
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        if ($this->role === 'petugas_mbg') {
+            return true;
+        }
+
+        return $this->isGuru() && (bool) ($this->teacher?->is_petugas_mbg);
+    }
+
+    public function getOfficerNipAttribute(): ?string
+    {
+        return $this->teacher?->nip ?? $this->nip;
     }
 
     public function isPanitiaUjian(?int $periodeId = null): bool

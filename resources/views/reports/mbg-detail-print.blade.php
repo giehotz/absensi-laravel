@@ -336,7 +336,7 @@
             </tr>
             <tr>
                 <td style="font-weight: bold;">NIP</td>
-                <td>{{ auth()->user()->teacher?->nip ?? '-' }}</td>
+                <td>{{ auth()->user()->officer_nip ?? (auth()->user()->teacher?->nip ?? '-') }}</td>
                 <td>{{ $setting?->card_principal_nip ?? ($setting?->headmaster_nip ?? '-') }}</td>
             </tr>
             <tr>
@@ -731,7 +731,7 @@
                         {{ auth()->user()->name ?? 'Petugas MBG' }}
                     </p>
                     <p style="margin: 2px 0 0 0;">
-                        NIP. {{ auth()->user()->teacher?->nip ?? '-' }}
+                        NIP. {{ auth()->user()->officer_nip ?? (auth()->user()->teacher?->nip ?? '-') }}
                     </p>
                 </td>
             </tr>

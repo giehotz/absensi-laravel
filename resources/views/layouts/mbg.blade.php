@@ -138,6 +138,21 @@
                             </a>
                         </div>
                     </div>
+                @elseif(Auth::user()->isGuru())
+                    <div>
+                        <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                            Kembali ke Panel Guru
+                        </div>
+                        <div class="space-y-1">
+                            <a href="{{ route('guru.dashboard') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold text-slate-300 border-2 border-transparent hover:bg-slate-800/90 hover:text-white hover:border-slate-700 cursor-pointer">
+                                <svg class="w-4 h-4 shrink-0 text-[#FFD43B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+                                </svg>
+                                <span>Panel Utama Guru</span>
+                            </a>
+                        </div>
+                    </div>
                 @endif
             </nav>
 

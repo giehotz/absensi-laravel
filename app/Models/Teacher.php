@@ -26,6 +26,7 @@ class Teacher extends Model
         'photo',
         'is_savings_officer',
         'savings_scope',
+        'is_petugas_mbg',
     ];
 
     protected function casts(): array
@@ -33,6 +34,7 @@ class Teacher extends Model
         return [
             'birth_date' => 'date',
             'is_savings_officer' => 'boolean',
+            'is_petugas_mbg' => 'boolean',
         ];
     }
 
@@ -72,6 +74,11 @@ class Teacher extends Model
             ->where('is_active', true)
             ->when($periodeId, fn ($q) => $q->where('ujian_periode_id', $periodeId))
             ->exists();
+    }
+
+    public function isPetugasMbg(): bool
+    {
+        return (bool) $this->is_petugas_mbg;
     }
 
     public function activePanitiaUjianRole(?int $periodeId = null): ?string

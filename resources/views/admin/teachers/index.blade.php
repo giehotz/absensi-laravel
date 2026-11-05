@@ -243,6 +243,15 @@
                                     @endif
                                 </div>
                             @endif
+
+                            @if($teacher->is_petugas_mbg)
+                                <div class="pt-1">
+                                    <span class="neo-badge bg-[#FFD43B] text-black text-[10px] font-black px-2 py-0.5 inline-flex items-center gap-1 border border-black shadow-[1px_1px_0px_0px_#000]" title="Ditugaskan sebagai Petugas MBG (Makan Bergizi Gratis)">
+                                        <span>🍱</span>
+                                        <span>Petugas MBG</span>
+                                    </span>
+                                </div>
+                            @endif
                         </td>
                         <td class="p-3 text-center">
                             <div class="flex flex-col items-center justify-center gap-1.5 max-w-[135px] mx-auto">

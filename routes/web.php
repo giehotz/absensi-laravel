@@ -39,7 +39,7 @@ Route::middleware(['auth', 'role:orangtua'])->prefix('orangtua')->name('orangtua
 require base_path('routes/tabungan.php');
 
 // Modul Terisolasi: Distribusi Makan Bergizi Gratis (MBG)
-Route::middleware(['auth', 'role:petugas_mbg,admin'])->prefix('mbg')->name('mbg.')->group(base_path('routes/mbg.php'));
+Route::middleware(['auth', 'mbg.officer'])->prefix('mbg')->name('mbg.')->group(base_path('routes/mbg.php'));
 
 // Modul Terisolasi: Manajemen Ujian & Cetak Kartu Ujian (Admin & Panitia Ujian)
 require base_path('routes/ujian.php');

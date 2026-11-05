@@ -304,6 +304,31 @@
                 </div>
                 @endif
 
+                @if(Auth::user()->isPetugasMbg())
+                <!-- Group: Petugas MBG -->
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading flex items-center justify-between">
+                        <span>Petugas MBG</span>
+                        <span class="text-[9px] font-black bg-[#FFD43B] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                            Aktif
+                        </span>
+                    </div>
+                    <div class="space-y-1">
+                        <a href="{{ route('mbg.dashboard') }}" 
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('mbg.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm">🍱</span>
+                                <span>Portal Distribusi MBG</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('mbg.*') ? 'bg-black text-yellow-300' : 'bg-[#FFD43B] text-black' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Modul</span>
+                        </a>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Group 4: Laporan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">

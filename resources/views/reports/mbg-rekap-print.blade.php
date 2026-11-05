@@ -252,7 +252,9 @@
                     <p style="margin: 0; font-weight: bold; text-decoration: underline;">
                         {{ auth()->user()->name ?? '( ................................................... )' }}
                     </p>
-                    <p style="margin: 2px 0 0 0;">Petugas Pelaksana</p>
+                    <p style="margin: 2px 0 0 0;">
+                        NIP. {{ auth()->user()->officer_nip ?? (auth()->user()->teacher?->nip ?? '-') }}
+                    </p>
                 </td>
             </tr>
         </table>
