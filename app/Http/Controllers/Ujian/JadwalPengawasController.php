@@ -7,6 +7,7 @@ use App\Models\AttendanceSetting;
 use App\Models\Teacher;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
+use App\Models\Ujian\UjianPengaturanTtd;
 use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianRuang;
 use App\Services\Ujian\JadwalConflictService;
@@ -148,5 +149,67 @@ class JadwalPengawasController extends Controller
         $setting = AttendanceSetting::first();
 
         return view('ujian.pengawas.print-daftar-hadir', compact('pengawas', 'setting'));
+    }
+
+    /**
+     * Cetak Surat Tugas & Jadwal Tugas Mengawas Individual per Guru (A4 Portrait).
+     */
+    public function printJadwalGuru(Request $request): View
+    {
+        $teacherId = $request->query('teacher_id');
+        $periodeId = $request->query('periode_id');
+
+        $activePeriode = $periodeId ? UjianPeriode::find($periodeId) : UjianPeriode::firstWhere('is_active', true);
+        if (! $activePeriode) {
+            $activePeriode = UjianPeriode::first();
+        }
+
+        $teachers = collect();
+        if ($teacherId && $teacherId !== 'all') {
+            $teachers = Teacher::with('user')->where('id', $teacherId)->get();
+        } else {
+            // Ambil semua guru yang memiliki jadwal mengawas di periode ini
+            if ($activePeriode) {
+                $teacherIds = UjianJadwalPengawas::whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
+                    ->pluck('pengawas_1_id')
+                    ->merge(
+                        UjianJadwalPengawas::whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
+                            ->pluck('pengawas_2_id')
+                    )
+                    ->filter()
+                    ->unique();
+
+                $teachers = Teacher::with('user')->whereIn('id', $teacherIds)->get()->sortBy(fn ($t) => $t->user?->name);
+            }
+
+            if ($teachers->isEmpty()) {
+                $teachers = Teacher::with('user')->get()->sortBy(fn ($t) => $t->user?->name);
+            }
+        }
+
+        // Siapkan jadwal untuk setiap guru
+        $teacherSchedules = [];
+        foreach ($teachers as $t) {
+            $duties = collect();
+            if ($activePeriode) {
+                $duties = UjianJadwalPengawas::with(['jadwal.subject', 'ruang', 'pengawas1.user', 'pengawas2.user'])
+                    ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
+                    ->where(fn ($q) => $q->where('pengawas_1_id', $t->id)->orWhere('pengawas_2_id', $t->id))
+                    ->join('ujian_jadwal', 'ujian_jadwal_pengawas.ujian_jadwal_id', '=', 'ujian_jadwal.id')
+                    ->orderBy('ujian_jadwal.tanggal_ujian')
+                    ->orderBy('ujian_jadwal.jam_mulai')
+                    ->select('ujian_jadwal_pengawas.*')
+                    ->get();
+            }
+            $teacherSchedules[] = [
+                'teacher' => $t,
+                'duties' => $duties,
+            ];
+        }
+
+        $setting = AttendanceSetting::first();
+        $ttdSetting = $activePeriode ? UjianPengaturanTtd::where('ujian_periode_id', $activePeriode->id)->first() : null;
+
+        return view('ujian.pengawas.print-jadwal-guru', compact('teacherSchedules', 'activePeriode', 'setting', 'ttdSetting'));
     }
 }

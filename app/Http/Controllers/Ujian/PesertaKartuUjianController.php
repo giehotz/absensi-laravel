@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ujian;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Ujian\UjianPengaturanTtd;
 use App\Models\Ujian\UjianPeriode;
@@ -233,5 +234,45 @@ class PesertaKartuUjianController extends Controller
         $pengaturan = $periode->pengaturanTtd ?? UjianPengaturanTtd::where('ujian_periode_id', $periode->id)->first();
 
         return view('ujian.kartu.print-a4', compact('periode', 'pesertaList', 'pengaturan', 'isPreview'));
+    }
+
+    /**
+     * Cetak Label Meja Siswa Presisi A4 Grid 2x5 (10 Label per Lembar).
+     */
+    public function printLabelMeja(Request $request): View|RedirectResponse
+    {
+        $periodeId = $request->query('periode_id');
+        $periode = $periodeId ? UjianPeriode::find($periodeId) : UjianPeriode::firstWhere('is_active', true);
+        if (! $periode) {
+            $periode = UjianPeriode::first();
+        }
+
+        if (! $periode) {
+            return back()->with('error', 'Tidak ada periode ujian aktif.');
+        }
+
+        $classId = $request->query('class_id');
+        $ruangId = $request->query('ruang_id');
+
+        $query = UjianPeserta::with(['student', 'schoolClass', 'ruang'])
+            ->where('ujian_periode_id', $periode->id)
+            ->where('is_eligible', true);
+
+        if ($classId && $classId !== 'SEMUA') {
+            $query->where('school_class_id', $classId);
+        }
+        if ($ruangId && $ruangId !== 'all') {
+            $query->where('ujian_ruang_id', $ruangId);
+        }
+
+        $pesertaList = $query->orderBy('ujian_ruang_id')
+            ->orderBy('nomor_kursi')
+            ->orderBy('nomor_peserta')
+            ->get();
+
+        $pengaturan = $periode->pengaturanTtd ?? UjianPengaturanTtd::where('ujian_periode_id', $periode->id)->first();
+        $setting = AttendanceSetting::first();
+
+        return view('ujian.kartu.print-label-meja', compact('periode', 'pesertaList', 'pengaturan', 'setting'));
     }
 }

@@ -145,6 +145,16 @@
                             <span>Peserta & Cetak Kartu</span>
                         </a>
 
+                        <!-- Administrasi & Berkas Ruang -->
+                        <a href="{{ route('ujian.administrasi.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('ujian.administrasi.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <span class="text-sm">📁</span>
+                            <span>Administrasi Ujian</span>
+                        </a>
+
                         <!-- Pengaturan Kop & TTD -->
                         <a href="{{ route('ujian.pengaturan-ttd.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group

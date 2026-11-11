@@ -135,9 +135,16 @@
                                 <td class="p-2.5 border-r border-black text-slate-600">{{ $r->keterangan ?: '-' }}</td>
                                 <td class="p-2.5 text-center">
                                     <div class="flex items-center justify-center gap-1.5">
+                                        <a href="{{ route('ujian.ruang.print-label-pintu', $r) }}" target="_blank" class="px-2 py-1 bg-[#FFD43B] hover:bg-yellow-400 text-black border border-black rounded text-[10px] font-bold shadow-[1px_1px_0px_0px_#000]" title="Cetak Label Pintu (A4 Landscape)">
+                                            🚪 Pintu
+                                        </a>
+                                        <a href="{{ route('ujian.ruang.print-denah', $r) }}" target="_blank" class="px-2 py-1 bg-[#20C997] hover:bg-emerald-400 text-black border border-black rounded text-[10px] font-bold shadow-[1px_1px_0px_0px_#000]" title="Cetak Denah Duduk (A4 Portrait)">
+                                            🪑 Denah
+                                        </a>
+
                                         <button type="button" 
                                                 onclick="openEditRuangModal({{ $r->id }}, '{{ addslashes($r->kode_ruang) }}', '{{ addslashes($r->nama_ruang) }}', {{ $r->kapasitas_maksimal }}, '{{ addslashes($r->lokasi_gedung ?? '') }}', '{{ addslashes($r->keterangan ?? '') }}')" 
-                                                class="px-2 py-1 bg-[#5294FF] hover:bg-blue-400 text-white border border-black rounded text-[11px] font-bold shadow-[1px_1px_0px_0px_#000] cursor-pointer"
+                                                class="px-2 py-1 bg-[#5294FF] hover:bg-blue-400 text-white border border-black rounded text-[10px] font-bold shadow-[1px_1px_0px_0px_#000] cursor-pointer"
                                                 title="Edit Ruang">
                                             ✏️ Edit
                                         </button>
@@ -145,7 +152,7 @@
                                         <form action="{{ route('ujian.ruang.destroy', $r) }}" method="POST" onsubmit="return confirm('Hapus ruangan ini?')" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="px-2 py-1 bg-rose-500 hover:bg-rose-600 text-white border border-black rounded text-[11px] font-bold shadow-[1px_1px_0px_0px_#000] cursor-pointer" title="Hapus">
+                                            <button type="submit" class="px-2 py-1 bg-rose-500 hover:bg-rose-600 text-white border border-black rounded text-[10px] font-bold shadow-[1px_1px_0px_0px_#000] cursor-pointer" title="Hapus">
                                                 ✕
                                             </button>
                                         </form>

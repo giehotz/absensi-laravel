@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Ujian;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
+use App\Models\Ujian\UjianPengaturanTtd;
+use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianPeserta;
 use App\Models\Ujian\UjianRuang;
 use App\Models\Ujian\UjianSesi;
@@ -111,5 +114,72 @@ class RuangUjianController extends Controller
         $ruang->delete();
 
         return back()->with('success', 'Ruang Ujian berhasil dihapus.');
+    }
+
+    /**
+     * Cetak Label Pintu Ruang Ujian (A4 Landscape).
+     */
+    public function printLabelPintu(Request $request, UjianRuang $ruang): View
+    {
+        $periodeId = $request->query('periode_id');
+        $activePeriode = $periodeId ? UjianPeriode::find($periodeId) : UjianPeriode::firstWhere('is_active', true);
+        if (! $activePeriode) {
+            $activePeriode = UjianPeriode::first();
+        }
+
+        $pesertas = UjianPeserta::with('schoolClass')
+            ->where('ujian_ruang_id', $ruang->id)
+            ->when($activePeriode, fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
+            ->orderBy('nomor_kursi')
+            ->orderBy('nomor_peserta')
+            ->get();
+
+        $setting = AttendanceSetting::first();
+        $ttdSetting = $activePeriode ? UjianPengaturanTtd::where('ujian_periode_id', $activePeriode->id)->first() : null;
+
+        return view('ujian.ruang.print-label-pintu', compact('ruang', 'pesertas', 'activePeriode', 'setting', 'ttdSetting'));
+    }
+
+    /**
+     * Cetak Denah Tempat Duduk Ruangan Visual (A4 Portrait).
+     */
+    public function printDenahDuduk(Request $request, UjianRuang $ruang): View
+    {
+        $periodeId = $request->query('periode_id');
+        $activePeriode = $periodeId ? UjianPeriode::find($periodeId) : UjianPeriode::firstWhere('is_active', true);
+        if (! $activePeriode) {
+            $activePeriode = UjianPeriode::first();
+        }
+
+        $pesertas = UjianPeserta::with('schoolClass')
+            ->where('ujian_ruang_id', $ruang->id)
+            ->when($activePeriode, fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
+            ->orderBy('nomor_kursi')
+            ->orderBy('nomor_peserta')
+            ->get();
+
+        $kapasitas = max(1, $ruang->kapasitas_maksimal);
+        $kolom = 4;
+        $baris = (int) ceil($kapasitas / $kolom);
+
+        // Petakan peserta per nomor kursi
+        $mejaMap = [];
+        foreach ($pesertas as $p) {
+            $mejaMap[$p->nomor_kursi] = $p;
+        }
+
+        $setting = AttendanceSetting::first();
+        $ttdSetting = $activePeriode ? UjianPengaturanTtd::where('ujian_periode_id', $activePeriode->id)->first() : null;
+
+        return view('ujian.ruang.print-denah', compact(
+            'ruang',
+            'pesertas',
+            'activePeriode',
+            'setting',
+            'ttdSetting',
+            'kolom',
+            'baris',
+            'mejaMap'
+        ));
     }
 }

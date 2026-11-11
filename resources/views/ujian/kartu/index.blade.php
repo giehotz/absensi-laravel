@@ -121,6 +121,13 @@
                         <span>Cetak Terpilih (<span id="jumlahTerpilih">0</span>)</span>
                     </button>
 
+                    {{-- Tombol Cetak Label Meja Grid A4 --}}
+                    <a href="{{ route('ujian.kartu.print-label-meja', ['periode_id' => $activePeriode->id, 'class_id' => $selectedClassId, 'ruang_id' => $selectedRuangId]) }}" target="_blank"
+                       class="px-3.5 py-1.5 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
+                        <span>🏷️</span>
+                        <span>Cetak Label Meja</span>
+                    </a>
+
                     {{-- Tombol Cetak Filter (Semua / Kelas Terpilih) --}}
                     <button type="button" onclick="cetakKartuFilter()"
                             class="px-4 py-1.5 bg-[#20C997] hover:bg-emerald-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">

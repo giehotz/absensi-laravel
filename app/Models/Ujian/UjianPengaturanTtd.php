@@ -38,6 +38,8 @@ class UjianPengaturanTtd extends Model
         'tampilkan_stempel',
         'tampilkan_qrcode_validasi',
         'is_active',
+        'konten_tata_tertib',
+        'konten_sk_panitia',
     ];
 
     protected function casts(): array

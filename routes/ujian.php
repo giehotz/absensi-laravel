@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Ujian\AdministrasiUjianController;
 use App\Http\Controllers\Ujian\DashboardUjianController;
 use App\Http\Controllers\Ujian\JadwalPengawasController;
 use App\Http\Controllers\Ujian\JadwalUjianController;
@@ -50,6 +51,8 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/sync', [RuangUjianController::class, 'syncFromClasses'])->name('sync');
             Route::put('/{ruang}', [RuangUjianController::class, 'update'])->name('update');
             Route::delete('/{ruang}', [RuangUjianController::class, 'destroy'])->name('destroy');
+            Route::get('/{ruang}/cetak-label-pintu', [RuangUjianController::class, 'printLabelPintu'])->name('print-label-pintu');
+            Route::get('/{ruang}/cetak-denah', [RuangUjianController::class, 'printDenahDuduk'])->name('print-denah');
 
             // Setting Master Sesi Ujian
             Route::prefix('sesi')->name('sesi.')->group(function () {
@@ -65,6 +68,7 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/', [JadwalPengawasController::class, 'store'])->name('store');
             Route::post('/auto-plot', [JadwalPengawasController::class, 'autoPlot'])->name('auto-plot');
             Route::get('/cetak-daftar-hadir', [JadwalPengawasController::class, 'printDaftarHadir'])->name('print-daftar-hadir');
+            Route::get('/cetak-tugas-guru', [JadwalPengawasController::class, 'printJadwalGuru'])->name('print-jadwal-guru');
         });
 
         // 5. Sub-Menu 4: Cetak Kartu Ujian & Manajemen Peserta
@@ -77,9 +81,24 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::put('/peserta/{peserta}', [PesertaKartuUjianController::class, 'update'])->name('update');
             Route::delete('/peserta/{peserta}', [PesertaKartuUjianController::class, 'destroy'])->name('destroy');
             Route::get('/cetak', [PesertaKartuUjianController::class, 'printCards'])->name('print');
+            Route::get('/cetak-label-meja', [PesertaKartuUjianController::class, 'printLabelMeja'])->name('print-label-meja');
         });
 
-        // 6. Sub-Menu 5: Tanda Tangan Kepala & Pengaturan Aset Kartu
+        // 6. Sub-Menu 5: Administrasi & Berkas Ruang Ujian (Fase 1)
+        Route::prefix('administrasi')->name('administrasi.')->group(function () {
+            Route::get('/', [AdministrasiUjianController::class, 'index'])->name('index');
+            Route::get('/daftar-hadir-peserta', [AdministrasiUjianController::class, 'printDaftarHadirPeserta'])->name('daftar-hadir-peserta');
+            Route::get('/berita-acara', [AdministrasiUjianController::class, 'printBeritaAcara'])->name('berita-acara');
+            Route::get('/label-amplop', [AdministrasiUjianController::class, 'printLabelAmplop'])->name('label-amplop');
+            Route::get('/tata-tertib', [AdministrasiUjianController::class, 'printTataTertib'])->name('tata-tertib');
+            Route::post('/tata-tertib/update', [AdministrasiUjianController::class, 'updateTataTertib'])->name('tata-tertib.update');
+            Route::post('/tata-tertib/reset', [AdministrasiUjianController::class, 'resetTataTertib'])->name('tata-tertib.reset');
+            Route::get('/sk-panitia', [AdministrasiUjianController::class, 'printSkPanitia'])->name('sk-panitia');
+            Route::post('/sk-panitia/update', [AdministrasiUjianController::class, 'updateSkPanitia'])->name('sk-panitia.update');
+            Route::post('/sk-panitia/reset', [AdministrasiUjianController::class, 'resetSkPanitia'])->name('sk-panitia.reset');
+        });
+
+        // 7. Sub-Menu 6: Tanda Tangan Kepala & Pengaturan Aset Kartu
         Route::prefix('pengaturan-ttd')->name('pengaturan-ttd.')->group(function () {
             Route::get('/', [PengaturanTtdController::class, 'index'])->name('index');
             Route::put('/{pengaturan}', [PengaturanTtdController::class, 'update'])->name('update');

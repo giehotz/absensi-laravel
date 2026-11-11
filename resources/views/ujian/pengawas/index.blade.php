@@ -28,6 +28,11 @@
                     <span>🖨️</span>
                     <span>Cetak Daftar Hadir Pengawas</span>
                 </a>
+                <a href="{{ route('ujian.pengawas.print-jadwal-guru', ['periode_id' => $activePeriode->id]) }}" target="_blank"
+                   class="px-3.5 py-2 bg-[#5294FF] hover:bg-blue-400 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
+                    <span>👨‍🏫</span>
+                    <span>Cetak Tugas per Guru</span>
+                </a>
                 <form action="{{ route('ujian.pengawas.auto-plot') }}" method="POST" onsubmit="return confirm('Jalankan Auto-Plotter? Pengawas akan didistribusikan secara seimbang ke seluruh jadwal dan ruang.')">
                     @csrf
                     <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
