@@ -20,6 +20,7 @@ class Student extends Model
         'school_class_id',
         'nis',
         'nisn',
+        'nik',
         'qr_code_identifier',
         'gender',
         'birth_place',
@@ -106,6 +107,11 @@ class Student extends Model
         return $this->hasMany(AssessmentScore::class);
     }
 
+    public function duplicateConflicts(): HasMany
+    {
+        return $this->hasMany(StudentDuplicateConflict::class);
+    }
+
     /**
      * Scope query siswa berdasarkan nama tahun ajaran induk rombelnya (contoh: '2026/2027').
      */
@@ -178,15 +184,25 @@ class Student extends Model
     }
 
     /**
-     * Tentukan kata sandi default siswa (prioritas: NISN, fallback: NIS).
+     * Tentukan kata sandi default siswa (prioritas: NISN, fallback: NIS, fallback: NIK).
      */
-    public static function getDefaultPassword(?string $nisn, string $nis): string
+    public static function getDefaultPassword(?string $nisn = null, ?string $nis = null, ?string $nik = null): string
     {
         $cleanNisn = trim((string) $nisn);
         if ($cleanNisn !== '' && $cleanNisn !== '-') {
             return $cleanNisn;
         }
 
-        return trim($nis);
+        $cleanNis = trim((string) $nis);
+        if ($cleanNis !== '' && $cleanNis !== '-') {
+            return $cleanNis;
+        }
+
+        $cleanNik = trim((string) $nik);
+        if ($cleanNik !== '' && $cleanNik !== '-') {
+            return $cleanNik;
+        }
+
+        return '123456';
     }
 }

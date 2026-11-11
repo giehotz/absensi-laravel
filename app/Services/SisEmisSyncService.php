@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AcademicYear;
 use App\Models\SchoolClass;
 use App\Models\Student;
+use App\Models\StudentDuplicateConflict;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -157,14 +158,43 @@ class SisEmisSyncService
                 $total = count($students);
                 $processed = 0;
 
+                $cleanIdentity = function (?string $val): ?string {
+                    if (blank($val)) {
+                        return null;
+                    }
+                    $trimmed = trim((string) $val);
+                    if ($trimmed === '' || $trimmed === '-' || $trimmed === '0' || str_contains($trimmed, '*')) {
+                        return null;
+                    }
+
+                    return $trimmed;
+                };
+
                 foreach ($students as $row) {
                     $processed++;
-                    $nisn = trim((string) ($row['nisn'] ?? ''));
-                    $nis = trim((string) ($row['local_nis'] ?? '')) ?: $nisn;
+                    $rawNis = $cleanIdentity($row['local_nis'] ?? null);
+                    $rawNisn = $cleanIdentity($row['nisn'] ?? null);
+                    $rawNik = $cleanIdentity($row['nik'] ?? null);
                     $name = trim((string) ($row['full_name'] ?? ''));
                     $rombelName = trim((string) ($row['rombel_name'] ?? ''));
 
-                    if (blank($name) || (blank($nis) && blank($nisn))) {
+                    // Tentukan identifier utama berdasarkan aturan: 1. NIS -> 2. NISN -> 3. NIK
+                    $resolvedIdentifier = null;
+                    $identityType = null;
+
+                    if ($rawNis !== null) {
+                        $resolvedIdentifier = $rawNis;
+                        $identityType = 'NIS';
+                    } elseif ($rawNisn !== null) {
+                        $resolvedIdentifier = $rawNisn;
+                        $identityType = 'NISN';
+                    } elseif ($rawNik !== null) {
+                        $resolvedIdentifier = $rawNik;
+                        $identityType = 'NIK';
+                    }
+
+                    // Jika tidak ada satupun identifier yang valid atau nama kosong, lewati
+                    if (blank($name) || $resolvedIdentifier === null) {
                         if ($onProgress) {
                             $onProgress([
                                 'event' => 'progress',
@@ -176,7 +206,7 @@ class SisEmisSyncService
                                 'action' => 'skipped',
                                 'imported_count' => $importedCount,
                                 'updated_count' => $updatedCount,
-                                'message' => "Dilewati: NIS/Nama kosong ({$name})",
+                                'message' => "Dilewati: NIS, NISN, dan NIK tidak ditemukan atau nama kosong ({$name})",
                             ]);
                         }
 
@@ -206,14 +236,34 @@ class SisEmisSyncService
                     $gender = in_array($genderRaw, ['L', 'P']) ? $genderRaw : 'L';
                     $birthDate = ! empty($row['birth_date']) ? date('Y-m-d', strtotime($row['birth_date'])) : null;
 
-                    // Cari apakah siswa sudah ada berdasarkan NISN atau NIS
-                    $existingStudent = Student::query()
-                        ->when($nisn, fn ($q) => $q->where('nisn', $nisn))
-                        ->when(! $nisn && $nis, fn ($q) => $q->where('nis', $nis))
-                        ->first();
+                    // Cari apakah siswa sudah ada berdasarkan urutan prioritas yang aman:
+                    // 1. Cek kecocokan pasti berdasarkan NISN (karena NISN unik nasional)
+                    $existingStudent = null;
+                    if ($rawNisn !== null) {
+                        $existingStudent = Student::where('nisn', $rawNisn)->first();
+                    }
 
-                    if (! $existingStudent && $nis) {
-                        $existingStudent = Student::where('nis', $nis)->first();
+                    // 2. Cek kecocokan pasti berdasarkan NIK (karena NIK unik kependudukan)
+                    if (! $existingStudent && $rawNik !== null) {
+                        $existingStudent = Student::where('nik', $rawNik)->first();
+                    }
+
+                    // 3. Cek kecocokan berdasarkan NIS, DENGAN SYARAT tidak bertentangan dengan NISN/NIK siswa lain
+                    if (! $existingStudent && $rawNis !== null) {
+                        $candidate = Student::where('nis', $rawNis)->first();
+                        if ($candidate) {
+                            $isDifferent = false;
+                            if ($rawNisn !== null && filled($candidate->nisn) && $candidate->nisn !== $rawNisn) {
+                                $isDifferent = true;
+                            }
+                            if ($rawNik !== null && filled($candidate->nik) && $candidate->nik !== $rawNik) {
+                                $isDifferent = true;
+                            }
+
+                            if (! $isDifferent) {
+                                $existingStudent = $candidate;
+                            }
+                        }
                     }
 
                     if ($existingStudent) {
@@ -222,7 +272,7 @@ class SisEmisSyncService
                             'name' => $name,
                         ]);
 
-                        $existingStudent->update([
+                        $studentUpdateData = [
                             'school_class_id' => $classId ?? $existingStudent->school_class_id,
                             'gender' => $gender,
                             'birth_place' => ! empty($row['birth_place']) ? $row['birth_place'] : $existingStudent->birth_place,
@@ -232,16 +282,71 @@ class SisEmisSyncService
                             'father_name' => ! empty($row['father_name']) ? $row['father_name'] : $existingStudent->father_name,
                             'mother_name' => ! empty($row['mother_name']) ? $row['mother_name'] : $existingStudent->mother_name,
                             'guardian_name' => ! empty($row['guardian_name']) ? $row['guardian_name'] : $existingStudent->guardian_name,
-                        ]);
+                        ];
+
+                        // Jika memiliki NIS resmi dari API dan berbeda dari NIS lokal saat ini
+                        if ($rawNis !== null && $existingStudent->nis !== $rawNis) {
+                            $otherWithNis = Student::where('nis', $rawNis)->where('id', '!=', $existingStudent->id)->first();
+                            if (! $otherWithNis) {
+                                $studentUpdateData['nis'] = $rawNis;
+                            } else {
+                                // Kolisi terdeteksi: catat ke log konflik agar admin dapat memverifikasi
+                                StudentDuplicateConflict::updateOrCreate(
+                                    [
+                                        'student_id' => $existingStudent->id,
+                                        'duplicate_nis' => $rawNis,
+                                    ],
+                                    [
+                                        'conflict_with_student_id' => $otherWithNis->id,
+                                        'assigned_temp_nis' => $existingStudent->nis,
+                                        'nisn' => $rawNisn,
+                                        'nik' => $rawNik,
+                                        'source' => 'sync_api',
+                                        'status' => 'pending',
+                                        'resolution_notes' => "Nomor NIS {$rawNis} kembar di SIS-EMIS dengan siswa ".($otherWithNis->user?->name ?? 'lain').". Siswa tetap memakai NIS saat ini '{$existingStudent->nis}'. Harap verifikasi NISN di VervalPD / EMIS dan tetapkan NIS resmi.",
+                                    ]
+                                );
+                            }
+                        }
+
+                        if ($rawNisn !== null) {
+                            $studentUpdateData['nisn'] = $rawNisn;
+                        }
+
+                        if ($rawNik !== null) {
+                            $studentUpdateData['nik'] = $rawNik;
+                        }
+
+                        $existingStudent->update($studentUpdateData);
 
                         $updatedCount++;
                         $action = 'updated';
                     } else {
-                        // Buat akun User dan Student baru
-                        $email = Student::generateDefaultEmail($nis);
-                        $plainPassword = Student::getDefaultPassword($nisn, $nis);
+                        // Tentukan NIS lokal: jika nomor NIS kembar/sudah dipakai siswa lain, terapkan aturan fallback aman
+                        $localNis = $rawNis;
+                        $collidingStudent = null;
+                        $isDuplicateNis = false;
 
-                        $qrCodeIdentifier = 'QR-'.$nis.'-'.strtoupper(bin2hex(random_bytes(3)));
+                        if ($localNis !== null) {
+                            $collidingStudent = Student::where('nis', $localNis)->first();
+                            if ($collidingStudent) {
+                                $isDuplicateNis = true;
+                                if ($rawNisn !== null && ! Student::where('nis', $rawNisn)->exists()) {
+                                    $localNis = $rawNisn;
+                                } elseif ($rawNik !== null && ! Student::where('nis', $rawNik)->exists()) {
+                                    $localNis = $rawNik;
+                                } else {
+                                    $localNis = $rawNis.'-'.substr($rawNisn ?: ($rawNik ?: (string) rand(100, 999)), -4);
+                                }
+                            }
+                        } elseif ($localNis === null) {
+                            $localNis = $rawNisn ?: ($rawNik ?: 'STD-'.rand(10000, 99999));
+                        }
+
+                        $email = Student::generateDefaultEmail($resolvedIdentifier);
+                        $plainPassword = Student::getDefaultPassword($rawNisn, $rawNis, $rawNik);
+
+                        $qrCodeIdentifier = 'QR-'.$resolvedIdentifier.'-'.strtoupper(bin2hex(random_bytes(3)));
                         $hashedPassword = $passwordCache[$plainPassword] ??= Hash::make($plainPassword);
 
                         $user = User::create([
@@ -252,11 +357,12 @@ class SisEmisSyncService
                             'is_active' => true,
                         ]);
 
-                        Student::create([
+                        $newStudent = Student::create([
                             'user_id' => $user->id,
                             'school_class_id' => $classId,
-                            'nis' => $nis,
-                            'nisn' => ! empty($nisn) ? $nisn : null,
+                            'nis' => $localNis,
+                            'nisn' => $rawNisn,
+                            'nik' => $rawNik,
                             'qr_code_identifier' => $qrCodeIdentifier,
                             'gender' => $gender,
                             'birth_place' => ! empty($row['birth_place']) ? $row['birth_place'] : null,
@@ -268,11 +374,48 @@ class SisEmisSyncService
                             'guardian_name' => ! empty($row['guardian_name']) ? $row['guardian_name'] : null,
                         ]);
 
+                        if ($isDuplicateNis && $collidingStudent) {
+                            // Catat siswa baru yang mendapatkan NIS sementara karena NIS kembar
+                            StudentDuplicateConflict::updateOrCreate(
+                                [
+                                    'student_id' => $newStudent->id,
+                                    'duplicate_nis' => $rawNis,
+                                ],
+                                [
+                                    'conflict_with_student_id' => $collidingStudent->id,
+                                    'assigned_temp_nis' => $localNis,
+                                    'nisn' => $rawNisn,
+                                    'nik' => $rawNik,
+                                    'source' => 'sync_api',
+                                    'status' => 'pending',
+                                    'resolution_notes' => "Nomor NIS {$rawNis} kembar di SIS-EMIS dengan siswa ".($collidingStudent->user?->name ?? 'lain').' ('.($collidingStudent->schoolClass?->name ?? '-')."). Diberikan NIS sementara '{$localNis}' agar siswa berhasil masuk. Harap verifikasi NISN di VervalPD / EMIS dan tetapkan NIS resmi.",
+                                ]
+                            );
+
+                            // Catat juga siswa awal pemegang NIS di kelompok konflik jika belum tercatat
+                            StudentDuplicateConflict::firstOrCreate(
+                                [
+                                    'student_id' => $collidingStudent->id,
+                                    'duplicate_nis' => $rawNis,
+                                ],
+                                [
+                                    'conflict_with_student_id' => $newStudent->id,
+                                    'assigned_temp_nis' => $collidingStudent->nis,
+                                    'nisn' => $collidingStudent->nisn,
+                                    'nik' => $collidingStudent->nik,
+                                    'source' => 'sync_api',
+                                    'status' => 'pending',
+                                    'resolution_notes' => "Nomor NIS {$rawNis} kembar di SIS-EMIS dengan siswa {$name} (".($rombelName ?: '-').'). Memegang NIS asli di database. Harap verifikasi kesesuaian nomor NIS resmi dengan VervalPD.',
+                                ]
+                            );
+                        }
+
                         $importedCount++;
                         $action = 'imported';
                     }
 
                     if ($onProgress) {
+                        $idBadge = "[{$identityType}: {$resolvedIdentifier}]";
                         $onProgress([
                             'event' => 'progress',
                             'current' => $processed,
@@ -283,7 +426,7 @@ class SisEmisSyncService
                             'action' => $action,
                             'imported_count' => $importedCount,
                             'updated_count' => $updatedCount,
-                            'message' => ($action === 'imported' ? '[+] Ditambahkan: ' : '[~] Diperbarui: ').$name.($rombelName ? " ({$rombelName})" : ''),
+                            'message' => ($action === 'imported' ? '[+] Ditambahkan: ' : '[~] Diperbarui: ').$name." {$idBadge}".($rombelName ? " ({$rombelName})" : ''),
                         ]);
                     }
                 }

@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\SchoolClassController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\StudentCardController;
 use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\StudentDuplicateCheckController;
 use App\Http\Controllers\Admin\StudentPromotionController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherController;
@@ -62,6 +63,14 @@ Route::match(['put', 'post'], 'students/cards/settings', [StudentCardController:
 Route::get('students/cards', [StudentCardController::class, 'index'])->name('students.cards');
 Route::match(['get', 'post'], 'students/cards/print', [StudentCardController::class, 'print'])->name('students.cards.print');
 Route::get('students/{student}/card', [StudentCardController::class, 'single'])->name('students.card.single');
+
+// Pengecekan Duplikat NIS Siswa (Verifikasi Manual Admin)
+Route::prefix('students/cek-duplikat')->name('students.cek-duplikat.')->group(function () {
+    Route::get('/', [StudentDuplicateCheckController::class, 'index'])->name('index');
+    Route::post('/scan', [StudentDuplicateCheckController::class, 'scan'])->name('scan');
+    Route::put('/{conflict}/resolve', [StudentDuplicateCheckController::class, 'resolve'])->name('resolve');
+    Route::delete('/{conflict}', [StudentDuplicateCheckController::class, 'destroy'])->name('destroy');
+});
 
 // Master Data Siswa & Mata Pelajaran
 Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');

@@ -72,6 +72,7 @@ class StudentController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nis', 'like', "%{$search}%")
                     ->orWhere('nisn', 'like', "%{$search}%")
+                    ->orWhere('nik', 'like', "%{$search}%")
                     ->orWhere('qr_code_identifier', 'like', "%{$search}%")
                     ->orWhereHas('user', function ($uq) use ($search) {
                         $uq->where('name', 'like', "%{$search}%")
@@ -598,6 +599,7 @@ class StudentController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'nis' => ['required', 'string', 'max:50', 'unique:students,nis'],
             'nisn' => ['nullable', 'string', 'max:50', 'unique:students,nisn'],
+            'nik' => ['nullable', 'string', 'max:30'],
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'gender' => ['required', 'in:L,P'],
             'birth_place' => ['nullable', 'string', 'max:100'],
@@ -663,6 +665,7 @@ class StudentController extends Controller
                 'school_class_id' => $validated['school_class_id'],
                 'nis' => $validated['nis'],
                 'nisn' => $validated['nisn'] ?? null,
+                'nik' => $validated['nik'] ?? null,
                 'qr_code_identifier' => $qrCodeIdentifier,
                 'gender' => $validated['gender'],
                 'birth_place' => $validated['birth_place'] ?? null,
@@ -700,6 +703,7 @@ class StudentController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'nis' => ['required', 'string', 'max:50', 'unique:students,nis,'.$student->id],
             'nisn' => ['nullable', 'string', 'max:50', 'unique:students,nisn,'.$student->id],
+            'nik' => ['nullable', 'string', 'max:30'],
             'school_class_id' => ['required', 'exists:school_classes,id'],
             'gender' => ['required', 'in:L,P'],
             'birth_place' => ['nullable', 'string', 'max:100'],
@@ -762,6 +766,7 @@ class StudentController extends Controller
                 'school_class_id' => $validated['school_class_id'],
                 'nis' => $validated['nis'],
                 'nisn' => $validated['nisn'] ?? null,
+                'nik' => $validated['nik'] ?? null,
                 'gender' => $validated['gender'],
                 'birth_place' => $validated['birth_place'] ?? null,
                 'birth_date' => $validated['birth_date'] ?? null,

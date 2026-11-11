@@ -53,6 +53,7 @@ class StudentTransferController extends Controller
         ])
             ->where('nis', $identifier)
             ->orWhere('nisn', $identifier)
+            ->orWhere('nik', $identifier)
             ->orWhere('id', $identifier)
             ->first();
 
@@ -135,6 +136,7 @@ class StudentTransferController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nis', 'like', "%{$search}%")
                     ->orWhere('nisn', 'like', "%{$search}%")
+                    ->orWhere('nik', 'like', "%{$search}%")
                     ->orWhereHas('user', function ($uq) use ($search) {
                         $uq->where('name', 'like', "%{$search}%");
                     });

@@ -109,7 +109,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">NIS (Nomor Induk Siswa) *</label>
                     <input type="text" name="nis" required placeholder="1234..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
@@ -117,6 +117,10 @@
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">NISN (Opsional)</label>
                     <input type="text" name="nisn" placeholder="0081..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                </div>
+                <div>
+                    <label class="block font-heading font-bold text-xs text-black mb-1">NIK Siswa (Opsional)</label>
+                    <input type="text" name="nik" placeholder="1806..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
             </div>
 

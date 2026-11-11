@@ -21,6 +21,7 @@ class StudentResource extends JsonResource
             'id' => $this->id,
             'nis' => $this->nis,
             'nisn' => $this->nisn,
+            'nik' => $this->nik,
             'nama' => $this->user?->name ?? 'Tanpa Nama',
             'jenis_kelamin' => $this->gender,
             'tempat_lahir' => $this->birth_place,

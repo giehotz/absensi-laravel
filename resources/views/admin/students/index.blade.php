@@ -5,6 +5,8 @@
 
 @section('content')
 <div class="space-y-6">
+    @include('admin.students.partials._tabs')
+
     @include('admin.students.partials._header')
 
     @include('admin.students.partials._table')
