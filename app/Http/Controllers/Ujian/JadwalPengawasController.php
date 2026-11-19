@@ -7,11 +7,17 @@ use App\Models\AttendanceSetting;
 use App\Models\Teacher;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
+use App\Models\Ujian\UjianPanitia;
 use App\Models\Ujian\UjianPengaturanTtd;
+use App\Models\Ujian\UjianPengawasMapping;
+use App\Models\Ujian\UjianPengawasSwapHistory;
 use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianRuang;
 use App\Services\Ujian\JadwalConflictService;
 use App\Services\Ujian\PengawasAutoPlotterService;
+use App\Services\Ujian\PengawasMappingService;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,7 +26,8 @@ class JadwalPengawasController extends Controller
 {
     public function __construct(
         protected JadwalConflictService $conflictService,
-        protected PengawasAutoPlotterService $autoPlotterService
+        protected PengawasAutoPlotterService $autoPlotterService,
+        protected PengawasMappingService $mappingService
     ) {}
 
     public function index(Request $request): View
@@ -32,6 +39,10 @@ class JadwalPengawasController extends Controller
         $jadwals = collect();
         $ruangs = UjianRuang::orderBy('kode_ruang')->get();
         $pengawasList = collect();
+        $mappings = collect();
+        $panitiaTeacherIds = [];
+        $panitiaRoles = [];
+        $swapHistories = collect();
 
         if ($activePeriode) {
             $jadwals = UjianJadwal::with(['subject', 'schoolClass'])
@@ -43,13 +54,48 @@ class JadwalPengawasController extends Controller
             $pengawasList = UjianJadwalPengawas::with(['jadwal.subject', 'jadwal.schoolClass', 'ruang', 'pengawas1.user', 'pengawas2.user'])
                 ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
                 ->get();
+
+            $mappings = UjianPengawasMapping::where('ujian_periode_id', $activePeriode->id)
+                ->get()
+                ->keyBy('teacher_id');
+
+            $panitiaList = UjianPanitia::where('ujian_periode_id', $activePeriode->id)
+                ->where('is_active', true)
+                ->get();
+
+            $panitiaTeacherIds = $panitiaList->pluck('teacher_id')->toArray();
+            $panitiaRoles = $panitiaList->pluck('jabatan_label', 'teacher_id')->toArray();
+
+            $swapHistories = UjianPengawasSwapHistory::with([
+                'teacher1.user',
+                'teacher2.user',
+                'jadwal1.subject',
+                'jadwal2.subject',
+                'sourcePengawas.ruang',
+                'targetPengawas.ruang',
+                'processedBy',
+            ])
+                ->where('ujian_periode_id', $activePeriode->id)
+                ->latest('id')
+                ->get();
         }
 
-        $teachers = Teacher::with('user')
+        $examDates = $jadwals->pluck('tanggal_ujian')
+            ->filter()
+            ->unique(fn ($d) => $d->format('Y-m-d'))
+            ->values();
+
+        $teachers = Teacher::with(['user', 'pengawasMappings'])
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->get()
             ->sortBy(fn ($t) => $t->user?->name ?? '')
             ->values();
+
+        // Statistik Pemetaan Calon Pengawas
+        $totalTeachersCount = $teachers->count();
+        $panitiaCount = count(array_intersect($teachers->pluck('id')->toArray(), $panitiaTeacherIds));
+        $mappedCount = $mappings->count();
+        $unmappedCount = max(0, $totalTeachersCount - $panitiaCount - $mappedCount);
 
         return view('ujian.pengawas.index', compact(
             'periodes',
@@ -57,7 +103,16 @@ class JadwalPengawasController extends Controller
             'jadwals',
             'ruangs',
             'pengawasList',
-            'teachers'
+            'teachers',
+            'examDates',
+            'mappings',
+            'panitiaTeacherIds',
+            'panitiaRoles',
+            'swapHistories',
+            'totalTeachersCount',
+            'panitiaCount',
+            'mappedCount',
+            'unmappedCount'
         ));
     }
 
@@ -77,8 +132,15 @@ class JadwalPengawasController extends Controller
             return back()->withInput()->with('error', 'Pengawas 1 dan Pengawas 2 tidak boleh orang yang sama.');
         }
 
-        // Cek bentrok pengawas 1
+        $jadwal = UjianJadwal::findOrFail($validated['ujian_jadwal_id']);
+
+        // Validasi kelayakan pemetaan kelas & status panitia pengawas 1
         if (! empty($validated['pengawas_1_id'])) {
+            $eligibility1 = $this->mappingService->isTeacherEligibleForJadwal((int) $validated['pengawas_1_id'], $jadwal);
+            if (! $eligibility1['eligible']) {
+                return back()->withInput()->with('error', $eligibility1['reason']);
+            }
+
             $conflict1 = $this->conflictService->checkTeacherSupervisorConflict(
                 (int) $validated['pengawas_1_id'],
                 (int) $validated['ujian_jadwal_id']
@@ -93,8 +155,13 @@ class JadwalPengawasController extends Controller
             }
         }
 
-        // Cek bentrok pengawas 2
+        // Validasi kelayakan pemetaan kelas & status panitia pengawas 2
         if (! empty($validated['pengawas_2_id'])) {
+            $eligibility2 = $this->mappingService->isTeacherEligibleForJadwal((int) $validated['pengawas_2_id'], $jadwal);
+            if (! $eligibility2['eligible']) {
+                return back()->withInput()->with('error', $eligibility2['reason']);
+            }
+
             $conflict2 = $this->conflictService->checkTeacherSupervisorConflict(
                 (int) $validated['pengawas_2_id'],
                 (int) $validated['ujian_jadwal_id']
@@ -133,22 +200,222 @@ class JadwalPengawasController extends Controller
             $request->boolean('two_supervisors')
         );
 
-        return back()->with('success', "Auto-Plotter selesai: {$count} ruang/sesi ujian berhasil dialokasikan pengawas.");
+        return back()->with('success', "Auto-Plotter selesai: {$count} ruang/sesi ujian berhasil dialokasikan pengawas sesuai pemetaan kelas.");
+    }
+
+    /**
+     * Menyimpan pemetaan tingkat kelas individual per guru.
+     */
+    public function storeMapping(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+            'teacher_id' => ['required', 'exists:teachers,id'],
+            'assigned_levels' => ['required', 'array', 'min:1'],
+            'assigned_levels.*' => ['in:1,2,3,4,5,6'],
+            'keterangan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $this->mappingService->saveMapping(
+                (int) $validated['ujian_periode_id'],
+                (int) $validated['teacher_id'],
+                $validated['assigned_levels'],
+                $validated['keterangan'] ?? null
+            );
+
+            return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
+                ->with('success', 'Pemetaan kelompok kelas pengawas berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Menetapkan kelompok kelas secara bulk (misal Kelas Rendah 1,2,3 atau Kelas Atas 4,5,6).
+     */
+    public function bulkMapping(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+            'teacher_ids' => ['required', 'array', 'min:1'],
+            'teacher_ids.*' => ['exists:teachers,id'],
+            'assigned_levels' => ['required', 'array', 'min:1'],
+            'assigned_levels.*' => ['in:1,2,3,4,5,6'],
+        ]);
+
+        $count = $this->mappingService->bulkAssignLevels(
+            (int) $validated['ujian_periode_id'],
+            $validated['teacher_ids'],
+            $validated['assigned_levels']
+        );
+
+        return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
+            ->with('success', "Berhasil memetakan {$count} guru sebagai calon pengawas kelas terpilih (panitia ujian otomatis dikecualikan).");
+    }
+
+    /**
+     * Menghapus pemetaan kelompok kelas guru terpilih.
+     */
+    public function destroyMapping(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+            'teacher_ids' => ['required', 'array', 'min:1'],
+            'teacher_ids.*' => ['exists:teachers,id'],
+        ]);
+
+        $count = $this->mappingService->bulkDelete(
+            (int) $validated['ujian_periode_id'],
+            $validated['teacher_ids']
+        );
+
+        return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
+            ->with('success', "Berhasil menghapus pemetaan untuk {$count} guru.");
+    }
+
+    /**
+     * API untuk mengambil daftar kandidat pertukaran jadwal yang valid secara dua arah.
+     */
+    public function getSwapCandidates(Request $request): JsonResponse
+    {
+        $assignmentId = (int) $request->query('assignment_id');
+        $slot = $request->query('slot', 'pengawas_1');
+
+        $candidates = $this->mappingService->getEligibleSwapCandidates($assignmentId, $slot);
+
+        return response()->json($candidates);
+    }
+
+    /**
+     * Mengeksekusi pertukaran jadwal pengawas ujian.
+     */
+    public function executeSwap(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'source_assignment_id' => ['required', 'exists:ujian_jadwal_pengawas,id'],
+            'source_slot' => ['required', 'in:pengawas_1,pengawas_2'],
+            'target_assignment_id' => ['required', 'exists:ujian_jadwal_pengawas,id'],
+            'target_slot' => ['required', 'in:pengawas_1,pengawas_2'],
+            'alasan' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $result = $this->mappingService->swapSupervisors(
+                (int) $validated['source_assignment_id'],
+                $validated['source_slot'],
+                (int) $validated['target_assignment_id'],
+                $validated['target_slot'],
+                (int) auth()->id(),
+                $validated['alasan'] ?? null
+            );
+
+            return back()->with('success', $result['message']);
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
     }
 
     public function printDaftarHadir(Request $request): View
     {
-        $jadwalId = $request->query('jadwal_id');
-        $ruangId = $request->query('ruang_id');
+        $periodeId = $request->query('periode_id');
+        $activePeriode = $periodeId
+            ? UjianPeriode::with('jenis')->find($periodeId)
+            : UjianPeriode::with('jenis')->firstWhere('is_active', true);
 
-        $pengawas = UjianJadwalPengawas::with(['jadwal.periode.jenis', 'jadwal.subject', 'jadwal.schoolClass', 'ruang', 'pengawas1.user', 'pengawas2.user'])
-            ->when($jadwalId, fn ($q) => $q->where('ujian_jadwal_id', $jadwalId))
-            ->when($ruangId, fn ($q) => $q->where('ujian_ruang_id', $ruangId))
+        if (! $activePeriode) {
+            $activePeriode = UjianPeriode::with('jenis')->latest('id')->first();
+        }
+
+        $tanggal = $request->query('tanggal');
+        $ruangId = $request->query('ruang_id');
+        $jadwalId = $request->query('jadwal_id');
+        $tanggalCetakRaw = $request->query('tanggal_cetak');
+        $tanggalCetak = $tanggalCetakRaw ? Carbon::parse($tanggalCetakRaw) : now();
+
+        $query = UjianJadwalPengawas::with([
+            'jadwal.periode.jenis',
+            'jadwal.subject',
+            'jadwal.schoolClass',
+            'ruang',
+            'pengawas1.user',
+            'pengawas2.user',
+        ])
+            ->join('ujian_jadwal', 'ujian_jadwal_pengawas.ujian_jadwal_id', '=', 'ujian_jadwal.id')
+            ->join('ujian_ruang', 'ujian_jadwal_pengawas.ujian_ruang_id', '=', 'ujian_ruang.id')
+            ->select('ujian_jadwal_pengawas.*');
+
+        if ($activePeriode) {
+            $query->where('ujian_jadwal.ujian_periode_id', $activePeriode->id);
+        }
+
+        if ($jadwalId) {
+            $query->where('ujian_jadwal_pengawas.ujian_jadwal_id', $jadwalId);
+        }
+
+        if ($ruangId) {
+            $query->where('ujian_jadwal_pengawas.ujian_ruang_id', $ruangId);
+        }
+
+        if ($tanggal && $tanggal !== 'all') {
+            $query->whereDate('ujian_jadwal.tanggal_ujian', $tanggal);
+        }
+
+        // Urutkan berdasarkan tanggal ujian, jam mulai, dan kode ruang
+        $pengawas = $query->orderBy('ujian_jadwal.tanggal_ujian')
+            ->orderBy('ujian_jadwal.jam_mulai')
+            ->orderBy('ujian_ruang.kode_ruang')
             ->get();
 
-        $setting = AttendanceSetting::first();
+        // Kelompokkan data penugasan per tanggal ujian untuk mendukung cetak per hari maupun multi-hari
+        $groupedPengawas = $pengawas->groupBy(function ($item) {
+            return $item->jadwal?->tanggal_ujian?->format('Y-m-d') ?? 'unknown';
+        });
 
-        return view('ujian.pengawas.print-daftar-hadir', compact('pengawas', 'setting'));
+        // Ambil data Ketua Panitia Ujian yang aktif
+        $ketuaPanitia = null;
+        if ($activePeriode) {
+            $ketuaPanitia = UjianPanitia::with('teacher.user')
+                ->where('ujian_periode_id', $activePeriode->id)
+                ->where('jabatan', 'ketua')
+                ->where('is_active', true)
+                ->first();
+        }
+
+        // Ambil data Kepala Madrasah dan Pengaturan TTD
+        $setting = AttendanceSetting::first();
+        $ttdSetting = $activePeriode ? UjianPengaturanTtd::where('ujian_periode_id', $activePeriode->id)->first() : null;
+
+        $namaKepala = $ttdSetting?->nama_kepala
+            ?? ($setting?->card_principal_name
+            ?? ($setting?->headmasterTeacher?->user?->name ?? 'Sipulloh, M.Pd'));
+
+        $nipKepala = $ttdSetting?->nip_kepala
+            ?? ($setting?->card_principal_nip
+            ?? ($setting?->headmasterTeacher?->nip ?? '-'));
+
+        $namaKetua = $ketuaPanitia?->teacher?->user?->name ?? '....................................................';
+        $nipKetua = $ketuaPanitia?->teacher?->nip ?? '-';
+
+        $tempatCetak = $activePeriode?->tempat_cetak
+            ?? ($ttdSetting?->tempat_penetapan
+            ?? ($setting?->school_city ?? 'Tanggamus'));
+
+        return view('ujian.pengawas.print-daftar-hadir', compact(
+            'groupedPengawas',
+            'pengawas',
+            'activePeriode',
+            'tanggal',
+            'tanggalCetak',
+            'tempatCetak',
+            'namaKepala',
+            'nipKepala',
+            'namaKetua',
+            'nipKetua',
+            'setting',
+            'ttdSetting'
+        ));
     }
 
     /**

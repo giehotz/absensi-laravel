@@ -67,6 +67,11 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::get('/', [JadwalPengawasController::class, 'index'])->name('index');
             Route::post('/', [JadwalPengawasController::class, 'store'])->name('store');
             Route::post('/auto-plot', [JadwalPengawasController::class, 'autoPlot'])->name('auto-plot');
+            Route::post('/mapping', [JadwalPengawasController::class, 'storeMapping'])->name('mapping.store');
+            Route::post('/mapping/bulk', [JadwalPengawasController::class, 'bulkMapping'])->name('mapping.bulk');
+            Route::delete('/mapping', [JadwalPengawasController::class, 'destroyMapping'])->name('mapping.destroy');
+            Route::get('/swap-candidates', [JadwalPengawasController::class, 'getSwapCandidates'])->name('swap.candidates');
+            Route::post('/swap', [JadwalPengawasController::class, 'executeSwap'])->name('swap.execute');
             Route::get('/cetak-daftar-hadir', [JadwalPengawasController::class, 'printDaftarHadir'])->name('print-daftar-hadir');
             Route::get('/cetak-tugas-guru', [JadwalPengawasController::class, 'printJadwalGuru'])->name('print-jadwal-guru');
         });

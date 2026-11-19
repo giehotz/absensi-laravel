@@ -153,7 +153,7 @@
                 <tr>
                     <td class="font-bold">Tingkat / Rombel</td>
                     <td>:</td>
-                    <td>{{ $j->target_kelas ?? '-' }}</td>
+                    <td class="font-bold">{{ $sheet['rombel'] ?? ($j->target_kelas ?? '-') }}</td>
                 </tr>
                 <tr>
                     <td class="font-bold">Hari, Tanggal</td>

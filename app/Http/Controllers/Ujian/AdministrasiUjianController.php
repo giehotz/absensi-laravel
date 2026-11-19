@@ -62,6 +62,7 @@ class AdministrasiUjianController extends Controller
         $activePeriode = $periodes->firstWhere('id', $selectedPeriodeId);
 
         $isBlangko = $request->boolean('blangko');
+        $isBlangko = $request->boolean('blangko');
         $jadwalId = $request->query('jadwal_id');
         $ruangId = $request->query('ruang_id');
 
@@ -92,15 +93,37 @@ class AdministrasiUjianController extends Controller
                 if ($jadwal && ! $isBlangko) {
                     if ($jadwal->school_class_id) {
                         $pesertaQuery->where('school_class_id', $jadwal->school_class_id);
-                    } elseif ($jadwal->tingkat) {
-                        $tingkats = array_map('trim', explode(',', $jadwal->tingkat));
-                        $pesertaQuery->whereHas('schoolClass', function ($q) use ($tingkats) {
-                            $q->whereIn('level', $tingkats);
-                        });
+                    } elseif ($jadwal->tingkat && $jadwal->tingkat !== 'Semua Tingkat') {
+                        $tingkats = array_values(array_filter(array_map('trim', explode(',', $jadwal->tingkat))));
+                        if (count($tingkats) < 6) {
+                            $pesertaQuery->where(function ($q) use ($tingkats) {
+                                foreach ($tingkats as $t) {
+                                    $q->orWhere('nama_kelas', 'like', "Kelas {$t}%")
+                                        ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "Kelas {$t}%"));
+                                }
+                            });
+                        }
                     }
                 }
 
                 $pesertas = $pesertaQuery->get();
+
+                // Format nama rombel spesifik (misal "6C", "1A")
+                $rombels = $pesertas->pluck('nama_kelas')->filter()->unique()->map(function ($nama) {
+                    $clean = trim(preg_replace('/^kelas\s*/i', '', $nama));
+
+                    return strtoupper(str_replace(' ', '', $clean));
+                })->values();
+
+                if ($rombels->isNotEmpty()) {
+                    $rombelDisplay = $rombels->implode(', ');
+                } elseif ($jadwal && $jadwal->schoolClass) {
+                    $clean = trim(preg_replace('/^kelas\s*/i', '', $jadwal->schoolClass->name));
+                    $rombelDisplay = strtoupper(str_replace(' ', '', $clean));
+                } else {
+                    $clean = trim(preg_replace('/^(ruang\s*kelas|ruang|kelas)\s*/i', '', $r->nama_ruang));
+                    $rombelDisplay = strtoupper(str_replace(' ', '', $clean)) ?: ($jadwal?->target_kelas ?? '-');
+                }
 
                 // Dapatkan pengawas jika ada jadwal
                 $pengawas = null;
@@ -117,6 +140,7 @@ class AdministrasiUjianController extends Controller
                         'jadwal' => $jadwal,
                         'pesertas' => $pesertas,
                         'pengawas' => $pengawas,
+                        'rombel' => $rombelDisplay,
                     ]);
                 }
             }
@@ -142,6 +166,7 @@ class AdministrasiUjianController extends Controller
         $activePeriode = $periodes->firstWhere('id', $selectedPeriodeId);
 
         $isBlangko = $request->boolean('blangko');
+        $isBlangko = $request->boolean('blangko');
         $jadwalId = $request->query('jadwal_id');
         $ruangId = $request->query('ruang_id');
 
@@ -160,9 +185,43 @@ class AdministrasiUjianController extends Controller
             }
 
             foreach ($targetRuangs as $r) {
-                $pesertaCount = UjianPeserta::where('ujian_periode_id', $activePeriode->id)
-                    ->where('ujian_ruang_id', $r->id)
-                    ->count();
+                $pesertaQuery = UjianPeserta::where('ujian_periode_id', $activePeriode->id)
+                    ->where('ujian_ruang_id', $r->id);
+
+                if ($jadwal && ! $isBlangko) {
+                    if ($jadwal->school_class_id) {
+                        $pesertaQuery->where('school_class_id', $jadwal->school_class_id);
+                    } elseif ($jadwal->tingkat && $jadwal->tingkat !== 'Semua Tingkat') {
+                        $tingkats = array_values(array_filter(array_map('trim', explode(',', $jadwal->tingkat))));
+                        if (count($tingkats) < 6) {
+                            $pesertaQuery->where(function ($q) use ($tingkats) {
+                                foreach ($tingkats as $t) {
+                                    $q->orWhere('nama_kelas', 'like', "Kelas {$t}%")
+                                        ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "Kelas {$t}%"));
+                                }
+                            });
+                        }
+                    }
+                }
+
+                $pesertaCount = $pesertaQuery->count();
+
+                // Format nama rombel spesifik (misal "6C", "1A")
+                $rombels = $pesertaQuery->pluck('nama_kelas')->filter()->unique()->map(function ($nama) {
+                    $clean = trim(preg_replace('/^kelas\s*/i', '', $nama));
+
+                    return strtoupper(str_replace(' ', '', $clean));
+                })->values();
+
+                if ($rombels->isNotEmpty()) {
+                    $rombelDisplay = $rombels->implode(', ');
+                } elseif ($jadwal && $jadwal->schoolClass) {
+                    $clean = trim(preg_replace('/^kelas\s*/i', '', $jadwal->schoolClass->name));
+                    $rombelDisplay = strtoupper(str_replace(' ', '', $clean));
+                } else {
+                    $clean = trim(preg_replace('/^(ruang\s*kelas|ruang|kelas)\s*/i', '', $r->nama_ruang));
+                    $rombelDisplay = strtoupper(str_replace(' ', '', $clean)) ?: ($jadwal?->target_kelas ?? '-');
+                }
 
                 $pengawas = null;
                 if ($jadwal) {
@@ -177,6 +236,7 @@ class AdministrasiUjianController extends Controller
                     'jadwal' => $jadwal,
                     'peserta_count' => $pesertaCount,
                     'pengawas' => $pengawas,
+                    'rombel' => $rombelDisplay,
                 ]);
             }
         }
@@ -200,6 +260,7 @@ class AdministrasiUjianController extends Controller
         $selectedPeriodeId = $request->query('periode_id', $periodes->firstWhere('is_active', true)?->id ?? $periodes->first()?->id);
         $activePeriode = $periodes->firstWhere('id', $selectedPeriodeId);
 
+        $isBlangko = $request->boolean('blangko');
         $jadwalId = $request->query('jadwal_id');
         $ruangId = $request->query('ruang_id');
 
@@ -217,9 +278,43 @@ class AdministrasiUjianController extends Controller
             }
 
             foreach ($targetRuangs as $r) {
-                $pesertaCount = UjianPeserta::where('ujian_periode_id', $activePeriode->id)
-                    ->where('ujian_ruang_id', $r->id)
-                    ->count();
+                $pesertaQuery = UjianPeserta::where('ujian_periode_id', $activePeriode->id)
+                    ->where('ujian_ruang_id', $r->id);
+
+                if ($jadwal && ! $isBlangko) {
+                    if ($jadwal->school_class_id) {
+                        $pesertaQuery->where('school_class_id', $jadwal->school_class_id);
+                    } elseif ($jadwal->tingkat && $jadwal->tingkat !== 'Semua Tingkat') {
+                        $tingkats = array_values(array_filter(array_map('trim', explode(',', $jadwal->tingkat))));
+                        if (count($tingkats) < 6) {
+                            $pesertaQuery->where(function ($q) use ($tingkats) {
+                                foreach ($tingkats as $t) {
+                                    $q->orWhere('nama_kelas', 'like', "Kelas {$t}%")
+                                        ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "Kelas {$t}%"));
+                                }
+                            });
+                        }
+                    }
+                }
+
+                $pesertaCount = $pesertaQuery->count();
+
+                // Format nama rombel spesifik (misal "6C", "1A")
+                $rombels = $pesertaQuery->pluck('nama_kelas')->filter()->unique()->map(function ($nama) {
+                    $clean = trim(preg_replace('/^kelas\s*/i', '', $nama));
+
+                    return strtoupper(str_replace(' ', '', $clean));
+                })->values();
+
+                if ($rombels->isNotEmpty()) {
+                    $rombelDisplay = $rombels->implode(', ');
+                } elseif ($jadwal && $jadwal->schoolClass) {
+                    $clean = trim(preg_replace('/^kelas\s*/i', '', $jadwal->schoolClass->name));
+                    $rombelDisplay = strtoupper(str_replace(' ', '', $clean));
+                } else {
+                    $clean = trim(preg_replace('/^(ruang\s*kelas|ruang|kelas)\s*/i', '', $r->nama_ruang));
+                    $rombelDisplay = strtoupper(str_replace(' ', '', $clean)) ?: ($jadwal?->target_kelas ?? '-');
+                }
 
                 $pengawas = null;
                 if ($jadwal) {
@@ -234,6 +329,7 @@ class AdministrasiUjianController extends Controller
                     'jadwal' => $jadwal,
                     'peserta_count' => $pesertaCount,
                     'pengawas' => $pengawas,
+                    'rombel' => $rombelDisplay,
                 ]);
             }
         }

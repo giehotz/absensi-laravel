@@ -76,4 +76,25 @@ class UjianJadwal extends Model
 
         return 'Semua Kelas';
     }
+
+    /**
+     * Mendapatkan daftar angka tingkat kelas target (e.g. ['1'], ['1', '2'], dll).
+     *
+     * @return array<int, string>
+     */
+    public function getTargetLevels(): array
+    {
+        if ($this->tingkat && $this->tingkat !== 'Semua Tingkat') {
+            return array_values(array_filter(array_map('trim', explode(',', $this->tingkat))));
+        }
+
+        if ($this->schoolClass) {
+            preg_match('/\d+/', $this->schoolClass->name, $matches);
+            if (! empty($matches)) {
+                return [$matches[0]];
+            }
+        }
+
+        return ['1', '2', '3', '4', '5', '6'];
+    }
 }

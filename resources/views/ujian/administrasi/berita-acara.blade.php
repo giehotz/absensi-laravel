@@ -156,7 +156,7 @@
                 <tr>
                     <td>Tingkat / Kelas</td>
                     <td>:</td>
-                    <td>{{ $j->target_kelas ?? '..................................................................' }}</td>
+                    <td class="font-bold">{{ $sheet['rombel'] ?? ($j->target_kelas ?? '..................................................................') }}</td>
                 </tr>
                 <tr>
                     <td>Pukul / Waktu</td>

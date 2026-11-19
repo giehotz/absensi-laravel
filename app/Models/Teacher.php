@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Ujian\UjianPanitia;
+use App\Models\Ujian\UjianPengawasMapping;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -66,6 +67,19 @@ class Teacher extends Model
     public function ujianPanitia(): HasMany
     {
         return $this->hasMany(UjianPanitia::class);
+    }
+
+    public function pengawasMappings(): HasMany
+    {
+        return $this->hasMany(UjianPengawasMapping::class);
+    }
+
+    public function getPengawasMapping(?int $periodeId = null): ?UjianPengawasMapping
+    {
+        return $this->pengawasMappings()
+            ->when($periodeId, fn ($q) => $q->where('ujian_periode_id', $periodeId))
+            ->latest('id')
+            ->first();
     }
 
     public function isPanitiaUjian(?int $periodeId = null): bool
