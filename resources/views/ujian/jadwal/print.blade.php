@@ -364,9 +364,6 @@
             <div style="font-size: 10.5pt; font-weight: bold; margin-top: 3px;">
                 {{ strtoupper($activePeriode->nama_periode ?? 'UJIAN MADRASAH') }}
             </div>
-            <div style="font-size: 9.5pt;">
-                Tahun Pelajaran {{ $activePeriode->tahun_pelajaran ?? '-' }} (Semester {{ $activePeriode->semester ?? '-' }})
-            </div>
         </div>
 
         <table class="tabel-jadwal">
