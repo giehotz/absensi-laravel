@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\TeachingJournalController as AdminTeachingJournalController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ManualAttendanceController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // Dashboard Administrator
@@ -61,8 +62,11 @@ Route::prefix('students/promotion')->name('students.promotion.')->group(function
 Route::get('students/cards/settings', [StudentCardController::class, 'settings'])->name('students.cards.settings');
 Route::match(['put', 'post'], 'students/cards/settings', [StudentCardController::class, 'updateSettings'])->name('students.cards.settings.update');
 Route::get('students/cards', [StudentCardController::class, 'index'])->name('students.cards');
+Route::get('students/card', function (Request $request) {
+    return redirect()->route('admin.students.cards', $request->query());
+})->name('students.card');
 Route::match(['get', 'post'], 'students/cards/print', [StudentCardController::class, 'print'])->name('students.cards.print');
-Route::get('students/{student}/card', [StudentCardController::class, 'single'])->name('students.card.single');
+Route::get('students/{student}/card', [StudentCardController::class, 'single'])->whereNumber('student')->name('students.card.single');
 
 // Pengecekan Duplikat NIS Siswa (Verifikasi Manual Admin)
 Route::prefix('students/cek-duplikat')->name('students.cek-duplikat.')->group(function () {
@@ -77,8 +81,8 @@ Route::get('students/template', [StudentController::class, 'downloadTemplate'])-
 Route::post('students/import', [StudentController::class, 'importExcel'])->name('students.import');
 Route::post('students/sync-sis', [StudentController::class, 'syncFromSis'])->name('students.sync-sis');
 Route::get('students/sync-sis-stream', [StudentController::class, 'syncFromSisStream'])->name('students.sync-sis-stream');
-Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->name('students.reset-password');
-Route::resource('students', StudentController::class)->except(['create', 'edit', 'show']);
+Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->whereNumber('student')->name('students.reset-password');
+Route::resource('students', StudentController::class)->except(['create', 'edit', 'show'])->whereNumber('student');
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);
 
