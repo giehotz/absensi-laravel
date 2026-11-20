@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Ujian;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
+use App\Models\SchoolClass;
 use App\Models\Teacher;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
@@ -14,6 +15,7 @@ use App\Models\Ujian\UjianPengawasSwapHistory;
 use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianRuang;
 use App\Services\Ujian\JadwalConflictService;
+use App\Services\Ujian\JadwalPdfParserService;
 use App\Services\Ujian\PengawasAutoPlotterService;
 use App\Services\Ujian\PengawasMappingService;
 use Carbon\Carbon;
@@ -51,7 +53,7 @@ class JadwalPengawasController extends Controller
                 ->orderBy('jam_mulai')
                 ->get();
 
-            $pengawasList = UjianJadwalPengawas::with(['jadwal.subject', 'jadwal.schoolClass', 'ruang', 'pengawas1.user', 'pengawas2.user'])
+            $pengawasList = UjianJadwalPengawas::with(['jadwal.subject', 'jadwal.schoolClass', 'ruang.schoolClass', 'pengawas1.user', 'pengawas2.user'])
                 ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
                 ->get();
 
@@ -97,6 +99,17 @@ class JadwalPengawasController extends Controller
         $mappedCount = $mappings->count();
         $unmappedCount = max(0, $totalTeachersCount - $panitiaCount - $mappedCount);
 
+        $classes = SchoolClass::all()
+            ->sortBy(function ($c) {
+                preg_match('/\d+/', $c->name, $digits);
+                preg_match('/[a-zA-Z]+$/', $c->name, $letter);
+                $lvl = isset($digits[0]) ? (int) $digits[0] : 99;
+                $let = $letter[0] ?? '';
+
+                return sprintf('%02d-%s', $lvl, strtolower($let));
+            })
+            ->values();
+
         return view('ujian.pengawas.index', compact(
             'periodes',
             'activePeriode',
@@ -104,6 +117,7 @@ class JadwalPengawasController extends Controller
             'ruangs',
             'pengawasList',
             'teachers',
+            'classes',
             'examDates',
             'mappings',
             'panitiaTeacherIds',
@@ -132,46 +146,46 @@ class JadwalPengawasController extends Controller
             return back()->withInput()->with('error', 'Pengawas 1 dan Pengawas 2 tidak boleh orang yang sama.');
         }
 
-        $jadwal = UjianJadwal::findOrFail($validated['ujian_jadwal_id']);
+        $jadwal = UjianJadwal::with('schoolClass')->findOrFail($validated['ujian_jadwal_id']);
+        $ruang = UjianRuang::with('schoolClass')->findOrFail($validated['ujian_ruang_id']);
 
-        // Validasi kelayakan pemetaan kelas & status panitia pengawas 1
-        if (! empty($validated['pengawas_1_id'])) {
-            $eligibility1 = $this->mappingService->isTeacherEligibleForJadwal((int) $validated['pengawas_1_id'], $jadwal);
-            if (! $eligibility1['eligible']) {
-                return back()->withInput()->with('error', $eligibility1['reason']);
-            }
-
-            $conflict1 = $this->conflictService->checkTeacherSupervisorConflict(
-                (int) $validated['pengawas_1_id'],
-                (int) $validated['ujian_jadwal_id']
+        if (! $ruang->matchesJadwal($jadwal)) {
+            return back()->withInput()->with(
+                'error',
+                "Ruang {$ruang->nama_ruang} tidak sesuai dengan target kelas jadwal ({$jadwal->target_kelas})."
             );
-            if ($conflict1 && $conflict1->ujian_ruang_id != $validated['ujian_ruang_id']) {
-                $namaGuru = Teacher::find($validated['pengawas_1_id'])?->user?->name;
-
-                return back()->withInput()->with(
-                    'error',
-                    "Bentrok Pengawas: {$namaGuru} sudah ditugaskan mengawas di {$conflict1->ruang?->nama_ruang} pada jam yang sama."
-                );
-            }
         }
 
-        // Validasi kelayakan pemetaan kelas & status panitia pengawas 2
-        if (! empty($validated['pengawas_2_id'])) {
-            $eligibility2 = $this->mappingService->isTeacherEligibleForJadwal((int) $validated['pengawas_2_id'], $jadwal);
-            if (! $eligibility2['eligible']) {
-                return back()->withInput()->with('error', $eligibility2['reason']);
+        $existing = UjianJadwalPengawas::where('ujian_jadwal_id', $jadwal->id)
+            ->where('ujian_ruang_id', $ruang->id)
+            ->first();
+
+        $roomConflict = $this->conflictService->checkRoomScheduleConflict($ruang->id, $jadwal->id, $existing?->id);
+        if ($roomConflict) {
+            return back()->withInput()->with(
+                'error',
+                "Bentrok Ruang: {$ruang->nama_ruang} sudah digunakan oleh jadwal {$roomConflict->jadwal?->nama_mapel} pada jam yang sama."
+            );
+        }
+
+        foreach (['pengawas_1_id', 'pengawas_2_id'] as $field) {
+            if (empty($validated[$field])) {
+                continue;
             }
 
-            $conflict2 = $this->conflictService->checkTeacherSupervisorConflict(
-                (int) $validated['pengawas_2_id'],
-                (int) $validated['ujian_jadwal_id']
-            );
-            if ($conflict2 && $conflict2->ujian_ruang_id != $validated['ujian_ruang_id']) {
-                $namaGuru = Teacher::find($validated['pengawas_2_id'])?->user?->name;
+            $teacherId = (int) $validated[$field];
+            $eligibility = $this->mappingService->isTeacherEligibleForJadwal($teacherId, $jadwal);
+            if (! $eligibility['eligible']) {
+                return back()->withInput()->with('error', $eligibility['reason']);
+            }
+
+            $conflict = $this->conflictService->checkTeacherSupervisorConflict($teacherId, $jadwal->id, $existing?->id);
+            if ($conflict) {
+                $namaGuru = Teacher::find($teacherId)?->user?->name;
 
                 return back()->withInput()->with(
                     'error',
-                    "Bentrok Pengawas: {$namaGuru} sudah ditugaskan mengawas di {$conflict2->ruang?->nama_ruang} pada jam yang sama."
+                    "Bentrok Pengawas: {$namaGuru} sudah ditugaskan mengawas di {$conflict->ruang?->nama_ruang} pada jam yang sama."
                 );
             }
         }
@@ -192,15 +206,75 @@ class JadwalPengawasController extends Controller
         $validated = $request->validate([
             'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
             'two_supervisors' => ['nullable', 'boolean'],
+            'reset_existing' => ['nullable', 'boolean'],
         ]);
 
         $periode = UjianPeriode::findOrFail($validated['ujian_periode_id']);
         $count = $this->autoPlotterService->autoPlotSupervisors(
             $periode,
-            $request->boolean('two_supervisors')
+            $request->boolean('two_supervisors'),
+            $request->boolean('reset_existing', true)
         );
 
-        return back()->with('success', "Auto-Plotter selesai: {$count} ruang/sesi ujian berhasil dialokasikan pengawas sesuai pemetaan kelas.");
+        return back()->with('success', "Auto-Plotter selesai: {$count} ruang/sesi ujian berhasil dialokasikan pengawas bebas bentrok.");
+    }
+
+    /**
+     * Mengosongkan / mereset seluruh penugasan pengawas pada periode aktif.
+     */
+    public function reset(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+        ]);
+
+        $jadwalIds = UjianJadwal::where('ujian_periode_id', $validated['ujian_periode_id'])->pluck('id');
+        $deleted = UjianJadwalPengawas::whereIn('ujian_jadwal_id', $jadwalIds)->delete();
+
+        return back()->with('success', "Berhasil mereset data: {$deleted} slot penugasan pengawas ruang pada periode ini telah dikosongkan/dihapus.");
+    }
+
+    /**
+     * Menghapus satu penugasan pengawas ruang.
+     */
+    public function destroy(UjianJadwalPengawas $pengawas): RedirectResponse
+    {
+        $ruangName = $pengawas->ruang?->nama_ruang ?? 'Ruang';
+        $pengawas->delete();
+
+        return back()->with('success', "Penugasan pengawas untuk {$ruangName} berhasil dihapus.");
+    }
+
+    /**
+     * Import penugasan pengawas & jadwal dari file PDF matriks.
+     */
+    public function importPdf(Request $request, JadwalPdfParserService $parserService): RedirectResponse
+    {
+        $request->validate([
+            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+            'file' => ['required', 'file', 'mimes:pdf', 'max:5120'],
+        ], [
+            'ujian_periode_id.required' => 'Periode ujian wajib dipilih.',
+            'file.required' => 'File PDF wajib diunggah.',
+            'file.mimes' => 'Format file harus berupa dokumen PDF (.pdf).',
+            'file.max' => 'Ukuran file maksimal adalah 5MB.',
+        ]);
+
+        try {
+            $result = $parserService->parseAndImport(
+                $request->file('file'),
+                (int) $request->input('ujian_periode_id')
+            );
+
+            $msg = "Berhasil mengimpor {$result['imported_jadwal']} slot jadwal dan {$result['imported_pengawas']} penugasan pengawas dari file PDF.";
+            if (! empty($result['skipped'])) {
+                $msg .= ' Catatan: '.implode('; ', array_slice($result['skipped'], 0, 3));
+            }
+
+            return back()->with('success', $msg);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal memproses file PDF: '.$e->getMessage());
+        }
     }
 
     /**

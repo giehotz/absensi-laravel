@@ -7,8 +7,21 @@ use App\Models\Ujian\UjianJadwalPengawas;
 
 class JadwalConflictService
 {
+    public function normalizeTime(string $time): string
+    {
+        $trimmed = trim($time);
+
+        return strlen($trimmed) === 5 ? $trimmed.':00' : $trimmed;
+    }
+
+    public function isTimeOverlapping(string $startA, string $endA, string $startB, string $endB): bool
+    {
+        return $this->normalizeTime($startA) < $this->normalizeTime($endB)
+            && $this->normalizeTime($endA) > $this->normalizeTime($startB);
+    }
+
     /**
-     * Memeriksa apakah ada bentrok jadwal ujian untuk kelas/tingkat yang sama.
+     * Memeriksa bentrok jadwal ujian untuk kelas/tingkat yang sama secara eksak.
      */
     public function checkClassScheduleConflict(
         int $periodeId,
@@ -19,40 +32,34 @@ class JadwalConflictService
         string $jamSelesai,
         ?int $ignoreJadwalId = null
     ): ?UjianJadwal {
-        $startTime = strlen($jamMulai) === 5 ? $jamMulai.':00' : $jamMulai;
-        $endTime = strlen($jamSelesai) === 5 ? $jamSelesai.':00' : $jamSelesai;
+        $startTime = $this->normalizeTime($jamMulai);
+        $endTime = $this->normalizeTime($jamSelesai);
 
-        $query = UjianJadwal::where('ujian_periode_id', $periodeId)
+        $candidates = UjianJadwal::with('schoolClass')
+            ->where('ujian_periode_id', $periodeId)
             ->whereDate('tanggal_ujian', $tanggal)
-            ->where(function ($q) use ($startTime, $endTime) {
-                $q->where('jam_mulai', '<', $endTime)
-                    ->where('jam_selesai', '>', $startTime);
-            });
+            ->where('jam_mulai', '<', $endTime)
+            ->where('jam_selesai', '>', $startTime)
+            ->when($ignoreJadwalId, fn ($q) => $q->where('id', '!=', $ignoreJadwalId))
+            ->get();
 
-        if ($ignoreJadwalId) {
-            $query->where('id', '!=', $ignoreJadwalId);
+        $probe = new UjianJadwal([
+            'school_class_id' => $schoolClassId,
+            'tingkat' => $tingkat,
+        ]);
+        $targetLevels = $probe->getTargetLevels();
+
+        foreach ($candidates as $existing) {
+            if ($schoolClassId && $existing->school_class_id && (int) $schoolClassId === (int) $existing->school_class_id) {
+                return $existing;
+            }
+
+            if (! empty(array_intersect($targetLevels, $existing->getTargetLevels()))) {
+                return $existing;
+            }
         }
 
-        $levels = $tingkat ? array_filter(array_map('trim', explode(',', $tingkat))) : [];
-
-        if ($schoolClassId && ! empty($levels)) {
-            $query->where(function ($q) use ($schoolClassId, $levels) {
-                $q->where('school_class_id', $schoolClassId);
-                foreach ($levels as $lvl) {
-                    $q->orWhere('tingkat', 'LIKE', "%{$lvl}%");
-                }
-            });
-        } elseif ($schoolClassId) {
-            $query->where('school_class_id', $schoolClassId);
-        } elseif (! empty($levels)) {
-            $query->where(function ($q) use ($levels) {
-                foreach ($levels as $lvl) {
-                    $q->orWhere('tingkat', 'LIKE', "%{$lvl}%");
-                }
-            });
-        }
-
-        return $query->first();
+        return null;
     }
 
     /**
@@ -68,21 +75,49 @@ class JadwalConflictService
             return null;
         }
 
-        $query = UjianJadwalPengawas::whereHas('jadwal', function ($q) use ($targetJadwal) {
-            $q->where('ujian_periode_id', $targetJadwal->ujian_periode_id)
-                ->whereDate('tanggal_ujian', $targetJadwal->tanggal_ujian)
-                ->where('jam_mulai', '<', $targetJadwal->jam_selesai)
-                ->where('jam_selesai', '>', $targetJadwal->jam_mulai);
-        })
+        $startTime = $this->normalizeTime($targetJadwal->jam_mulai);
+        $endTime = $this->normalizeTime($targetJadwal->jam_selesai);
+
+        return UjianJadwalPengawas::with(['jadwal', 'ruang'])
+            ->whereHas('jadwal', function ($q) use ($targetJadwal, $startTime, $endTime) {
+                $q->where('ujian_periode_id', $targetJadwal->ujian_periode_id)
+                    ->whereDate('tanggal_ujian', $targetJadwal->tanggal_ujian)
+                    ->where('jam_mulai', '<', $endTime)
+                    ->where('jam_selesai', '>', $startTime);
+            })
             ->where(function ($q) use ($teacherId) {
                 $q->where('pengawas_1_id', $teacherId)
                     ->orWhere('pengawas_2_id', $teacherId);
-            });
+            })
+            ->when($ignorePengawasId, fn ($q) => $q->where('id', '!=', $ignorePengawasId))
+            ->first();
+    }
 
-        if ($ignorePengawasId) {
-            $query->where('id', '!=', $ignorePengawasId);
+    /**
+     * Memeriksa apakah ruang sudah digunakan oleh jadwal lain pada tanggal dan jam yang beririsan.
+     */
+    public function checkRoomScheduleConflict(
+        int $ruangId,
+        int $jadwalId,
+        ?int $ignorePengawasId = null
+    ): ?UjianJadwalPengawas {
+        $targetJadwal = UjianJadwal::find($jadwalId);
+        if (! $targetJadwal) {
+            return null;
         }
 
-        return $query->first();
+        $startTime = $this->normalizeTime($targetJadwal->jam_mulai);
+        $endTime = $this->normalizeTime($targetJadwal->jam_selesai);
+
+        return UjianJadwalPengawas::with(['jadwal.subject', 'ruang'])
+            ->where('ujian_ruang_id', $ruangId)
+            ->whereHas('jadwal', function ($q) use ($targetJadwal, $startTime, $endTime) {
+                $q->where('ujian_periode_id', $targetJadwal->ujian_periode_id)
+                    ->whereDate('tanggal_ujian', $targetJadwal->tanggal_ujian)
+                    ->where('jam_mulai', '<', $endTime)
+                    ->where('jam_selesai', '>', $startTime);
+            })
+            ->when($ignorePengawasId, fn ($q) => $q->where('id', '!=', $ignorePengawasId))
+            ->first();
     }
 }

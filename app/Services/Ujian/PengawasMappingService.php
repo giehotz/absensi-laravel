@@ -178,6 +178,14 @@ class PengawasMappingService
                     continue;
                 }
 
+                // Cek agar tidak menjadikan guru yang sama sebagai Pengawas 1 sekaligus Pengawas 2 di ruang yang sama
+                $sourceOtherId = $sourceSlot === 'pengawas_2' ? $sourceAssignment->pengawas_1_id : $sourceAssignment->pengawas_2_id;
+                $targetOtherId = $targetSlot === 'pengawas_2' ? $target->pengawas_1_id : $target->pengawas_2_id;
+
+                if ($sourceOtherId === $targetTeacherId || $targetOtherId === $sourceTeacherId) {
+                    continue;
+                }
+
                 // Cek kelayakan dua arah
                 $check1 = $this->isTeacherEligibleForJadwal($sourceTeacherId, $target->jadwal);
                 if (! $check1['eligible']) {
@@ -266,6 +274,16 @@ class PengawasMappingService
 
             if ($teacher1Id === $teacher2Id) {
                 throw new \InvalidArgumentException('Tidak dapat menukar jadwal dengan diri sendiri.');
+            }
+
+            // Cek agar tidak ada guru ganda di satu ruangan
+            $sourceOtherId = $sourceSlot === 'pengawas_2' ? $source->pengawas_1_id : $source->pengawas_2_id;
+            $targetOtherId = $targetSlot === 'pengawas_2' ? $target->pengawas_1_id : $target->pengawas_2_id;
+
+            if ($sourceOtherId === $teacher2Id || $targetOtherId === $teacher1Id) {
+                throw new \InvalidArgumentException(
+                    'Pertukaran ditolak: guru tidak boleh menjadi Pengawas 1 sekaligus Pengawas 2 di ruang yang sama.'
+                );
             }
 
             // 1 & 2 & 3. Validasi kelayakan dua arah (aktif, bukan panitia, mapping kelas)

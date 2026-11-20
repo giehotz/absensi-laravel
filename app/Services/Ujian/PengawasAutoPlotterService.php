@@ -5,8 +5,11 @@ namespace App\Services\Ujian;
 use App\Models\Teacher;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
+use App\Models\Ujian\UjianPanitia;
+use App\Models\Ujian\UjianPengawasMapping;
 use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianRuang;
+use Illuminate\Support\Facades\DB;
 
 class PengawasAutoPlotterService
 {
@@ -16,113 +19,298 @@ class PengawasAutoPlotterService
     ) {}
 
     /**
-     * Alokasi otomatis guru aktif sebagai pengawas ruang pada periode tertentu.
-     * Menggunakan round-robin berputar bebas bentrok, wajib mematuhi pemetaan kelompok kelas
-     * dan mengecualikan guru yang bertugas sebagai Panitia Ujian.
+     * Alokasi otomatis pengawas anti-bentrok dengan pemerataan beban mengawas.
+     * - Hanya mem-plot ruang yang tingkat kelasnya cocok dengan jadwal (mis. Kelas 1-2 vs 3-6).
+     * - Menjamin 0 bentrok guru dan 0 bentrok ruang pada tanggal & jam yang beririsan.
+     * - Meratakan jumlah tugas per guru dan meminimalkan tugas ganda di hari/ruang yang sama.
      */
-    public function autoPlotSupervisors(UjianPeriode $periode, bool $twoSupervisorsPerRoom = false): int
-    {
-        // Ambil guru yang aktif dan BUKAN panitia ujian aktif pada periode ini
-        $teachers = Teacher::with(['user', 'pengawasMappings'])
-            ->whereHas('user', fn ($q) => $q->where('is_active', true))
-            ->get()
-            ->reject(fn ($t) => $t->isPanitiaUjian($periode->id))
-            ->values();
+    public function autoPlotSupervisors(
+        UjianPeriode $periode,
+        bool $twoSupervisorsPerRoom = false,
+        bool $resetExisting = true
+    ): int {
+        return DB::transaction(function () use ($periode, $twoSupervisorsPerRoom, $resetExisting) {
+            // 1. Ambil panitia aktif & pemetaan tingkat kelas untuk periode ini
+            $panitiaIds = UjianPanitia::where('ujian_periode_id', $periode->id)
+                ->where('is_active', true)
+                ->pluck('teacher_id')
+                ->all();
 
-        if ($teachers->isEmpty()) {
-            return 0;
-        }
+            $mappings = UjianPengawasMapping::where('ujian_periode_id', $periode->id)
+                ->get()
+                ->keyBy('teacher_id');
 
-        $jadwals = UjianJadwal::where('ujian_periode_id', $periode->id)
-            ->orderBy('tanggal_ujian')
-            ->orderBy('jam_mulai')
-            ->get();
+            // 2. Ambil guru aktif yang bukan panitia dan sudah dipetakan
+            $teachers = Teacher::with('user')
+                ->whereHas('user', fn ($q) => $q->where('is_active', true))
+                ->whereNotIn('id', $panitiaIds)
+                ->get()
+                ->filter(fn ($t) => $mappings->has($t->id) && ! empty($mappings[$t->id]->assigned_levels))
+                ->values();
 
-        $ruangs = UjianRuang::orderBy('kode_ruang')->get();
-        if ($ruangs->isEmpty() || $jadwals->isEmpty()) {
-            return 0;
-        }
+            $jadwals = UjianJadwal::with('schoolClass')
+                ->where('ujian_periode_id', $periode->id)
+                ->orderBy('tanggal_ujian')
+                ->orderBy('jam_mulai')
+                ->orderBy('id')
+                ->get();
 
-        $teacherCount = $teachers->count();
-        $teacherIndex = 0;
-        $totalPlotted = 0;
+            $ruangs = UjianRuang::with('schoolClass')
+                ->orderBy('kode_ruang')
+                ->get();
 
-        foreach ($jadwals as $jadwal) {
-            foreach ($ruangs as $ruang) {
-                $assignment = UjianJadwalPengawas::firstOrNew([
-                    'ujian_jadwal_id' => $jadwal->id,
-                    'ujian_ruang_id' => $ruang->id,
-                ]);
+            if ($teachers->isEmpty() || $jadwals->isEmpty() || $ruangs->isEmpty()) {
+                return 0;
+            }
 
-                // Cari pengawas 1 yang memenuhi syarat pemetaan kelas dan tidak bentrok
-                $pengawas1Id = null;
-                $attempts = 0;
-                while ($attempts < $teacherCount) {
-                    $candidate = $teachers[$teacherIndex % $teacherCount];
-                    $teacherIndex++;
-                    $attempts++;
+            if ($resetExisting) {
+                UjianJadwalPengawas::whereIn('ujian_jadwal_id', $jadwals->pluck('id'))->delete();
+            }
 
-                    // 1. Cek pemetaan kelas
-                    $eligibility = $this->mappingService->isTeacherEligibleForJadwal($candidate->id, $jadwal);
-                    if (! $eligibility['eligible']) {
+            // 3. Siapkan tracker in-memory (menghindari N+1 query)
+            $teacherLevels = [];
+            $teacherWorkload = [];
+            $teacherDailyCount = [];
+            $teacherRoomCount = [];
+            $teacherBusySlots = []; // [teacherId => [['date', 'start', 'end'], ...]]
+            $roomBusySlots = [];    // [ruangId => [['date', 'start', 'end', 'jadwal_id'], ...]]
+
+            foreach ($teachers as $t) {
+                $levels = array_values(array_unique(array_map('strval', $mappings[$t->id]->assigned_levels)));
+                $teacherLevels[$t->id] = $levels;
+                $teacherWorkload[$t->id] = 0;
+                $teacherDailyCount[$t->id] = [];
+                $teacherRoomCount[$t->id] = [];
+                $teacherBusySlots[$t->id] = [];
+            }
+
+            // Jika tidak reset, muat penugasan yang sudah ada agar tetap dihormati & tidak bentrok
+            if (! $resetExisting) {
+                $existingAssignments = UjianJadwalPengawas::with('jadwal')
+                    ->whereIn('ujian_jadwal_id', $jadwals->pluck('id'))
+                    ->get();
+
+                foreach ($existingAssignments as $asg) {
+                    if (! $asg->jadwal) {
+                        continue;
+                    }
+                    $date = $asg->jadwal->tanggal_ujian->format('Y-m-d');
+                    $start = $this->conflictService->normalizeTime($asg->jadwal->jam_mulai);
+                    $end = $this->conflictService->normalizeTime($asg->jadwal->jam_selesai);
+
+                    $roomBusySlots[$asg->ujian_ruang_id][] = [
+                        'date' => $date, 'start' => $start, 'end' => $end, 'jadwal_id' => $asg->ujian_jadwal_id,
+                    ];
+
+                    foreach ([$asg->pengawas_1_id, $asg->pengawas_2_id] as $tid) {
+                        if ($tid && isset($teacherWorkload[$tid])) {
+                            $this->registerTeacherDuty(
+                                $tid, $asg->ujian_ruang_id, $date, $start, $end,
+                                $teacherWorkload, $teacherDailyCount, $teacherRoomCount, $teacherBusySlots
+                            );
+                        }
+                    }
+                }
+            }
+
+            // 4. Plot jadwal per sesi & ruang yang cocok tingkat kelasnya
+            $totalPlotted = 0;
+
+            foreach ($jadwals as $jadwal) {
+                $date = $jadwal->tanggal_ujian->format('Y-m-d');
+                $start = $this->conflictService->normalizeTime($jadwal->jam_mulai);
+                $end = $this->conflictService->normalizeTime($jadwal->jam_selesai);
+                $jadwalLevels = $jadwal->getTargetLevels();
+
+                // FILTER KRUSIAL: hanya ruang yang cocok dengan tingkat/kelas jadwal ini
+                $matchedRuangs = $ruangs->filter(fn (UjianRuang $r) => $r->matchesJadwal($jadwal));
+
+                foreach ($matchedRuangs as $ruang) {
+                    // Skip jika ruang sudah dipakai jadwal lain pada jam beririsan
+                    if ($this->isRoomBusy($roomBusySlots[$ruang->id] ?? [], $date, $start, $end, $jadwal->id)) {
                         continue;
                     }
 
-                    // 2. Cek bentrok jam
-                    $conflict = $this->conflictService->checkTeacherSupervisorConflict(
-                        $candidate->id,
-                        $jadwal->id,
-                        $assignment->id
-                    );
+                    $assignment = UjianJadwalPengawas::firstOrNew([
+                        'ujian_jadwal_id' => $jadwal->id,
+                        'ujian_ruang_id' => $ruang->id,
+                    ]);
 
-                    if (! $conflict) {
-                        $pengawas1Id = $candidate->id;
-                        break;
+                    // Jika mode non-reset dan sudah terisi lengkap, lewati
+                    if (! $resetExisting && $assignment->exists && $assignment->pengawas_1_id && (! $twoSupervisorsPerRoom || $assignment->pengawas_2_id)) {
+                        continue;
                     }
-                }
 
-                // Cari pengawas 2 jika mode 2 pengawas diaktifkan
-                $pengawas2Id = null;
-                if ($twoSupervisorsPerRoom) {
-                    $attempts = 0;
-                    while ($attempts < $teacherCount) {
-                        $candidate = $teachers[$teacherIndex % $teacherCount];
-                        $teacherIndex++;
-                        $attempts++;
+                    $requiredLevel = $ruang->getLevel();
 
-                        if ($candidate->id === $pengawas1Id) {
-                            continue;
-                        }
-
-                        // 1. Cek pemetaan kelas
-                        $eligibility = $this->mappingService->isTeacherEligibleForJadwal($candidate->id, $jadwal);
-                        if (! $eligibility['eligible']) {
-                            continue;
-                        }
-
-                        // 2. Cek bentrok jam
-                        $conflict = $this->conflictService->checkTeacherSupervisorConflict(
-                            $candidate->id,
-                            $jadwal->id,
-                            $assignment->id
+                    // Pilih Pengawas 1
+                    $pengawas1Id = $assignment->pengawas_1_id;
+                    if (! $pengawas1Id) {
+                        $pengawas1Id = $this->pickBestTeacher(
+                            $teachers->pluck('id')->all(),
+                            $teacherLevels,
+                            $requiredLevel,
+                            $jadwalLevels,
+                            $date,
+                            $start,
+                            $end,
+                            $ruang->id,
+                            null,
+                            $teacherWorkload,
+                            $teacherDailyCount,
+                            $teacherRoomCount,
+                            $teacherBusySlots
                         );
 
-                        if (! $conflict) {
-                            $pengawas2Id = $candidate->id;
-                            break;
+                        if ($pengawas1Id) {
+                            $this->registerTeacherDuty(
+                                $pengawas1Id, $ruang->id, $date, $start, $end,
+                                $teacherWorkload, $teacherDailyCount, $teacherRoomCount, $teacherBusySlots
+                            );
                         }
                     }
+
+                    // Pilih Pengawas 2 (opsional)
+                    $pengawas2Id = $twoSupervisorsPerRoom ? $assignment->pengawas_2_id : null;
+                    if ($twoSupervisorsPerRoom && ! $pengawas2Id) {
+                        $pengawas2Id = $this->pickBestTeacher(
+                            $teachers->pluck('id')->all(),
+                            $teacherLevels,
+                            $requiredLevel,
+                            $jadwalLevels,
+                            $date,
+                            $start,
+                            $end,
+                            $ruang->id,
+                            $pengawas1Id,
+                            $teacherWorkload,
+                            $teacherDailyCount,
+                            $teacherRoomCount,
+                            $teacherBusySlots
+                        );
+
+                        if ($pengawas2Id) {
+                            $this->registerTeacherDuty(
+                                $pengawas2Id, $ruang->id, $date, $start, $end,
+                                $teacherWorkload, $teacherDailyCount, $teacherRoomCount, $teacherBusySlots
+                            );
+                        }
+                    }
+
+                    $roomBusySlots[$ruang->id][] = [
+                        'date' => $date, 'start' => $start, 'end' => $end, 'jadwal_id' => $jadwal->id,
+                    ];
+
+                    $assignment->pengawas_1_id = $pengawas1Id;
+                    $assignment->pengawas_2_id = $pengawas2Id;
+                    $assignment->status_kehadiran = $assignment->status_kehadiran ?: 'Terjadwal';
+                    $assignment->save();
+
+                    $totalPlotted++;
                 }
+            }
 
-                $assignment->pengawas_1_id = $pengawas1Id;
-                $assignment->pengawas_2_id = $pengawas2Id;
-                $assignment->status_kehadiran = 'Terjadwal';
-                $assignment->save();
+            return $totalPlotted;
+        });
+    }
 
-                $totalPlotted++;
+    private function pickBestTeacher(
+        array $teacherIds,
+        array $teacherLevels,
+        ?string $ruangLevel,
+        array $jadwalLevels,
+        string $date,
+        string $start,
+        string $end,
+        int $ruangId,
+        ?int $excludeTeacherId,
+        array $teacherWorkload,
+        array $teacherDailyCount,
+        array $teacherRoomCount,
+        array $teacherBusySlots
+    ): ?int {
+        $candidates = [];
+
+        foreach ($teacherIds as $tid) {
+            if ($excludeTeacherId !== null && $tid === $excludeTeacherId) {
+                continue;
+            }
+
+            // 1. Cek kecocokan pemetaan tingkat kelas (utamakan tingkat ruang jika ada)
+            $allowed = $teacherLevels[$tid] ?? [];
+            $levelMatched = $ruangLevel !== null
+                ? in_array($ruangLevel, $allowed, true)
+                : ! empty(array_intersect($jadwalLevels, $allowed));
+
+            if (! $levelMatched) {
+                continue;
+            }
+
+            // 2. Hard constraint: tidak boleh bentrok di tanggal & jam yang beririsan
+            if ($this->isTeacherBusy($teacherBusySlots[$tid] ?? [], $date, $start, $end)) {
+                continue;
+            }
+
+            // 3. Soft constraints (urut dari prioritas tertinggi ke terendah)
+            $candidates[] = [
+                'id' => $tid,
+                'workload' => $teacherWorkload[$tid] ?? 0,
+                'daily' => $teacherDailyCount[$tid][$date] ?? 0,
+                'room_repeat' => $teacherRoomCount[$tid][$ruangId] ?? 0,
+                'flexibility' => count($allowed),
+            ];
+        }
+
+        if (empty($candidates)) {
+            return null;
+        }
+
+        usort($candidates, function (array $a, array $b) {
+            return [$a['workload'], $a['daily'], $a['room_repeat'], $a['flexibility'], $a['id']]
+                <=> [$b['workload'], $b['daily'], $b['room_repeat'], $b['flexibility'], $b['id']];
+        });
+
+        return $candidates[0]['id'];
+    }
+
+    private function isTeacherBusy(array $slots, string $date, string $start, string $end): bool
+    {
+        foreach ($slots as $slot) {
+            if ($slot['date'] === $date && $this->conflictService->isTimeOverlapping($start, $end, $slot['start'], $slot['end'])) {
+                return true;
             }
         }
 
-        return $totalPlotted;
+        return false;
+    }
+
+    private function isRoomBusy(array $slots, string $date, string $start, string $end, int $currentJadwalId): bool
+    {
+        foreach ($slots as $slot) {
+            if ($slot['jadwal_id'] !== $currentJadwalId
+                && $slot['date'] === $date
+                && $this->conflictService->isTimeOverlapping($start, $end, $slot['start'], $slot['end'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function registerTeacherDuty(
+        int $teacherId,
+        int $ruangId,
+        string $date,
+        string $start,
+        string $end,
+        array &$teacherWorkload,
+        array &$teacherDailyCount,
+        array &$teacherRoomCount,
+        array &$teacherBusySlots
+    ): void {
+        $teacherWorkload[$teacherId] = ($teacherWorkload[$teacherId] ?? 0) + 1;
+        $teacherDailyCount[$teacherId][$date] = ($teacherDailyCount[$teacherId][$date] ?? 0) + 1;
+        $teacherRoomCount[$teacherId][$ruangId] = ($teacherRoomCount[$teacherId][$ruangId] ?? 0) + 1;
+        $teacherBusySlots[$teacherId][] = ['date' => $date, 'start' => $start, 'end' => $end];
     }
 }

@@ -38,6 +38,9 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
         Route::prefix('jadwal-ujian')->name('jadwal.')->group(function () {
             Route::get('/', [JadwalUjianController::class, 'index'])->name('index');
             Route::post('/', [JadwalUjianController::class, 'store'])->name('store');
+            Route::get('/template', [JadwalUjianController::class, 'downloadTemplate'])->name('template');
+            Route::post('/import', [JadwalUjianController::class, 'import'])->name('import');
+            Route::post('/import-pdf', [JadwalUjianController::class, 'importPdf'])->name('import-pdf');
             Route::put('/{jadwal}', [JadwalUjianController::class, 'update'])->name('update');
             Route::post('/copy', [JadwalUjianController::class, 'copySchedule'])->name('copy');
             Route::delete('/{jadwal}', [JadwalUjianController::class, 'destroy'])->name('destroy');
@@ -67,6 +70,9 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::get('/', [JadwalPengawasController::class, 'index'])->name('index');
             Route::post('/', [JadwalPengawasController::class, 'store'])->name('store');
             Route::post('/auto-plot', [JadwalPengawasController::class, 'autoPlot'])->name('auto-plot');
+            Route::post('/reset', [JadwalPengawasController::class, 'reset'])->name('reset');
+            Route::post('/import-pdf', [JadwalPengawasController::class, 'importPdf'])->name('import-pdf');
+            Route::delete('/penugasan/{pengawas}', [JadwalPengawasController::class, 'destroy'])->name('destroy');
             Route::post('/mapping', [JadwalPengawasController::class, 'storeMapping'])->name('mapping.store');
             Route::post('/mapping/bulk', [JadwalPengawasController::class, 'bulkMapping'])->name('mapping.bulk');
             Route::delete('/mapping', [JadwalPengawasController::class, 'destroyMapping'])->name('mapping.destroy');

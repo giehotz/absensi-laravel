@@ -3,905 +3,166 @@
 @section('title', 'Manajemen Pengawas Ruang Ujian - ' . ($activePeriode->nama_periode ?? ''))
 
 @section('content')
-<div class="space-y-6">
-    {{-- Header Utama --}}
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
-        <div>
-            <div class="flex items-center gap-2 mb-1">
-                <span class="text-xs font-black uppercase tracking-wider bg-[#FFD43B] text-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
-                    Sub-Menu 3 (B)
-                </span>
-                <span class="text-xs font-bold text-slate-500">Logika Pemetaan & Penugasan Pengawas</span>
+<div class="space-y-5">
+    {{-- Header Utama Neo-Brutalism --}}
+    <div class="overflow-hidden rounded-xl border-2 border-slate-900 bg-white shadow-[4px_4px_0px_0px_#0f172a]">
+        <div class="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <div class="mb-1.5 flex flex-wrap items-center gap-2">
+                    <span class="rounded-md border-2 border-slate-900 bg-[#FFD43B] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]">
+                        Sub-Menu 3 (B)
+                    </span>
+                    <span class="text-[11px] font-black text-slate-600">Logika Pemetaan &amp; Penugasan Pengawas</span>
+                </div>
+                <h1 class="font-heading text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+                    Jadwal Pengawas Ruang Ujian
+                </h1>
+                <p class="mt-1 max-w-2xl text-xs font-semibold leading-relaxed text-slate-600">
+                    Pengaturan berbasis jadwal mapel, pemetaan kelas rendah/atas, pengecualian panitia, dan sistem pertukaran jadwal (swap).
+                </p>
             </div>
-            <h1 class="text-xl sm:text-2xl font-black font-heading text-black">
-                Jadwal Pengawas Ruang Ujian
-            </h1>
-            <p class="text-xs font-semibold text-slate-600 mt-0.5">
-                Pengaturan berbasis jadwal mapel, pemetaan kelas rendah/atas, pengecualian panitia, dan sistem pertukaran jadwal (swap).
-            </p>
+
+            @if($activePeriode)
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    <button type="button" onclick="document.getElementById('modalAutoPlotter').classList.remove('hidden')"
+                            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#F3D9FA] px-3.5 py-2 text-xs font-black text-purple-950 shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:bg-purple-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+                        </svg>
+                        <span>Auto-Plot</span>
+                    </button>
+                    <button type="button" onclick="document.getElementById('modalTambahPengawas').classList.remove('hidden')"
+                            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#FFD43B] px-3.5 py-2 text-xs font-black text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] transition-all hover:bg-yellow-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                        </svg>
+                        <span>Tugaskan Manual</span>
+                    </button>
+                </div>
+            @endif
         </div>
 
-        <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <div class="flex flex-col gap-3 border-t-2 border-slate-900 bg-slate-50 px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <form method="GET" action="{{ route('ujian.pengawas.index') }}" class="flex items-center gap-2">
+                <svg class="h-4 w-4 text-slate-900" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
+                </svg>
+                <label for="periode_id" class="text-[11px] font-black uppercase tracking-wide text-slate-700">Periode</label>
+                <select id="periode_id" name="periode_id" onchange="this.form.submit()"
+                        class="cursor-pointer rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-xs font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] focus:outline-none">
+                    @forelse($periodes as $p)
+                        <option value="{{ $p->id }}" {{ $p->id == $activePeriode?->id ? 'selected' : '' }}>
+                            {{ $p->nama_periode }}{{ $p->is_active ? ' (Aktif)' : '' }}
+                        </option>
+                    @empty
+                        <option value="">Belum ada periode</option>
+                    @endforelse
+                </select>
+            </form>
+
             @if($activePeriode)
-                <button type="button" onclick="openModalCetakDaftarHadir()"
-                   class="px-3.5 py-2 bg-white hover:bg-slate-100 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
-                    <span>🖨️</span>
-                    <span>Cetak Daftar Hadir</span>
-                </button>
-                <a href="{{ route('ujian.pengawas.print-jadwal-guru', ['periode_id' => $activePeriode->id]) }}" target="_blank"
-                   class="px-3.5 py-2 bg-[#5294FF] hover:bg-blue-400 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
-                    <span>👨‍🏫</span>
-                    <span>Cetak Tugas per Guru</span>
-                </a>
-                <form action="{{ route('ujian.pengawas.auto-plot') }}" method="POST" onsubmit="return confirm('Jalankan Auto-Plotter? Sistem hanya akan memilih guru yang memenuhi syarat pemetaan kelas dan mengecualikan panitia ujian.')">
-                    @csrf
-                    <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
-                    <button type="submit" class="px-3.5 py-2 bg-[#F3D9FA] hover:bg-purple-300 text-purple-950 border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
-                        <span>⚡</span>
-                        <span>Auto-Plotter Otomatis</span>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="openModalCetakDaftarHadir()"
+                            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-yellow-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z"/>
+                        </svg>
+                        <span>Daftar Hadir</span>
                     </button>
-                </form>
-                <button type="button" onclick="document.getElementById('modalTambahPengawas').classList.remove('hidden')" 
-                        class="px-3.5 py-2 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
-                    <span>➕</span>
-                    <span>Tugaskan Manual</span>
-                </button>
+                    <a href="{{ route('ujian.pengawas.print-jadwal-guru', ['periode_id' => $activePeriode->id]) }}" target="_blank"
+                       class="inline-flex items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-yellow-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
+                        </svg>
+                        <span>Tugas per Guru</span>
+                    </a>
+                    <button type="button" onclick="document.getElementById('modalImportPdfMatriks').classList.remove('hidden')"
+                            title="Import penugasan & jadwal dari file PDF matriks"
+                            class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#51CF66] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-green-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                        </svg>
+                        <span>Import PDF</span>
+                    </button>
+                    @if($pengawasList->isNotEmpty())
+                        <form action="{{ route('ujian.pengawas.reset') }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin MENGHAPUS / MERESET seluruh ({{ $pengawasList->count() }}) data penugasan pengawas pada periode ini? Tindakan ini tidak dapat dibatalkan.')">
+                            @csrf
+                            <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
+                            <button type="submit" title="Hapus / kosongkan seluruh penugasan pengawas periode ini"
+                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#FFE3E3] px-3 py-1.5 text-[11px] font-black text-rose-950 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-rose-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                </svg>
+                                <span>Reset ({{ $pengawasList->count() }})</span>
+                            </button>
+                        </form>
+                    @endif
+                </div>
             @endif
         </div>
     </div>
 
-    {{-- Switch Periode & Alerts --}}
-    <div class="flex items-center justify-between gap-4 p-4 bg-slate-100 border-2 border-black rounded-xl">
-        <form method="GET" action="{{ route('ujian.pengawas.index') }}" class="flex items-center gap-2">
-            <span class="text-xs font-bold text-slate-700">Pilih Periode:</span>
-            <select name="periode_id" onchange="this.form.submit()" class="px-3 py-1.5 text-xs font-bold border-2 border-black rounded-lg bg-white shadow-[1px_1px_0px_0px_#000]">
-                @foreach($periodes as $p)
-                    <option value="{{ $p->id }}" {{ $p->id == $activePeriode?->id ? 'selected' : '' }}>
-                        {{ $p->nama_periode }} {{ $p->is_active ? '★' : '' }}
-                    </option>
-                @endforeach
-            </select>
-        </form>
-        <div class="flex items-center gap-3 text-xs font-bold text-slate-600">
-            <span>Terplot: <strong class="text-black">{{ $pengawasList->count() }}</strong></span>
-            <span>•</span>
-            <span>Terpetakan: <strong class="text-emerald-700">{{ $mappedCount }}</strong> / {{ $totalTeachersCount }} Guru</span>
-        </div>
-    </div>
-
+    {{-- Flash Alerts Neo-Brutalism --}}
     @if(session('success'))
-        <div class="p-4 bg-[#D3F9D8] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-emerald-950 font-bold text-xs flex items-center justify-between">
-            <div class="flex items-center gap-2"><span>✅</span><span>{{ session('success') }}</span></div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black">✕</button>
+        <div class="flex items-center justify-between gap-3 rounded-xl border-2 border-slate-900 bg-emerald-100 px-4 py-3 text-xs font-black text-emerald-950 shadow-[3px_3px_0px_0px_#0f172a]">
+            <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-slate-900 bg-emerald-600 text-[10px] text-white font-black">✓</span>
+                <span>{{ session('success') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black text-slate-900 hover:text-rose-700">✕</button>
         </div>
     @endif
     @if(session('error'))
-        <div class="p-4 bg-[#FFE3E3] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-rose-950 font-bold text-xs flex items-center justify-between">
-            <div class="flex items-center gap-2"><span>⚠️</span><span>{{ session('error') }}</span></div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black">✕</button>
+        <div class="flex items-center justify-between gap-3 rounded-xl border-2 border-slate-900 bg-rose-100 px-4 py-3 text-xs font-black text-rose-950 shadow-[3px_3px_0px_0px_#0f172a]">
+            <div class="flex items-center gap-2">
+                <span class="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-slate-900 bg-rose-600 text-[10px] text-white font-black">!</span>
+                <span>{{ session('error') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black text-slate-900 hover:text-black">✕</button>
         </div>
     @endif
 
-    {{-- Navigasi Tab Neo-Brutalist --}}
-    <div class="flex flex-wrap gap-2 border-b-2 border-black pb-2">
-        <button type="button" onclick="switchTab('penugasan')" id="tab-btn-penugasan"
-                class="tab-btn px-4 py-2 text-xs font-black rounded-t-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-2 cursor-pointer bg-[#FFD43B] text-black">
-            <span>📋</span>
+    {{-- Navigasi Tab Neo-Brutalism --}}
+    <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="switchTab('penugasan')" id="tab-btn-penugasan" class="tab-btn is-active">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+            </svg>
             <span>Penugasan Jadwal Pengawas</span>
-            <span class="px-2 py-0.2 bg-black text-white text-[10px] rounded-full">{{ $pengawasList->count() }}</span>
+            <span class="tab-count">{{ $pengawasList->count() }}</span>
         </button>
-        <button type="button" onclick="switchTab('pemetaan')" id="tab-btn-pemetaan"
-                class="tab-btn px-4 py-2 text-xs font-black rounded-t-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-2 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200">
-            <span>👥</span>
+        <button type="button" onclick="switchTab('pemetaan')" id="tab-btn-pemetaan" class="tab-btn">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+            </svg>
             <span>Pemetaan Calon Pengawas (Kelas Rendah / Atas)</span>
-            <span class="px-2 py-0.2 bg-blue-600 text-white text-[10px] rounded-full">{{ $mappedCount }}/{{ $totalTeachersCount }}</span>
+            <span class="tab-count">{{ $mappedCount }}/{{ $totalTeachersCount }}</span>
         </button>
-        <button type="button" onclick="switchTab('riwayat')" id="tab-btn-riwayat"
-                class="tab-btn px-4 py-2 text-xs font-black rounded-t-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-2 cursor-pointer bg-slate-100 text-slate-600 hover:bg-slate-200">
-            <span>🔄</span>
+        <button type="button" onclick="switchTab('riwayat')" id="tab-btn-riwayat" class="tab-btn">
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+            </svg>
             <span>Riwayat Pertukaran Pengawas</span>
-            <span class="px-2 py-0.2 bg-purple-700 text-white text-[10px] rounded-full">{{ $swapHistories->count() }}</span>
+            <span class="tab-count">{{ $swapHistories->count() }}</span>
         </button>
     </div>
 
     {{-- TAB 1: PENUGASAN JADWAL PENGAWAS --}}
-    <div id="content-penugasan" class="tab-content space-y-4">
-        <div class="p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h2 class="text-sm font-black font-heading text-black uppercase tracking-wide">
-                        Matriks Penugasan Pengawas Ruang Ujian
-                    </h2>
-                    <p class="text-[11px] text-slate-600 font-medium">
-                        Penetapan berbasis mata pelajaran dan waktu pelaksanaan. Gunakan tombol <strong>🔄 Tukar</strong> untuk menukar jadwal antarguru secara aman.
-                    </p>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left border-collapse border-2 border-black">
-                    <thead class="bg-slate-100 uppercase font-black text-black border-b-2 border-black">
-                        <tr>
-                            <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                            <th class="p-2.5 border-r border-black">Jadwal & Mata Pelajaran</th>
-                            <th class="p-2.5 border-r border-black text-center">Ruang Ujian</th>
-                            <th class="p-2.5 border-r border-black">Pengawas 1 (Utama)</th>
-                            <th class="p-2.5 border-r border-black">Pengawas 2 (Pendamping)</th>
-                            <th class="p-2.5 border-r border-black text-center">Kehadiran</th>
-                            <th class="p-2.5 text-center w-36">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-black font-medium">
-                        @forelse($pengawasList as $idx => $pw)
-                            <tr class="hover:bg-amber-50/50">
-                                <td class="p-2.5 border-r border-black text-center font-bold">{{ $idx + 1 }}</td>
-                                <td class="p-2.5 border-r border-black">
-                                    <div class="font-bold text-black">{{ $pw->jadwal?->nama_mapel }}</div>
-                                    <div class="text-[11px] font-mono text-slate-600">
-                                        {{ $pw->jadwal?->tanggal_ujian?->format('d/m/Y') }} | {{ substr($pw->jadwal?->jam_mulai ?? '', 0, 5) }} - {{ substr($pw->jadwal?->jam_selesai ?? '', 0, 5) }}
-                                    </div>
-                                    <div class="text-[10px] text-blue-700 font-bold flex items-center gap-1 mt-0.5">
-                                        <span>🏷️</span>
-                                        <span>{{ $pw->jadwal?->target_kelas }}</span>
-                                    </div>
-                                </td>
-                                <td class="p-2.5 border-r border-black text-center font-bold">
-                                    <span class="px-2 py-0.5 rounded bg-amber-100 border border-black font-mono">
-                                        {{ $pw->ruang?->nama_ruang }} ({{ $pw->ruang?->kode_ruang }})
-                                    </span>
-                                </td>
-                                <td class="p-2.5 border-r border-black text-black">
-                                    <div class="font-bold flex items-center justify-between">
-                                        <span>{{ $pw->pengawas1?->user?->name ?: '-' }}</span>
-                                        @if($pw->pengawas_1_id)
-                                            <button type="button" onclick="openModalTukar('{{ $pw->id }}', 'pengawas_1', '{{ addslashes($pw->pengawas1?->user?->name) }}', '{{ addslashes($pw->jadwal?->nama_mapel) }}', '{{ $pw->jadwal?->tanggal_ujian?->format('d/m/Y') }}', '{{ substr($pw->jadwal?->jam_mulai ?? '', 0, 5) }}-{{ substr($pw->jadwal?->jam_selesai ?? '', 0, 5) }}', '{{ addslashes($pw->ruang?->nama_ruang) }}', '{{ addslashes($pw->jadwal?->target_kelas) }}')"
-                                                    title="Tukar jadwal pengawas 1"
-                                                    class="px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-800 rounded text-[9px] font-black cursor-pointer">
-                                                🔄 Tukar
-                                            </button>
-                                        @endif
-                                    </div>
-                                    <div class="text-[10px] font-mono text-slate-500">NIP: {{ $pw->pengawas1?->nip ?: '-' }}</div>
-                                </td>
-                                <td class="p-2.5 border-r border-black text-slate-800">
-                                    <div class="font-semibold flex items-center justify-between">
-                                        <span>{{ $pw->pengawas2?->user?->name ?: '-' }}</span>
-                                        @if($pw->pengawas_2_id)
-                                            <button type="button" onclick="openModalTukar('{{ $pw->id }}', 'pengawas_2', '{{ addslashes($pw->pengawas2?->user?->name) }}', '{{ addslashes($pw->jadwal?->nama_mapel) }}', '{{ $pw->jadwal?->tanggal_ujian?->format('d/m/Y') }}', '{{ substr($pw->jadwal?->jam_mulai ?? '', 0, 5) }}-{{ substr($pw->jadwal?->jam_selesai ?? '', 0, 5) }}', '{{ addslashes($pw->ruang?->nama_ruang) }}', '{{ addslashes($pw->jadwal?->target_kelas) }}')"
-                                                    title="Tukar jadwal pengawas 2"
-                                                    class="px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-900 border border-purple-800 rounded text-[9px] font-black cursor-pointer">
-                                                🔄 Tukar
-                                            </button>
-                                        @endif
-                                    </div>
-                                    @if($pw->pengawas2)
-                                        <div class="text-[10px] font-mono text-slate-500">NIP: {{ $pw->pengawas2?->nip ?: '-' }}</div>
-                                    @endif
-                                </td>
-                                <td class="p-2.5 border-r border-black text-center">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $pw->status_kehadiran === 'Hadir' ? 'bg-emerald-100 text-emerald-950 border border-emerald-600' : 'bg-slate-100 text-slate-700 border border-slate-400' }}">
-                                        {{ $pw->status_kehadiran }}
-                                    </span>
-                                </td>
-                                <td class="p-2.5 text-center">
-                                    <div class="flex items-center justify-center gap-1.5">
-                                        <button type="button" onclick="openEditPengawasModal('{{ $pw->ujian_jadwal_id }}', '{{ $pw->ujian_ruang_id }}', '{{ $pw->pengawas_1_id }}', '{{ $pw->pengawas_2_id }}', '{{ $pw->status_kehadiran }}')"
-                                                class="px-2 py-1 bg-[#FFD43B] hover:bg-yellow-400 text-black rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
-                                            ✏️ Ubah
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="p-8 text-center text-slate-500 italic">
-                                    Belum ada penugasan pengawas untuk periode ini. Gunakan tombol <strong>⚡ Auto-Plotter Otomatis</strong> untuk alokasi cepat atau <strong>+ Tugaskan Manual</strong>.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    @include('ujian.pengawas.partials._tab-penugasan')
 
     {{-- TAB 2: PEMETAAN CALON PENGAWAS (KELAS RENDAH / ATAS) --}}
-    <div id="content-pemetaan" class="tab-content space-y-4 hidden">
-        {{-- Ringkasan Statistik Pemetaan --}}
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="p-3 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
-                <div class="text-[10px] font-bold text-slate-500 uppercase">Total Guru Aktif</div>
-                <div class="text-xl font-black text-black mt-0.5">{{ $totalTeachersCount }}</div>
-                <div class="text-[10px] text-slate-500">Guru madrasah</div>
-            </div>
-            <div class="p-3 bg-[#F3D9FA] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
-                <div class="text-[10px] font-bold text-purple-900 uppercase">Panitia Ujian (Dikecualikan)</div>
-                <div class="text-xl font-black text-purple-950 mt-0.5">{{ $panitiaCount }}</div>
-                <div class="text-[10px] text-purple-800">Tidak boleh mengawas</div>
-            </div>
-            <div class="p-3 bg-[#D3F9D8] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
-                <div class="text-[10px] font-bold text-emerald-900 uppercase">Guru Terpetakan</div>
-                <div class="text-xl font-black text-emerald-950 mt-0.5">{{ $mappedCount }}</div>
-                <div class="text-[10px] text-emerald-800">Siap dialokasikan</div>
-            </div>
-            <div class="p-3 bg-[#FFE3E3] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
-                <div class="text-[10px] font-bold text-rose-900 uppercase">Belum Dipetakan</div>
-                <div class="text-xl font-black text-rose-950 mt-0.5">{{ $unmappedCount }}</div>
-                <div class="text-[10px] text-rose-800">Perlu pengaturan kelompok</div>
-            </div>
-        </div>
-
-        {{-- Panel Pemetaan Bulk & Tabel Guru --}}
-        <div class="p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
-            <form id="formBulkMapping" method="POST" action="{{ route('ujian.pengawas.mapping.bulk') }}">
-                @csrf
-                <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
-                <input type="hidden" id="bulk_levels_input" name="assigned_levels[]" value="">
-
-                {{-- Toolbar Bulk Action --}}
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 pb-4 mb-4 border-b-2 border-black">
-                    <div>
-                        <h2 class="text-sm font-black font-heading text-black uppercase tracking-wide">
-                            Daftar Guru & Pemetaan Kelompok Kelas Calon Pengawas
-                        </h2>
-                        <p class="text-[11px] text-slate-600 font-medium">
-                            Pilih guru dengan checkbox untuk penetapan massal (bulk), atau sesuaikan tingkat kelas per guru secara individual.
-                        </p>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="text-[11px] font-bold text-slate-700 mr-1">Tindakan Massal:</span>
-                        <button type="button" onclick="submitBulkLevels(['1', '2', '3'])"
-                                class="px-2.5 py-1.5 bg-[#5294FF] hover:bg-blue-600 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
-                            📘 Kelas Rendah (1, 2, 3)
-                        </button>
-                        <button type="button" onclick="submitBulkLevels(['4', '5', '6'])"
-                                class="px-2.5 py-1.5 bg-[#FF922B] hover:bg-orange-500 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
-                            📙 Kelas Atas (4, 5, 6)
-                        </button>
-                        <button type="button" onclick="submitBulkLevels(['1', '2', '3', '4', '5', '6'])"
-                                class="px-2.5 py-1.5 bg-[#51CF66] hover:bg-green-600 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
-                            📗 Semua Kelas (1–6)
-                        </button>
-                        <button type="button" onclick="submitBulkDelete()"
-                                class="px-2.5 py-1.5 bg-[#FF6B6B] hover:bg-red-600 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
-                            🗑️ Hapus Pemetaan
-                        </button>
-                    </div>
-                </div>
-
-                {{-- Tabel Pemetaan Guru --}}
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left border-collapse border-2 border-black">
-                        <thead class="bg-slate-100 uppercase font-black text-black border-b-2 border-black">
-                            <tr>
-                                <th class="p-2.5 border-r border-black w-10 text-center">
-                                    <input type="checkbox" id="checkAllTeachers" onclick="toggleSelectAllTeachers(this)" class="w-4 h-4 rounded border-2 border-black cursor-pointer">
-                                </th>
-                                <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                                <th class="p-2.5 border-r border-black">Nama Guru & NIP</th>
-                                <th class="p-2.5 border-r border-black text-center">Status Kepanitiaan</th>
-                                <th class="p-2.5 border-r border-black">Pemetaan Tingkat Kelas Saat Ini</th>
-                                <th class="p-2.5 border-r border-black text-center">Cakupan Tingkat (1–6)</th>
-                                <th class="p-2.5 text-center w-28">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-black font-medium">
-                            @forelse($teachers as $idx => $t)
-                                @php
-                                    $isPanitia = in_array($t->id, $panitiaTeacherIds, true);
-                                    $panitiaRole = $panitiaRoles[$t->id] ?? null;
-                                    $mapping = $mappings[$t->id] ?? null;
-                                    $assignedLevels = $mapping?->assigned_levels ?? [];
-                                @endphp
-                                <tr class="hover:bg-amber-50/40 {{ $isPanitia ? 'bg-purple-50/40' : '' }}">
-                                    <td class="p-2.5 border-r border-black text-center">
-                                        @if($isPanitia)
-                                            <input type="checkbox" disabled title="Guru adalah Panitia Ujian" class="w-4 h-4 rounded opacity-40 cursor-not-allowed">
-                                        @else
-                                            <input type="checkbox" name="teacher_ids[]" value="{{ $t->id }}" class="teacher-check w-4 h-4 rounded border-2 border-black cursor-pointer">
-                                        @endif
-                                    </td>
-                                    <td class="p-2.5 border-r border-black text-center font-bold">{{ $idx + 1 }}</td>
-                                    <td class="p-2.5 border-r border-black">
-                                        <div class="font-bold text-black">{{ $t->user?->name }}</div>
-                                        <div class="text-[10px] font-mono text-slate-500">NIP: {{ $t->nip ?: '-' }} | NUPTK: {{ $t->nuptk ?: '-' }}</div>
-                                    </td>
-                                    <td class="p-2.5 border-r border-black text-center">
-                                        @if($isPanitia)
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-black bg-purple-200 text-purple-950 border border-purple-800 flex items-center justify-center gap-1">
-                                                <span>🛡️</span>
-                                                <span>{{ $panitiaRole ?: 'Panitia Ujian' }}</span>
-                                            </span>
-                                            <div class="text-[9px] text-purple-700 font-semibold mt-0.5">Dikecualikan otomatis</div>
-                                        @else
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
-                                                Bukan Panitia
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="p-2.5 border-r border-black">
-                                        @if($isPanitia)
-                                            <span class="text-slate-400 italic text-[11px]">— Tidak Berhak Mengawas —</span>
-                                        @elseif($mapping && !empty($assignedLevels))
-                                            <span class="font-bold text-black">{{ $mapping->formatted_levels }}</span>
-                                            @if($mapping->keterangan)
-                                                <div class="text-[10px] text-slate-500 mt-0.5">Catatan: {{ $mapping->keterangan }}</div>
-                                            @endif
-                                        @else
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-400">
-                                                ⚠️ Belum Dipetakan
-                                            </span>
-                                        @endif
-                                    </td>
-                                    <td class="p-2.5 border-r border-black text-center">
-                                        @if(!$isPanitia)
-                                            <div class="inline-flex items-center gap-1">
-                                                @foreach(['1', '2', '3', '4', '5', '6'] as $lvl)
-                                                    @php $active = in_array($lvl, array_map('strval', $assignedLevels), true); @endphp
-                                                    <span class="w-5 h-5 rounded flex items-center justify-center text-[10px] font-black border {{ $active ? ($lvl <= 3 ? 'bg-blue-600 text-white border-black' : 'bg-orange-500 text-white border-black') : 'bg-slate-100 text-slate-400 border-slate-300' }}">
-                                                        {{ $lvl }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            <span class="text-slate-400 text-[10px]">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="p-2.5 text-center">
-                                        @if(!$isPanitia)
-                                            <button type="button" onclick="openModalEditMapping('{{ $t->id }}', '{{ addslashes($t->user?->name) }}', '{{ $t->nip }}', {{ json_encode($assignedLevels) }}, '{{ addslashes($mapping?->keterangan ?? '') }}')"
-                                                    class="px-2.5 py-1 bg-[#FFD43B] hover:bg-yellow-400 text-black border border-black rounded text-[10px] font-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
-                                                ⚙️ Atur Kelas
-                                            </button>
-                                        @else
-                                            <span class="text-slate-400 text-[10px] italic">Terkunci</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="p-8 text-center text-slate-500 italic">
-                                        Tidak ada data guru aktif yang ditemukan.
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        </div>
-    </div>
+    @include('ujian.pengawas.partials._tab-pemetaan')
 
     {{-- TAB 3: RIWAYAT PERTUKARAN PENGAWAS --}}
-    <div id="content-riwayat" class="tab-content space-y-4 hidden">
-        <div class="p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
-            <div class="flex items-center justify-between mb-4">
-                <div>
-                    <h2 class="text-sm font-black font-heading text-black uppercase tracking-wide">
-                        Riwayat Audit Pertukaran Jadwal Pengawas (Swap Audit Trail)
-                    </h2>
-                    <p class="text-[11px] text-slate-600 font-medium">
-                        Catatan audit transaksional seluruh pertukaran tugas mengawas ujian antarguru untuk pemeriksaan administrasi madrasah.
-                    </p>
-                </div>
-                <div class="text-xs font-bold text-slate-600">
-                    Total Pertukaran: <strong class="text-black">{{ $swapHistories->count() }}</strong>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left border-collapse border-2 border-black">
-                    <thead class="bg-slate-100 uppercase font-black text-black border-b-2 border-black">
-                        <tr>
-                            <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                            <th class="p-2.5 border-r border-black w-32">Waktu Pertukaran</th>
-                            <th class="p-2.5 border-r border-black">Pengawas Asal & Jadwal Semula</th>
-                            <th class="p-2.5 border-r border-black text-center w-12">Swap</th>
-                            <th class="p-2.5 border-r border-black">Bertukar Dengan (Pengawas & Jadwal)</th>
-                            <th class="p-2.5 border-r border-black">Alasan / Catatan</th>
-                            <th class="p-2.5 border-r border-black">Diproses Oleh</th>
-                            <th class="p-2.5 text-center w-24">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-black font-medium">
-                        @forelse($swapHistories as $idx => $sw)
-                            <tr class="hover:bg-purple-50/40">
-                                <td class="p-2.5 border-r border-black text-center font-bold">{{ $idx + 1 }}</td>
-                                <td class="p-2.5 border-r border-black font-mono text-[11px]">
-                                    <div>{{ $sw->created_at->format('d/m/Y') }}</div>
-                                    <div class="text-slate-500 text-[10px]">{{ $sw->created_at->format('H:i:s') }} WIB</div>
-                                </td>
-                                <td class="p-2.5 border-r border-black">
-                                    <div class="font-bold text-black">{{ $sw->teacher1?->user?->name ?? 'Guru 1' }}</div>
-                                    <div class="text-[11px] text-blue-700 font-semibold">{{ $sw->jadwal1?->nama_mapel }} [{{ $sw->jadwal1?->target_kelas }}]</div>
-                                    <div class="text-[10px] font-mono text-slate-500">
-                                        {{ $sw->jadwal1?->tanggal_ujian?->format('d/m/Y') }} ({{ substr($sw->jadwal1?->jam_mulai ?? '', 0, 5) }}-{{ substr($sw->jadwal1?->jam_selesai ?? '', 0, 5) }}) | {{ $sw->sourcePengawas?->ruang?->nama_ruang ?? 'Ruang' }}
-                                    </div>
-                                </td>
-                                <td class="p-2.5 border-r border-black text-center text-base">
-                                    ⇄
-                                </td>
-                                <td class="p-2.5 border-r border-black">
-                                    <div class="font-bold text-black">{{ $sw->teacher2?->user?->name ?? 'Guru 2' }}</div>
-                                    <div class="text-[11px] text-blue-700 font-semibold">{{ $sw->jadwal2?->nama_mapel }} [{{ $sw->jadwal2?->target_kelas }}]</div>
-                                    <div class="text-[10px] font-mono text-slate-500">
-                                        {{ $sw->jadwal2?->tanggal_ujian?->format('d/m/Y') }} ({{ substr($sw->jadwal2?->jam_mulai ?? '', 0, 5) }}-{{ substr($sw->jadwal2?->jam_selesai ?? '', 0, 5) }}) | {{ $sw->targetPengawas?->ruang?->nama_ruang ?? 'Ruang' }}
-                                    </div>
-                                </td>
-                                <td class="p-2.5 border-r border-black">
-                                    <span class="italic text-slate-700">{{ $sw->alasan ?: 'Pertukaran jadwal tugas pengawas.' }}</span>
-                                </td>
-                                <td class="p-2.5 border-r border-black">
-                                    <div class="font-bold">{{ $sw->processedBy?->name ?? 'Administrator' }}</div>
-                                    <div class="text-[10px] text-slate-500">Admin</div>
-                                </td>
-                                <td class="p-2.5 text-center">
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-950 border border-emerald-600">
-                                        {{ $sw->status }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="8" class="p-8 text-center text-slate-500 italic">
-                                    Belum ada catatan riwayat pertukaran tugas pengawas untuk periode ini.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    @include('ujian.pengawas.partials._tab-riwayat')
 </div>
 
-{{-- MODAL 1: TUGASKAN MANUAL / UBAH PENGAWAS --}}
-@if($activePeriode)
-<div id="modalTambahPengawas" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
-    <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between pb-3 border-b-2 border-black mb-4">
-            <h3 class="text-sm font-black font-heading text-black flex items-center gap-2">
-                <span>👨‍🏫</span>
-                <span>Penugasan Pengawas Ruang</span>
-            </h3>
-            <button type="button" onclick="document.getElementById('modalTambahPengawas').classList.add('hidden')" class="text-sm font-black text-slate-500 hover:text-black">✕</button>
-        </div>
+{{-- MODALS POPUP --}}
+@include('ujian.pengawas.partials._modals')
 
-        <form action="{{ route('ujian.pengawas.store') }}" method="POST" class="space-y-3.5 text-xs font-semibold">
-            @csrf
-            <div>
-                <label class="block text-slate-700 font-bold mb-1">Pilih Slot Jadwal Ujian <span class="text-red-500">*</span></label>
-                <select id="modal_jadwal_id" name="ujian_jadwal_id" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
-                    <option value="">-- Pilih Jadwal --</option>
-                    @foreach($jadwals as $j)
-                        <option value="{{ $j->id }}">
-                            {{ $j->tanggal_ujian->format('d/m/Y') }} ({{ substr($j->jam_mulai, 0, 5) }}-{{ substr($j->jam_selesai, 0, 5) }}) - {{ $j->nama_mapel }} [{{ $j->target_kelas }}]
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+{{-- STYLES KHUSUS --}}
+@include('ujian.pengawas.partials._styles')
 
-            <div>
-                <label class="block text-slate-700 font-bold mb-1">Pilih Ruang Ujian <span class="text-red-500">*</span></label>
-                <select id="modal_ruang_id" name="ujian_ruang_id" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-bold">
-                    <option value="">-- Pilih Ruang --</option>
-                    @foreach($ruangs as $r)
-                        <option value="{{ $r->id }}">{{ $r->nama_ruang }} ({{ $r->kode_ruang }}) - Kapasitas: {{ $r->kapasitas_maksimal }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Pengawas 1 (Utama)</label>
-                    <select id="modal_pengawas_1" name="pengawas_1_id" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="">-- Pilih Guru --</option>
-                        @foreach($teachers as $t)
-                            @php
-                                $isPanitia = in_array($t->id, $panitiaTeacherIds, true);
-                                $mapping = $mappings[$t->id] ?? null;
-                            @endphp
-                            <option value="{{ $t->id }}" {{ $isPanitia ? 'disabled class=text-slate-400' : '' }}>
-                                {{ $t->user?->name }} {{ $isPanitia ? '⛔ (Panitia Ujian)' : ($mapping ? '['.$mapping->formatted_levels.']' : '[Belum Dipetakan]') }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Pengawas 2 (Pendamping)</label>
-                    <select id="modal_pengawas_2" name="pengawas_2_id" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="">-- Pilih Guru --</option>
-                        @foreach($teachers as $t)
-                            @php
-                                $isPanitia = in_array($t->id, $panitiaTeacherIds, true);
-                                $mapping = $mappings[$t->id] ?? null;
-                            @endphp
-                            <option value="{{ $t->id }}" {{ $isPanitia ? 'disabled class=text-slate-400' : '' }}>
-                                {{ $t->user?->name }} {{ $isPanitia ? '⛔ (Panitia Ujian)' : ($mapping ? '['.$mapping->formatted_levels.']' : '[Belum Dipetakan]') }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-slate-700 font-bold mb-1">Status Kehadiran <span class="text-red-500">*</span></label>
-                <select id="modal_kehadiran" name="status_kehadiran" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                    <option value="Terjadwal">Terjadwal</option>
-                    <option value="Hadir">Hadir</option>
-                    <option value="Digantikan">Digantikan</option>
-                    <option value="Izin">Izin</option>
-                </select>
-            </div>
-
-            <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
-                <button type="button" onclick="document.getElementById('modalTambahPengawas').classList.add('hidden')" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
-                    Batal
-                </button>
-                <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-                    Simpan Penugasan
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- MODAL 2: EDIT PEMETAAN KELAS INDIVIDUAL PER GURU --}}
-<div id="modalEditMapping" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
-    <div class="bg-white border-4 border-black rounded-xl max-w-md w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between pb-3 border-b-2 border-black mb-4">
-            <h3 class="text-sm font-black font-heading text-black flex items-center gap-2">
-                <span>⚙️</span>
-                <span>Atur Pemetaan Kelas Guru</span>
-            </h3>
-            <button type="button" onclick="document.getElementById('modalEditMapping').classList.add('hidden')" class="text-sm font-black text-slate-500 hover:text-black">✕</button>
-        </div>
-
-        <form action="{{ route('ujian.pengawas.mapping.store') }}" method="POST" class="space-y-4 text-xs font-semibold">
-            @csrf
-            <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
-            <input type="hidden" id="edit_map_teacher_id" name="teacher_id" value="">
-
-            <div class="p-3 bg-slate-50 border-2 border-black rounded-lg">
-                <div class="text-slate-500 text-[10px] uppercase font-bold">Guru Yang Diatur:</div>
-                <div id="edit_map_teacher_name" class="text-sm font-black text-black"></div>
-                <div id="edit_map_teacher_nip" class="text-[10px] font-mono text-slate-600"></div>
-            </div>
-
-            <div>
-                <div class="flex items-center justify-between mb-2">
-                    <label class="block text-slate-800 font-bold">Pilih Tingkat Kelas yang Boleh Diawasi <span class="text-red-500">*</span></label>
-                    <div class="flex gap-1 text-[10px]">
-                        <button type="button" onclick="setEditLevels(['1', '2', '3'])" class="px-1.5 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-900 border border-blue-800 rounded font-bold">Rendah</button>
-                        <button type="button" onclick="setEditLevels(['4', '5', '6'])" class="px-1.5 py-0.5 bg-orange-100 hover:bg-orange-200 text-orange-900 border border-orange-800 rounded font-bold">Atas</button>
-                        <button type="button" onclick="setEditLevels(['1', '2', '3', '4', '5', '6'])" class="px-1.5 py-0.5 bg-green-100 hover:bg-green-200 text-green-900 border border-green-800 rounded font-bold">Semua</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-3 gap-2">
-                    @foreach(['1' => 'Kelas 1', '2' => 'Kelas 2', '3' => 'Kelas 3', '4' => 'Kelas 4', '5' => 'Kelas 5', '6' => 'Kelas 6'] as $num => $lbl)
-                        <label class="flex items-center gap-2 p-2 border-2 border-black rounded-lg cursor-pointer hover:bg-slate-50 font-bold">
-                            <input type="checkbox" name="assigned_levels[]" value="{{ $num }}" class="edit-level-check w-4 h-4 rounded border-2 border-black">
-                            <span>{{ $lbl }}</span>
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-slate-700 font-bold mb-1">Catatan Pemetaan (Opsional)</label>
-                <input type="text" id="edit_map_keterangan" name="keterangan" placeholder="Contoh: Fokus kelas bawah" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-            </div>
-
-            <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
-                <button type="button" onclick="document.getElementById('modalEditMapping').classList.add('hidden')" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
-                    Batal
-                </button>
-                <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-                    Simpan Pemetaan
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- MODAL 3: PERTUKARAN JADWAL PENGAWAS (SWAP) --}}
-<div id="modalTukarPengawas" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
-    <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between pb-3 border-b-2 border-black mb-4">
-            <h3 class="text-sm font-black font-heading text-black flex items-center gap-2">
-                <span>🔄</span>
-                <span>Pertukaran Jadwal Pengawas (Swap)</span>
-            </h3>
-            <button type="button" onclick="document.getElementById('modalTukarPengawas').classList.add('hidden')" class="text-sm font-black text-slate-500 hover:text-black">✕</button>
-        </div>
-
-        <form action="{{ route('ujian.pengawas.swap.execute') }}" method="POST" class="space-y-4 text-xs font-semibold">
-            @csrf
-            <input type="hidden" id="swap_source_assignment_id" name="source_assignment_id" value="">
-            <input type="hidden" id="swap_source_slot" name="source_slot" value="pengawas_1">
-
-            {{-- Kartu Data Tugas Asal --}}
-            <div class="p-3 bg-purple-50 border-2 border-purple-800 rounded-lg">
-                <div class="text-purple-900 text-[10px] uppercase font-black mb-1">Tugas Pengawasan Yang Hendak Ditukar:</div>
-                <div id="swap_info_teacher" class="text-sm font-black text-black"></div>
-                <div id="swap_info_mapel" class="text-xs font-bold text-blue-700 mt-0.5"></div>
-                <div id="swap_info_datetime" class="text-[11px] font-mono text-slate-600 mt-0.5"></div>
-            </div>
-
-            {{-- Pilihan Lawan Tukar --}}
-            <div>
-                <label class="block text-slate-800 font-bold mb-1">
-                    Pilih Penugasan Lawan Tukar <span class="text-red-500">*</span>
-                </label>
-                <div id="swap_loading_box" class="p-4 text-center text-slate-500 italic bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hidden">
-                    Sedang memverifikasi kelayakan dua arah dan bentrok jadwal...
-                </div>
-                <select id="swap_target_select" onchange="onSelectSwapTarget(this)" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 font-bold text-xs">
-                    <option value="">-- Pilih Penugasan Lawan Tukar --</option>
-                </select>
-                <input type="hidden" id="swap_target_assignment_id" name="target_assignment_id" value="">
-                <input type="hidden" id="swap_target_slot" name="target_slot" value="pengawas_1">
-                <p class="text-[10px] text-slate-500 mt-1">
-                    Hanya menampilkan jadwal yang memenuhi syarat pemetaan kelas kedua belah pihak dan bebas dari bentrok waktu.
-                </p>
-            </div>
-
-            {{-- Alasan Pertukaran --}}
-            <div>
-                <label class="block text-slate-700 font-bold mb-1">Alasan Pertukaran (Opsional)</label>
-                <textarea name="alasan" rows="2" placeholder="Contoh: Ada keperluan dinas luar / rapat dinas pada jam tersebut." class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-medium"></textarea>
-            </div>
-
-            <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
-                <button type="button" onclick="document.getElementById('modalTukarPengawas').classList.add('hidden')" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
-                    Batal
-                </button>
-                <button type="submit" id="btnConfirmSwap" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-                    Konfirmasi Pertukaran
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- MODAL 4: CETAK DAFTAR HADIR PENGAWAS --}}
-<div id="modalCetakDaftarHadir" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 hidden p-4">
-    <div class="bg-white border-4 border-black rounded-xl max-w-md w-full p-6 shadow-[8px_8px_0px_0px_#000] space-y-4">
-        <div class="flex items-center justify-between border-b-2 border-black pb-3">
-            <h3 class="text-base font-black font-heading text-black flex items-center gap-2">
-                <span>🖨️</span> Cetak Daftar Hadir Pengawas
-            </h3>
-            <button type="button" onclick="closeModalCetakDaftarHadir()" class="text-black hover:bg-black hover:text-white p-1 font-black text-sm border border-black shadow-[1px_1px_0px_#000] leading-none">
-                ✕
-            </button>
-        </div>
-
-        <form method="GET" action="{{ route('ujian.pengawas.print-daftar-hadir') }}" target="_blank" onsubmit="closeModalCetakDaftarHadir()">
-            <input type="hidden" name="periode_id" value="{{ $activePeriode->id }}">
-
-            <div class="space-y-4 text-xs">
-                <div>
-                    <label class="block text-slate-800 font-bold mb-1">
-                        Pilih Hari / Tanggal Ujian <span class="text-red-500">*</span>
-                    </label>
-                    <select name="tanggal" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 font-bold text-xs">
-                        <option value="all">Semua Hari Ujian (Otomatis Pisah Halaman per Hari)</option>
-                        @foreach($examDates as $date)
-                            <option value="{{ $date->format('Y-m-d') }}">
-                                {{ $date->locale('id')->translatedFormat('l, d F Y') }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-slate-800 font-bold mb-1">
-                        Tanggal Cetak Dokumen <span class="text-red-500">*</span>
-                    </label>
-                    <input type="date" name="tanggal_cetak" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 font-bold text-xs">
-                </div>
-            </div>
-
-            <div class="pt-4 flex items-center justify-end gap-2 border-t-2 border-black mt-5">
-                <button type="button" onclick="closeModalCetakDaftarHadir()" class="px-3.5 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
-                    Batal
-                </button>
-                <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
-                    <span>🖨️</span>
-                    <span>Cetak Dokumen (Landscape)</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-@push('scripts')
-<script>
-    // Tab Navigation Logic
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-        document.querySelectorAll('.tab-btn').forEach(el => {
-            el.classList.remove('bg-[#FFD43B]', 'text-black');
-            el.classList.add('bg-slate-100', 'text-slate-600');
-        });
-
-        const activeContent = document.getElementById('content-' + tabName);
-        const activeBtn = document.getElementById('tab-btn-' + tabName);
-
-        if (activeContent) activeContent.classList.remove('hidden');
-        if (activeBtn) {
-            activeBtn.classList.remove('bg-slate-100', 'text-slate-600');
-            activeBtn.classList.add('bg-[#FFD43B]', 'text-black');
-        }
-
-        window.location.hash = tabName;
-    }
-
-    // Auto open tab based on URL hash
-    document.addEventListener('DOMContentLoaded', function() {
-        const hash = window.location.hash.replace('#', '');
-        if (['penugasan', 'pemetaan', 'riwayat'].includes(hash)) {
-            switchTab(hash);
-        }
-    });
-
-    // Checkbox Select All Teachers
-    function toggleSelectAllTeachers(master) {
-        document.querySelectorAll('.teacher-check').forEach(cb => {
-            cb.checked = master.checked;
-        });
-    }
-
-    // Bulk Level Assignment
-    function submitBulkLevels(levels) {
-        const checked = document.querySelectorAll('.teacher-check:checked');
-        if (checked.length === 0) {
-            alert('Pilih setidaknya satu guru dengan mencentang checkbox terlebih dahulu.');
-            return;
-        }
-
-        const form = document.getElementById('formBulkMapping');
-        form.action = "{{ route('ujian.pengawas.mapping.bulk') }}";
-
-        // Remove old level inputs
-        form.querySelectorAll('input[name="assigned_levels[]"]').forEach(el => el.remove());
-
-        // Append selected levels
-        levels.forEach(lvl => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'assigned_levels[]';
-            input.value = lvl;
-            form.appendChild(input);
-        });
-
-        form.submit();
-    }
-
-    function submitBulkDelete() {
-        const checked = document.querySelectorAll('.teacher-check:checked');
-        if (checked.length === 0) {
-            alert('Pilih setidaknya satu guru yang pemetaannya hendak dihapus.');
-            return;
-        }
-
-        if (!confirm('Hapus pemetaan kelompok kelas untuk guru-guru terpilih?')) {
-            return;
-        }
-
-        const form = document.getElementById('formBulkMapping');
-        form.action = "{{ route('ujian.pengawas.mapping.destroy') }}";
-        
-        let methodField = form.querySelector('input[name="_method"]');
-        if (!methodField) {
-            methodField = document.createElement('input');
-            methodField.type = 'hidden';
-            methodField.name = '_method';
-            form.appendChild(methodField);
-        }
-        methodField.value = 'DELETE';
-
-        form.submit();
-    }
-
-    // Modal Edit Mapping Individual
-    function openModalEditMapping(teacherId, teacherName, teacherNip, assignedLevels, keterangan) {
-        document.getElementById('edit_map_teacher_id').value = teacherId;
-        document.getElementById('edit_map_teacher_name').textContent = teacherName;
-        document.getElementById('edit_map_teacher_nip').textContent = 'NIP: ' + (teacherNip || '-');
-        document.getElementById('edit_map_keterangan').value = keterangan || '';
-
-        const levelsArray = (assignedLevels || []).map(String);
-        document.querySelectorAll('.edit-level-check').forEach(cb => {
-            cb.checked = levelsArray.includes(cb.value);
-        });
-
-        document.getElementById('modalEditMapping').classList.remove('hidden');
-    }
-
-    function setEditLevels(levels) {
-        document.querySelectorAll('.edit-level-check').forEach(cb => {
-            cb.checked = levels.includes(cb.value);
-        });
-    }
-
-    // Modal Edit Penugasan Pengawas
-    function openEditPengawasModal(jadwalId, ruangId, p1Id, p2Id, kehadiran) {
-        document.getElementById('modal_jadwal_id').value = jadwalId;
-        document.getElementById('modal_ruang_id').value = ruangId;
-        document.getElementById('modal_pengawas_1').value = p1Id || '';
-        document.getElementById('modal_pengawas_2').value = p2Id || '';
-        document.getElementById('modal_kehadiran').value = kehadiran || 'Terjadwal';
-        document.getElementById('modalTambahPengawas').classList.remove('hidden');
-    }
-
-    // Modal Pertukaran Jadwal (Swap)
-    function openModalTukar(assignmentId, slot, teacherName, mapel, tanggal, jam, ruang, targetKelas) {
-        document.getElementById('swap_source_assignment_id').value = assignmentId;
-        document.getElementById('swap_source_slot').value = slot;
-
-        document.getElementById('swap_info_teacher').textContent = teacherName + ' (' + (slot === 'pengawas_2' ? 'Pengawas 2' : 'Pengawas 1') + ')';
-        document.getElementById('swap_info_mapel').textContent = 'Mata Pelajaran: ' + mapel + ' [' + targetKelas + ']';
-        document.getElementById('swap_info_datetime').textContent = 'Waktu: ' + tanggal + ' (' + jam + ') | ' + ruang;
-
-        const select = document.getElementById('swap_target_select');
-        select.innerHTML = '<option value="">-- Memuat kandidat pertukaran yang valid... --</option>';
-        select.disabled = true;
-
-        const loadingBox = document.getElementById('swap_loading_box');
-        loadingBox.classList.remove('hidden');
-
-        fetch(`{{ route('ujian.pengawas.swap.candidates') }}?assignment_id=${assignmentId}&slot=${slot}`)
-            .then(res => res.json())
-            .then(candidates => {
-                loadingBox.classList.add('hidden');
-                select.disabled = false;
-                select.innerHTML = '<option value="">-- Pilih Penugasan Lawan Tukar --</option>';
-
-                if (candidates.length === 0) {
-                    select.innerHTML = '<option value="">-- Tidak ada jadwal yang memenuhi syarat pertukaran --</option>';
-                    return;
-                }
-
-                candidates.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = `${c.assignment_id}|${c.slot}`;
-                    opt.textContent = `[${c.teacher_name}] - ${c.mapel} | ${c.ruang} | ${c.tanggal} (${c.jam}) [${c.target_kelas}]`;
-                    select.appendChild(opt);
-                });
-            })
-            .catch(err => {
-                loadingBox.classList.add('hidden');
-                select.disabled = false;
-                select.innerHTML = '<option value="">Gagal memuat kandidat pertukaran.</option>';
-            });
-
-        document.getElementById('modalTukarPengawas').classList.remove('hidden');
-    }
-
-    function onSelectSwapTarget(select) {
-        if (!select.value) {
-            document.getElementById('swap_target_assignment_id').value = '';
-            document.getElementById('swap_target_slot').value = '';
-            return;
-        }
-
-        const parts = select.value.split('|');
-        document.getElementById('swap_target_assignment_id').value = parts[0];
-        document.getElementById('swap_target_slot').value = parts[1];
-    }
-
-    // Modal Cetak
-    function openModalCetakDaftarHadir() {
-        document.getElementById('modalCetakDaftarHadir').classList.remove('hidden');
-    }
-
-    function closeModalCetakDaftarHadir() {
-        document.getElementById('modalCetakDaftarHadir').classList.add('hidden');
-    }
-</script>
-@endpush
-@endif
+{{-- SCRIPTS LOGIKA INTERAKTIF --}}
+@include('ujian.pengawas.partials._scripts')
 @endsection

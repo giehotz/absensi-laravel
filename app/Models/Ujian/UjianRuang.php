@@ -66,4 +66,49 @@ class UjianRuang extends Model
     {
         return $query->where('tipe_ruang', 'manual');
     }
+
+    /**
+     * Mengambil angka tingkat kelas ruang (1..6) dari relasi schoolClass, nama_ruang, atau kode_ruang.
+     */
+    public function getLevel(): ?string
+    {
+        $sources = [
+            $this->schoolClass?->name,
+            $this->nama_ruang,
+            $this->kode_ruang,
+        ];
+
+        foreach ($sources as $text) {
+            if ($text && preg_match('/\d+/', $text, $matches)) {
+                $num = (int) $matches[0];
+                if ($num >= 1 && $num <= 6) {
+                    return (string) $num;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Memeriksa apakah ruang ini merupakan target yang valid untuk jadwal ujian tertentu.
+     */
+    public function matchesJadwal(UjianJadwal $jadwal): bool
+    {
+        // Jika jadwal ditujukan untuk 1 kelas spesifik
+        if ($jadwal->school_class_id && $this->school_class_id) {
+            return (int) $this->school_class_id === (int) $jadwal->school_class_id;
+        }
+
+        $targetLevels = $jadwal->getTargetLevels();
+        $ruangLevel = $this->getLevel();
+
+        // Jika ruang terikat ke tingkat kelas tertentu (mis. Kelas 1 A -> '1')
+        if ($ruangLevel !== null) {
+            return in_array($ruangLevel, $targetLevels, true);
+        }
+
+        // Untuk ruang tipe 'manual' tanpa angka tingkat, hanya cocok jika jadwal untuk Semua Tingkat
+        return count($targetLevels) >= 6;
+    }
 }
