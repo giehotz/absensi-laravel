@@ -43,6 +43,8 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/import-pdf', [JadwalUjianController::class, 'importPdf'])->name('import-pdf');
             Route::put('/{jadwal}', [JadwalUjianController::class, 'update'])->name('update');
             Route::post('/copy', [JadwalUjianController::class, 'copySchedule'])->name('copy');
+            Route::post('/sync-levels/preview', [JadwalUjianController::class, 'previewCopyLevels'])->name('sync-levels.preview');
+            Route::post('/sync-levels', [JadwalUjianController::class, 'copyLevels'])->name('sync-levels');
             Route::delete('/{jadwal}', [JadwalUjianController::class, 'destroy'])->name('destroy');
             Route::get('/cetak', [JadwalUjianController::class, 'print'])->name('print');
         });
@@ -79,6 +81,7 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::get('/swap-candidates', [JadwalPengawasController::class, 'getSwapCandidates'])->name('swap.candidates');
             Route::post('/swap', [JadwalPengawasController::class, 'executeSwap'])->name('swap.execute');
             Route::get('/cetak-daftar-hadir', [JadwalPengawasController::class, 'printDaftarHadir'])->name('print-daftar-hadir');
+            Route::get('/cetak-matriks', [JadwalPengawasController::class, 'printMatriks'])->name('print-matriks');
             Route::get('/cetak-tugas-guru', [JadwalPengawasController::class, 'printJadwalGuru'])->name('print-jadwal-guru');
         });
 

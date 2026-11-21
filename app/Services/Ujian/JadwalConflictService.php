@@ -50,10 +50,18 @@ class JadwalConflictService
         $targetLevels = $probe->getTargetLevels();
 
         foreach ($candidates as $existing) {
-            if ($schoolClassId && $existing->school_class_id && (int) $schoolClassId === (int) $existing->school_class_id) {
-                return $existing;
+            // Jika kedua jadwal memiliki rombel spesifik
+            if ($schoolClassId && $existing->school_class_id) {
+                if ((int) $schoolClassId === (int) $existing->school_class_id) {
+                    return $existing;
+                }
+
+                // Rombel berbeda (misal 1A vs 1B) berada di ruang terpisah sehingga tidak bentrok
+                continue;
             }
 
+            // Jika salah satu atau keduanya jadwal tingkat umum (tanpa rombel spesifik),
+            // cek apakah ada irisan tingkat sasaran.
             if (! empty(array_intersect($targetLevels, $existing->getTargetLevels()))) {
                 return $existing;
             }

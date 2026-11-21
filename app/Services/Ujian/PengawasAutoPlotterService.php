@@ -27,11 +27,12 @@ class PengawasAutoPlotterService
     public function autoPlotSupervisors(
         UjianPeriode $periode,
         bool $twoSupervisorsPerRoom = false,
-        bool $resetExisting = true
+        bool $resetExisting = true,
+        ?array $targetLevels = null
     ): int {
-        return DB::transaction(function () use ($periode, $twoSupervisorsPerRoom, $resetExisting) {
-            // 1. Ambil panitia aktif & pemetaan tingkat kelas untuk periode ini
-            $panitiaIds = UjianPanitia::where('ujian_periode_id', $periode->id)
+        return DB::transaction(function () use ($periode, $twoSupervisorsPerRoom, $resetExisting, $targetLevels) {
+            // 1. Ambil SEMUA panitia aktif periode ini (seluruh panitia dikecualikan dari auto-plotter)
+            $excludedPanitiaIds = UjianPanitia::where('ujian_periode_id', $periode->id)
                 ->where('is_active', true)
                 ->pluck('teacher_id')
                 ->all();
@@ -40,20 +41,36 @@ class PengawasAutoPlotterService
                 ->get()
                 ->keyBy('teacher_id');
 
-            // 2. Ambil guru aktif yang bukan panitia dan sudah dipetakan
+            $hasAnyMapping = $mappings->isNotEmpty();
+
+            // 2. Ambil guru aktif yang bukan panitia (jika pemetaan ada, wajib memenuhi pemetaan)
             $teachers = Teacher::with('user')
                 ->whereHas('user', fn ($q) => $q->where('is_active', true))
-                ->whereNotIn('id', $panitiaIds)
+                ->whereNotIn('id', $excludedPanitiaIds)
                 ->get()
-                ->filter(fn ($t) => $mappings->has($t->id) && ! empty($mappings[$t->id]->assigned_levels))
+                ->filter(function ($t) use ($mappings, $hasAnyMapping) {
+                    if (! $hasAnyMapping) {
+                        return true;
+                    }
+
+                    return $mappings->has($t->id) && ! empty($mappings[$t->id]->assigned_levels);
+                })
                 ->values();
 
-            $jadwals = UjianJadwal::with('schoolClass')
+            $allJadwals = UjianJadwal::with('schoolClass')
                 ->where('ujian_periode_id', $periode->id)
                 ->orderBy('tanggal_ujian')
                 ->orderBy('jam_mulai')
                 ->orderBy('id')
                 ->get();
+
+            $jadwals = $allJadwals;
+            if (! empty($targetLevels)) {
+                $targetLevelsStr = array_map('strval', $targetLevels);
+                $jadwals = $allJadwals->filter(function ($j) use ($targetLevelsStr) {
+                    return ! empty(array_intersect($j->getTargetLevels(), $targetLevelsStr));
+                })->values();
+            }
 
             $ruangs = UjianRuang::with('schoolClass')
                 ->orderBy('kode_ruang')
@@ -64,6 +81,7 @@ class PengawasAutoPlotterService
             }
 
             if ($resetExisting) {
+                // HANYA hapus penugasan pada jadwal kelompok tingkat sasaran!
                 UjianJadwalPengawas::whereIn('ujian_jadwal_id', $jadwals->pluck('id'))->delete();
             }
 
@@ -76,7 +94,8 @@ class PengawasAutoPlotterService
             $roomBusySlots = [];    // [ruangId => [['date', 'start', 'end', 'jadwal_id'], ...]]
 
             foreach ($teachers as $t) {
-                $levels = array_values(array_unique(array_map('strval', $mappings[$t->id]->assigned_levels)));
+                $rawLevels = $mappings->has($t->id) ? $mappings[$t->id]->assigned_levels : ['1', '2', '3', '4', '5', '6'];
+                $levels = array_values(array_unique(array_map('strval', $rawLevels)));
                 $teacherLevels[$t->id] = $levels;
                 $teacherWorkload[$t->id] = 0;
                 $teacherDailyCount[$t->id] = [];
@@ -84,7 +103,35 @@ class PengawasAutoPlotterService
                 $teacherBusySlots[$t->id] = [];
             }
 
-            // Jika tidak reset, muat penugasan yang sudah ada agar tetap dihormati & tidak bentrok
+            // Selalu muat penugasan yang masih ada di luar kumpulan jadwal sasaran
+            // (misal: guru multi-tugas sudah di-plot di kelompok 1-2, slot sibuknya dihormati saat mem-plot kelompok 3-6)
+            $outsideAssignments = UjianJadwalPengawas::with('jadwal')
+                ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $periode->id)->whereNotIn('id', $jadwals->pluck('id')))
+                ->get();
+
+            foreach ($outsideAssignments as $asg) {
+                if (! $asg->jadwal) {
+                    continue;
+                }
+                $date = $asg->jadwal->tanggal_ujian->format('Y-m-d');
+                $start = $this->conflictService->normalizeTime($asg->jadwal->jam_mulai);
+                $end = $this->conflictService->normalizeTime($asg->jadwal->jam_selesai);
+
+                $roomBusySlots[$asg->ujian_ruang_id][] = [
+                    'date' => $date, 'start' => $start, 'end' => $end, 'jadwal_id' => $asg->ujian_jadwal_id,
+                ];
+
+                foreach ([$asg->pengawas_1_id, $asg->pengawas_2_id] as $tid) {
+                    if ($tid && isset($teacherWorkload[$tid])) {
+                        $this->registerTeacherDuty(
+                            $tid, $asg->ujian_ruang_id, $date, $start, $end,
+                            $teacherWorkload, $teacherDailyCount, $teacherRoomCount, $teacherBusySlots
+                        );
+                    }
+                }
+            }
+
+            // Jika tidak reset, muat juga penugasan yang sudah ada di dalam kelompok sasaran
             if (! $resetExisting) {
                 $existingAssignments = UjianJadwalPengawas::with('jadwal')
                     ->whereIn('ujian_jadwal_id', $jadwals->pluck('id'))

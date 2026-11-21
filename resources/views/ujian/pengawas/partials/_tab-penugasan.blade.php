@@ -143,9 +143,17 @@
                                 </td>
                                 <td class="px-3 py-3 border-r border-slate-200">
                                     @if($pw->pengawas1)
+                                        @php $p1Code = $pengawasCodeMap[$pw->pengawas_1_id] ?? null; @endphp
                                         <div class="flex items-start justify-between gap-2">
                                             <div class="min-w-0">
-                                                <div class="truncate font-bold text-slate-900">{{ $pw->pengawas1?->user?->name }}</div>
+                                                <div class="flex items-center gap-1.5">
+                                                    @if($p1Code)
+                                                        <span class="px-1.5 py-0.2 rounded border border-black bg-[#FFD43B] font-black text-[10px] text-black shadow-[1px_1px_0px_#000]">
+                                                            KODE {{ $p1Code }}
+                                                        </span>
+                                                    @endif
+                                                    <span class="truncate font-bold text-slate-900">{{ $pw->pengawas1?->user?->name }}</span>
+                                                </div>
                                                 <div class="font-mono text-[10px] text-slate-600">NIP {{ $pw->pengawas1?->nip ?: '-' }}</div>
                                             </div>
                                             @if($pw->pengawas_1_id)

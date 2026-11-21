@@ -151,7 +151,7 @@
             <x-kop-surat :useBase64="true" />
 
             <div class="judul-dokumen">
-                <h3>DAFTAR HADIR PENGAWAS RUANG UJIAN</h3>
+                <h3>DAFTAR HADIR PENGAWAS RUANG UJIAN {{ ($kelompok ?? 'all') === '1-2' ? '(KELOMPOK KELAS 1–2)' : (($kelompok ?? 'all') === '3-6' ? '(KELOMPOK KELAS 3–6)' : '') }}</h3>
                 <div class="periode-info">
                     {{ strtoupper($activePeriode->nama_periode ?? 'UJIAN MADRASAH') }}
                 </div>
@@ -255,7 +255,7 @@
         <div class="page-sheet">
             <x-kop-surat :useBase64="true" />
             <div class="judul-dokumen">
-                <h3>DAFTAR HADIR PENGAWAS RUANG UJIAN</h3>
+                <h3>DAFTAR HADIR PENGAWAS RUANG UJIAN {{ ($kelompok ?? 'all') === '1-2' ? '(KELOMPOK KELAS 1–2)' : (($kelompok ?? 'all') === '3-6' ? '(KELOMPOK KELAS 3–6)' : '') }}</h3>
             </div>
             <p class="text-center" style="padding: 40px; font-style: italic;">
                 Tidak ada data jadwal pengawas ruang ujian untuk kriteria yang dipilih.

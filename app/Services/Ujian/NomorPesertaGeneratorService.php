@@ -34,18 +34,18 @@ class NomorPesertaGeneratorService
             $namaSiswa = $student->user?->name ?? 'Siswa';
             $namaKelas = $student->schoolClass?->name ?? 'Tanpa Rombel';
 
-            // Generate nomor peserta default jika belum ada (Pola: 26-27.1-1.001)
-            $tahunPrefix = $this->extractTahunPrefix($periode->tahun_pelajaran);
-            $semester = $this->extractSemesterDigit($periode->semester);
-            $level = $student->schoolClass?->level ?? '1';
-            $defaultNomor = sprintf('%s.%s-%s.%03d', $tahunPrefix, $semester, $level, ($student->id % 999) ?: 1);
-
             $peserta = UjianPeserta::firstOrNew([
                 'ujian_periode_id' => $periode->id,
                 'student_id' => $student->id,
             ]);
 
             $isNew = ! $peserta->exists;
+
+            // Hapus nomor dummy (seperti format TMP-) jika ada
+            $existingNomor = $peserta->nomor_peserta;
+            if ($existingNomor && str_starts_with(strtoupper($existingNomor), 'TMP-')) {
+                $existingNomor = null;
+            }
 
             $peserta->fill([
                 'school_class_id' => $student->school_class_id,
@@ -58,18 +58,17 @@ class NomorPesertaGeneratorService
                 'tanggal_lahir' => $student->birth_date,
                 'foto_peserta_path' => $student->photo,
                 'is_eligible' => true,
+                'nomor_peserta' => $existingNomor,
             ]);
 
-            if ($isNew || empty($peserta->nomor_peserta)) {
-                $peserta->nomor_peserta = $defaultNomor;
-            }
-
             // Hubungkan otomatis jika sudah ada ruang kelas yang sesuai
-            $matchingRuang = UjianRuang::where('school_class_id', $student->school_class_id)
-                ->where('tipe_ruang', 'kelas')
-                ->first();
-            if ($matchingRuang) {
-                $peserta->ujian_ruang_id = $matchingRuang->id;
+            if (! $peserta->ujian_ruang_id) {
+                $matchingRuang = UjianRuang::where('school_class_id', $student->school_class_id)
+                    ->where('tipe_ruang', 'kelas')
+                    ->first();
+                if ($matchingRuang) {
+                    $peserta->ujian_ruang_id = $matchingRuang->id;
+                }
             }
 
             $peserta->save();
@@ -181,6 +180,7 @@ class NomorPesertaGeneratorService
         $digitUrut = max(2, min(5, (int) ($options['digit_urut'] ?? 3)));
         $formatUrut = '%0'.$digitUrut.'d';
 
+        $resetExisting = (bool) ($options['reset_existing'] ?? true);
         $classesQuery = SchoolClass::query();
         if ($schoolClassId) {
             $classesQuery->where('id', $schoolClassId);
@@ -200,21 +200,59 @@ class NomorPesertaGeneratorService
                 default => $gradeLevel, // 'tingkat' -> 1, 2, 3...
             };
 
-            // Urutkan siswa berdasarkan nama peserta (abjad A-Z) sesuai standar urut absen
             $pesertas = UjianPeserta::where('ujian_periode_id', $periode->id)
                 ->where('school_class_id', $class->id)
-                ->orderBy('nama_peserta', 'asc')
                 ->get();
 
-            foreach ($pesertas as $idx => $peserta) {
-                $urut = $idx + 1;
-                $nomor = sprintf('%s%s%s%s%s%s'.$formatUrut, $tahunPrefix, $sep1, $semester, $sep2, $classPart, $sep3, $urut);
+            if ($resetExisting) {
+                // Mode Reset: Generate ulang seluruh siswa di kelas dari nomor 1 (urut nama A-Z)
+                $pesertasSorted = $pesertas->sortBy('nama_peserta')->values();
+                foreach ($pesertasSorted as $idx => $peserta) {
+                    $urut = $idx + 1;
+                    $nomor = sprintf('%s%s%s%s%s%s'.$formatUrut, $tahunPrefix, $sep1, $semester, $sep2, $classPart, $sep3, $urut);
 
-                $peserta->nomor_peserta = $nomor;
-                $peserta->nomor_kursi = $urut;
-                $peserta->save();
+                    $peserta->nomor_peserta = $nomor;
+                    $peserta->nomor_kursi = $urut;
+                    $peserta->save();
 
-                $counter++;
+                    $counter++;
+                }
+            } else {
+                // Mode Append-Only (Default): Teruskan nomor urut dan kursi siswa lama tanpa mengubah data lama
+                $isPlaceholder = fn ($nomor) => empty($nomor)
+                    || str_starts_with(strtoupper($nomor), 'OLD-')
+                    || str_starts_with(strtoupper($nomor), 'TMP-');
+
+                $existingWithNomor = $pesertas->filter(fn ($p) => ! $isPlaceholder($p->nomor_peserta));
+                $unassignedPesertas = $pesertas->filter(fn ($p) => $isPlaceholder($p->nomor_peserta))->sortBy('nama_peserta')->values();
+
+                if ($unassignedPesertas->isEmpty()) {
+                    continue;
+                }
+
+                $maxUrut = 0;
+                foreach ($existingWithNomor as $p) {
+                    if (preg_match('/(\d+)$/', $p->nomor_peserta, $m)) {
+                        $maxUrut = max($maxUrut, (int) $m[1]);
+                    }
+                }
+                if ($maxUrut === 0) {
+                    $maxUrut = $existingWithNomor->count();
+                }
+
+                $maxKursi = (int) ($pesertas->whereNotNull('nomor_kursi')->max('nomor_kursi') ?? 0);
+
+                foreach ($unassignedPesertas as $peserta) {
+                    $maxUrut++;
+                    $maxKursi++;
+                    $nomor = sprintf('%s%s%s%s%s%s'.$formatUrut, $tahunPrefix, $sep1, $semester, $sep2, $classPart, $sep3, $maxUrut);
+
+                    $peserta->nomor_peserta = $nomor;
+                    $peserta->nomor_kursi = $maxKursi;
+                    $peserta->save();
+
+                    $counter++;
+                }
             }
         }
 
@@ -238,18 +276,22 @@ class NomorPesertaGeneratorService
         foreach ($ruangKelas as $ruang) {
             $pesertas = UjianPeserta::where('ujian_periode_id', $periode->id)
                 ->where('school_class_id', $ruang->school_class_id)
-                ->orderBy('nama_peserta')
                 ->get();
 
-            $kursi = 1;
-            foreach ($pesertas as $peserta) {
+            $maxKursi = (int) ($pesertas->whereNotNull('nomor_kursi')->max('nomor_kursi') ?? 0);
+            $unassigned = $pesertas->whereNull('nomor_kursi')->sortBy('nama_peserta')->values();
+
+            foreach ($unassigned as $peserta) {
+                $maxKursi++;
                 $peserta->ujian_ruang_id = $ruang->id;
-                $peserta->nomor_kursi = $kursi;
+                $peserta->nomor_kursi = $maxKursi;
                 $peserta->save();
 
-                $processedPesertaIds[] = $peserta->id;
-                $kursi++;
                 $allocatedCount++;
+            }
+
+            foreach ($pesertas as $p) {
+                $processedPesertaIds[] = $p->id;
             }
         }
 

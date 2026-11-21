@@ -18,6 +18,7 @@ class UjianPanitia extends Model
         'ujian_periode_id',
         'teacher_id',
         'jabatan',
+        'ikut_mengawas',
         'sk_nomor',
         'keterangan',
         'is_active',
@@ -26,6 +27,7 @@ class UjianPanitia extends Model
     protected function casts(): array
     {
         return [
+            'ikut_mengawas' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

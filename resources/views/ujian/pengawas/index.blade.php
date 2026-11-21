@@ -69,6 +69,16 @@
                         </svg>
                         <span>Daftar Hadir</span>
                     </button>
+                    <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => '3-6', 'show_mapel' => 1]) }}" target="_blank"
+                       title="Cetak Jadwal Pengawas + Mapel + Kode 1..N (Sheet 3: Kelas 3–6)"
+                       class="inline-flex items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#FFD43B] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-yellow-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                        <span>📊 Sheet 3 (3–6)</span>
+                    </a>
+                    <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => '1-2', 'show_mapel' => 0]) }}" target="_blank"
+                       title="Cetak Jadwal Pengawas Kode 1..N tanpa Mapel (Sheet 4: Kelas 1–2)"
+                       class="inline-flex items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#74C0FC] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-blue-300 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                        <span>📋 Sheet 4 (1–2)</span>
+                    </a>
                     <a href="{{ route('ujian.pengawas.print-jadwal-guru', ['periode_id' => $activePeriode->id]) }}" target="_blank"
                        class="inline-flex items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-white px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-yellow-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -121,6 +131,30 @@
             <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black text-slate-900 hover:text-black">✕</button>
         </div>
     @endif
+
+    {{-- Filter Kelompok Ujian (1-2 vs 3-6) --}}
+    <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border-2 border-slate-900 rounded-xl shadow-[3px_3px_0px_0px_#0f172a]">
+        <div class="flex items-center gap-2">
+            <span class="text-xs font-black uppercase text-slate-700">Pilih Kelompok Ujian:</span>
+            <div class="inline-flex rounded-lg border-2 border-slate-900 p-0.5 bg-slate-100">
+                <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => '3-6'])) }}"
+                   class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === '3-6' ? 'bg-[#FFD43B] text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
+                    🌟 Kelompok Kelas 3–6 (Utama)
+                </a>
+                <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => '1-2'])) }}"
+                   class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === '1-2' ? 'bg-[#74C0FC] text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
+                    👶 Kelompok Kelas 1–2 (Bawah)
+                </a>
+                <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => 'all'])) }}"
+                   class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === 'all' ? 'bg-slate-900 text-white shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
+                    Semua Kelompok
+                </a>
+            </div>
+        </div>
+        <div class="text-[11px] font-bold text-slate-600">
+            Terfilter: <strong class="text-slate-900">{{ $pengawasList->count() }}</strong> penugasan pengawas
+        </div>
+    </div>
 
     {{-- Navigasi Tab Neo-Brutalism --}}
     <div class="flex flex-wrap items-center gap-2">

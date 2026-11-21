@@ -155,6 +155,10 @@
            class="btn-toolbar {{ ($format ?? 'standar') === 'standar' ? 'active' : '' }}">
             📄 Daftar Standar (Portrait)
         </a>
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'matriks_rombel', 'kelompok' => '1-2']) }}" 
+           class="btn-toolbar {{ ($format ?? 'standar') === 'matriks_rombel' ? 'active' : '' }}">
+            📑 Sheet 1: Matriks Mapel Rombel 1–2
+        </a>
         <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap']) }}" 
            class="btn-toolbar {{ ($format ?? 'standar') === 'rekap' ? 'active' : '' }}">
             📊 Rekap Matriks 1 Lembar (Landscape)
@@ -164,9 +168,9 @@
         </button>
     </div>
 
-    @if(($format ?? 'standar') === 'rekap')
+    @if(in_array(($format ?? 'standar'), ['rekap', 'matriks_rombel'], true))
         {{-- ============================================================== --}}
-        {{-- FORMAT B: REKAP MATRIKS 1 LEMBAR LANDSCAPE (SEPERTI JADWAL.PDF) --}}
+        {{-- FORMAT B & SHEET 1: REKAP MATRIKS DINAMIS LANDSCAPE            --}}
         {{-- ============================================================== --}}
         <div class="rekap-sheet">
             {{-- Kop Surat Resmi Lembaga Compact --}}
@@ -175,7 +179,7 @@
             </div>
 
             <div class="judul-dokumen">
-                <h4>JADWAL PENGAWAS RUANG & MATA PELAJARAN UJIAN</h4>
+                <h4>{!! ($format ?? 'standar') === 'matriks_rombel' ? 'JADWAL MATA PELAJARAN UJIAN PER ROMBEL' : 'JADWAL PENGAWAS RUANG & MATA PELAJARAN UJIAN' !!}</h4>
                 <div style="font-size: 8pt; font-weight: bold; margin-top: 1px;">
                     {{ strtoupper($activePeriode->nama_periode ?? 'ASESMEN SUMATIF') }} - TAHUN PELAJARAN {{ $activePeriode->tahun_pelajaran ?? '-' }}
                 </div>
@@ -190,33 +194,28 @@
                                 <th rowspan="2" style="width: 18px;">NO</th>
                                 <th rowspan="2" style="width: 68px;">HARI / TANGGAL</th>
                                 <th rowspan="2" style="width: 20px;">JAM</th>
-                                <th rowspan="2" style="width: 82px;">MAPEL KELAS 1-2</th>
-                                <th rowspan="2" style="width: 88px;">MAPEL KELAS 3-6</th>
-                                <th rowspan="2" style="width: 58px;">PUKUL</th>
-                                <th colspan="3">KELAS 1</th>
-                                <th colspan="3">KELAS 2</th>
-                                <th colspan="2">KELAS 3</th>
-                                <th colspan="3">KELAS 4</th>
-                                <th colspan="3">KELAS 5</th>
-                                <th colspan="2">KELAS 6</th>
+                                @if(($format ?? 'standar') === 'matriks_rombel')
+                                    <th rowspan="2" style="width: 60px;">PUKUL</th>
+                                @else
+                                    <th rowspan="2" style="width: 82px;">MAPEL KELAS 1-2</th>
+                                    <th rowspan="2" style="width: 88px;">MAPEL KELAS 3-6</th>
+                                    <th rowspan="2" style="width: 58px;">PUKUL</th>
+                                @endif
+                                @php
+                                    $groupedRoomsByLevel = [];
+                                    foreach($roomCodes ?? [] as $rc) {
+                                        $lvl = substr($rc, 0, 1);
+                                        $groupedRoomsByLevel[$lvl][] = $rc;
+                                    }
+                                @endphp
+                                @foreach($groupedRoomsByLevel as $lvl => $rcs)
+                                    <th colspan="{{ count($rcs) }}">KELAS {{ $lvl }}</th>
+                                @endforeach
                             </tr>
                             <tr>
-                                <th style="width: 15px;">A</th>
-                                <th style="width: 15px;">B</th>
-                                <th style="width: 15px;">C</th>
-                                <th style="width: 15px;">A</th>
-                                <th style="width: 15px;">B</th>
-                                <th style="width: 15px;">C</th>
-                                <th style="width: 15px;">A</th>
-                                <th style="width: 15px;">B</th>
-                                <th style="width: 15px;">A</th>
-                                <th style="width: 15px;">B</th>
-                                <th style="width: 15px;">C</th>
-                                <th style="width: 15px;">A</th>
-                                <th style="width: 15px;">B</th>
-                                <th style="width: 15px;">C</th>
-                                <th style="width: 15px;">A</th>
-                                <th style="width: 15px;">B</th>
+                                @foreach($roomCodes ?? [] as $rc)
+                                    <th style="min-width: 16px;">{{ substr($rc, 1) ?: $rc }}</th>
+                                @endforeach
                             </tr>
                         </thead>
                         <tbody>
@@ -230,17 +229,21 @@
                                         @endif
                                     </td>
                                     <td class="text-center font-bold">{{ $r['sesi_ke'] }}</td>
-                                    <td>{{ $r['mapel_12'] ?: '—' }}</td>
-                                    <td class="font-bold">{{ $r['mapel_36'] ?: '—' }}</td>
-                                    <td class="text-center font-mono" style="font-size: 6.8pt; white-space: nowrap;">{{ $r['pukul'] }}</td>
+                                    @if(($format ?? 'standar') === 'matriks_rombel')
+                                        <td class="text-center font-mono" style="font-size: 6.8pt; white-space: nowrap;">{{ $r['pukul'] }}</td>
+                                    @else
+                                        <td>{{ $r['mapel_12'] ?: '—' }}</td>
+                                        <td class="font-bold">{{ $r['mapel_36'] ?: '—' }}</td>
+                                        <td class="text-center font-mono" style="font-size: 6.8pt; white-space: nowrap;">{{ $r['pukul'] }}</td>
+                                    @endif
 
-                                    {{-- 16 Ruangan --}}
-                                    @foreach(['1A', '1B', '1C', '2A', '2B', '2C', '3A', '3B', '4A', '4B', '4C', '5A', '5B', '5C', '6A', '6B'] as $code)
+                                    {{-- Kolom Ruangan Dinamis (Otomatis mencakup 3C dan 6C) --}}
+                                    @foreach($roomCodes ?? [] as $code)
                                         @php $val = $r['rooms'][$code] ?? null; @endphp
                                         @if($val === null)
                                             <td class="bg-shaded"></td>
                                         @else
-                                            <td class="text-center font-bold {{ $val === '-' ? 'text-slate-400' : '' }}" style="font-size: 7.2pt;">
+                                            <td class="text-center font-bold {{ $val === '-' ? 'text-slate-400' : '' }}" style="font-size: {{ ($format ?? 'standar') === 'matriks_rombel' ? '7.5pt' : '7.2pt' }};">
                                                 {{ $val }}
                                             </td>
                                         @endif
@@ -248,7 +251,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="22" class="text-center" style="padding: 10px;">Belum ada jadwal pelaksanaan ujian pada periode ini.</td>
+                                    <td colspan="25" class="text-center" style="padding: 10px;">Belum ada jadwal pelaksanaan ujian pada periode ini.</td>
                                 </tr>
                             @endforelse
                         </tbody>

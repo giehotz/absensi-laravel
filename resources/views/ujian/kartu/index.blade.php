@@ -420,6 +420,27 @@
                 </div>
             </div>
 
+            {{-- 5. Mode Penomoran (Append-only vs Reset) --}}
+            <div class="p-2.5 bg-slate-50 border-2 border-black rounded-lg space-y-1.5">
+                <label class="block text-slate-800 font-black">Mode Penomoran</label>
+                <div class="space-y-1.5">
+                    <label class="flex items-start gap-2 cursor-pointer font-bold text-slate-900">
+                        <input type="radio" name="reset_existing" value="0" checked class="mt-0.5 text-black focus:ring-0">
+                        <span>
+                            <span class="block">Teruskan nomor & kursi yang ada (Append-Only)</span>
+                            <span class="block text-[10px] text-slate-500 font-normal">Siswa yang sudah punya nomor/kursi tidak diubah. Siswa baru meneruskan nomor urut terakhir (Rekomendasi).</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start gap-2 cursor-pointer font-bold text-rose-700">
+                        <input type="radio" name="reset_existing" value="1" class="mt-0.5 text-rose-600 focus:ring-0">
+                        <span>
+                            <span class="block">Reset ulang seluruh nomor & kursi</span>
+                            <span class="block text-[10px] text-rose-500 font-normal">Semua siswa diurutkan ulang dari 1 berdasarkan abjad nama A-Z.</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
             {{-- 5. Box Live Preview --}}
             <div class="p-3 bg-amber-50 border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_#000] flex items-center justify-between gap-3">
                 <div>

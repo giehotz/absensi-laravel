@@ -37,25 +37,41 @@ class JadwalPengawasController extends Controller
         $periodes = UjianPeriode::orderByDesc('id')->get();
         $selectedPeriodeId = $request->query('periode_id', $periodes->firstWhere('is_active', true)?->id ?? $periodes->first()?->id);
         $activePeriode = $periodes->firstWhere('id', $selectedPeriodeId);
+        $kelompok = $request->query('kelompok', 'all');
+
+        $targetLevels = match ($kelompok) {
+            '1-2' => ['1', '2'],
+            '3-6' => ['3', '4', '5', '6'],
+            default => null,
+        };
 
         $jadwals = collect();
         $ruangs = UjianRuang::orderBy('kode_ruang')->get();
         $pengawasList = collect();
         $mappings = collect();
         $panitiaTeacherIds = [];
+        $panitiaAllowSuperviseTeacherIds = [];
         $panitiaRoles = [];
         $swapHistories = collect();
 
         if ($activePeriode) {
-            $jadwals = UjianJadwal::with(['subject', 'schoolClass'])
+            $allJadwals = UjianJadwal::with(['subject', 'schoolClass'])
                 ->where('ujian_periode_id', $activePeriode->id)
                 ->orderBy('tanggal_ujian')
                 ->orderBy('jam_mulai')
                 ->get();
 
-            $pengawasList = UjianJadwalPengawas::with(['jadwal.subject', 'jadwal.schoolClass', 'ruang.schoolClass', 'pengawas1.user', 'pengawas2.user'])
+            $jadwals = $targetLevels !== null
+                ? $allJadwals->filter(fn ($j) => ! empty(array_intersect($j->getTargetLevels(), $targetLevels)))->values()
+                : $allJadwals;
+
+            $allPengawas = UjianJadwalPengawas::with(['jadwal.subject', 'jadwal.schoolClass', 'ruang.schoolClass', 'pengawas1.user', 'pengawas2.user'])
                 ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
                 ->get();
+
+            $pengawasList = $targetLevels !== null
+                ? $allPengawas->filter(fn ($p) => $p->jadwal && ! empty(array_intersect($p->jadwal->getTargetLevels(), $targetLevels)))->values()
+                : $allPengawas;
 
             $mappings = UjianPengawasMapping::where('ujian_periode_id', $activePeriode->id)
                 ->get()
@@ -66,6 +82,7 @@ class JadwalPengawasController extends Controller
                 ->get();
 
             $panitiaTeacherIds = $panitiaList->pluck('teacher_id')->toArray();
+            $panitiaAllowSuperviseTeacherIds = $panitiaList->where('ikut_mengawas', true)->pluck('teacher_id')->toArray();
             $panitiaRoles = $panitiaList->pluck('jabatan_label', 'teacher_id')->toArray();
 
             $swapHistories = UjianPengawasSwapHistory::with([
@@ -80,6 +97,18 @@ class JadwalPengawasController extends Controller
                 ->where('ujian_periode_id', $activePeriode->id)
                 ->latest('id')
                 ->get();
+        }
+
+        // Generate nomor kode pengawas 1..N spesifik per kelompok
+        $assignedTeachers = $pengawasList->pluck('pengawas1')
+            ->filter()
+            ->unique('id')
+            ->sortBy(fn ($t) => $t->user?->name ?? '')
+            ->values();
+
+        $pengawasCodeMap = [];
+        foreach ($assignedTeachers as $idx => $t) {
+            $pengawasCodeMap[$t->id] = $idx + 1;
         }
 
         $examDates = $jadwals->pluck('tanggal_ujian')
@@ -121,12 +150,15 @@ class JadwalPengawasController extends Controller
             'examDates',
             'mappings',
             'panitiaTeacherIds',
+            'panitiaAllowSuperviseTeacherIds',
             'panitiaRoles',
             'swapHistories',
             'totalTeachersCount',
             'panitiaCount',
             'mappedCount',
-            'unmappedCount'
+            'unmappedCount',
+            'kelompok',
+            'pengawasCodeMap'
         ));
     }
 
@@ -207,31 +239,65 @@ class JadwalPengawasController extends Controller
             'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
             'two_supervisors' => ['nullable', 'boolean'],
             'reset_existing' => ['nullable', 'boolean'],
+            'kelompok' => ['nullable', 'string', 'in:all,1-2,3-6'],
         ]);
+
+        $kelompok = $validated['kelompok'] ?? 'all';
+        $targetLevels = match ($kelompok) {
+            '1-2' => [1, 2],
+            '3-6' => [3, 4, 5, 6],
+            default => null,
+        };
 
         $periode = UjianPeriode::findOrFail($validated['ujian_periode_id']);
         $count = $this->autoPlotterService->autoPlotSupervisors(
             $periode,
             $request->boolean('two_supervisors'),
-            $request->boolean('reset_existing', true)
+            $request->boolean('reset_existing', true),
+            $targetLevels
         );
 
-        return back()->with('success', "Auto-Plotter selesai: {$count} ruang/sesi ujian berhasil dialokasikan pengawas bebas bentrok.");
+        $kelompokLabel = match ($kelompok) {
+            '1-2' => 'Kelompok Kelas 1–2',
+            '3-6' => 'Kelompok Kelas 3–6',
+            default => 'Semua Kelompok',
+        };
+
+        return back()->with('success', "Auto-Plotter ({$kelompokLabel}) selesai: {$count} ruang/sesi ujian berhasil dialokasikan pengawas bebas bentrok.");
     }
 
     /**
-     * Mengosongkan / mereset seluruh penugasan pengawas pada periode aktif.
+     * Mengosongkan / mereset seluruh penugasan pengawas pada periode aktif (bisa difilter per kelompok).
      */
     public function reset(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+            'kelompok' => ['nullable', 'string', 'in:all,1-2,3-6'],
         ]);
 
-        $jadwalIds = UjianJadwal::where('ujian_periode_id', $validated['ujian_periode_id'])->pluck('id');
-        $deleted = UjianJadwalPengawas::whereIn('ujian_jadwal_id', $jadwalIds)->delete();
+        $kelompok = $validated['kelompok'] ?? 'all';
+        $targetLevels = match ($kelompok) {
+            '1-2' => ['1', '2'],
+            '3-6' => ['3', '4', '5', '6'],
+            default => null,
+        };
 
-        return back()->with('success', "Berhasil mereset data: {$deleted} slot penugasan pengawas ruang pada periode ini telah dikosongkan/dihapus.");
+        $jadwalsQuery = UjianJadwal::where('ujian_periode_id', $validated['ujian_periode_id']);
+        $jadwals = $jadwalsQuery->get();
+        if ($targetLevels !== null) {
+            $jadwals = $jadwals->filter(fn ($j) => ! empty(array_intersect($j->getTargetLevels(), $targetLevels)))->values();
+        }
+
+        $deleted = UjianJadwalPengawas::whereIn('ujian_jadwal_id', $jadwals->pluck('id'))->delete();
+
+        $kelompokLabel = match ($kelompok) {
+            '1-2' => 'Kelompok Kelas 1–2',
+            '3-6' => 'Kelompok Kelas 3–6',
+            default => 'Seluruh Data',
+        };
+
+        return back()->with('success', "Berhasil mereset data: {$deleted} slot penugasan pengawas ruang ({$kelompokLabel}) telah dikosongkan.");
     }
 
     /**
@@ -405,8 +471,15 @@ class JadwalPengawasController extends Controller
         $tanggal = $request->query('tanggal');
         $ruangId = $request->query('ruang_id');
         $jadwalId = $request->query('jadwal_id');
+        $kelompok = $request->query('kelompok', 'all');
         $tanggalCetakRaw = $request->query('tanggal_cetak');
         $tanggalCetak = $tanggalCetakRaw ? Carbon::parse($tanggalCetakRaw) : now();
+
+        $targetLevels = match ($kelompok) {
+            '1-2' => ['1', '2'],
+            '3-6' => ['3', '4', '5', '6'],
+            default => null,
+        };
 
         $query = UjianJadwalPengawas::with([
             'jadwal.periode.jenis',
@@ -441,6 +514,10 @@ class JadwalPengawasController extends Controller
             ->orderBy('ujian_jadwal.jam_mulai')
             ->orderBy('ujian_ruang.kode_ruang')
             ->get();
+
+        if ($targetLevels !== null) {
+            $pengawas = $pengawas->filter(fn ($p) => $p->jadwal && ! empty(array_intersect($p->jadwal->getTargetLevels(), $targetLevels)))->values();
+        }
 
         // Kelompokkan data penugasan per tanggal ujian untuk mendukung cetak per hari maupun multi-hari
         $groupedPengawas = $pengawas->groupBy(function ($item) {
@@ -488,7 +565,207 @@ class JadwalPengawasController extends Controller
             'namaKetua',
             'nipKetua',
             'setting',
-            'ttdSetting'
+            'ttdSetting',
+            'kelompok'
+        ));
+    }
+
+    /**
+     * Cetak Lembar Matriks Jadwal Pengawas (Sheet 3 & Sheet 4).
+     * Sheet 3: Kelompok 3–6, tampilkan mapel + kode pengawas 1..N + legenda.
+     * Sheet 4: Kelompok 1–2, tanpa mapel, hanya kode pengawas 1..N + legenda.
+     */
+    public function printMatriks(Request $request): View
+    {
+        $periodeId = $request->query('periode_id');
+        $kelompok = $request->query('kelompok', '3-6');
+        $showMapel = $request->boolean('show_mapel', $kelompok === '3-6');
+
+        $activePeriode = $periodeId ? UjianPeriode::find($periodeId) : UjianPeriode::firstWhere('is_active', true);
+        if (! $activePeriode) {
+            $activePeriode = UjianPeriode::first();
+        }
+
+        $targetLevels = match ($kelompok) {
+            '1-2' => ['1', '2'],
+            '3-6' => ['3', '4', '5', '6'],
+            default => null,
+        };
+
+        $jadwals = collect();
+        $ruangs = collect();
+        if ($activePeriode) {
+            $jadwalsQuery = UjianJadwal::with(['subject', 'schoolClass', 'pengawas.ruang', 'pengawas.pengawas1.user'])
+                ->where('ujian_periode_id', $activePeriode->id)
+                ->orderBy('tanggal_ujian')
+                ->orderBy('jam_mulai');
+
+            $allJadwals = $jadwalsQuery->get();
+            $jadwals = $targetLevels !== null
+                ? $allJadwals->filter(fn ($j) => ! empty(array_intersect($j->getTargetLevels(), $targetLevels)))->values()
+                : $allJadwals;
+
+            $ruangs = UjianRuang::with('schoolClass')
+                ->orderBy('kode_ruang')
+                ->get();
+        }
+
+        $roomCodes = $ruangs->map(function ($r) {
+            if ($r->schoolClass) {
+                return preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name));
+            }
+
+            return preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang));
+        })->unique()->filter()->values()->all();
+
+        if (empty($roomCodes)) {
+            $roomCodes = $kelompok === '1-2'
+                ? ['1A', '1B', '2A', '2B']
+                : ['3A', '3B', '3C', '4A', '4B', '5A', '5B', '6A', '6B', '6C'];
+        }
+
+        if ($kelompok === '1-2') {
+            $roomCodes = array_values(array_filter($roomCodes, fn ($rc) => str_starts_with($rc, '1') || str_starts_with($rc, '2')));
+        } elseif ($kelompok === '3-6') {
+            $roomCodes = array_values(array_filter($roomCodes, fn ($rc) => in_array(substr($rc, 0, 1), ['3', '4', '5', '6'], true)));
+        }
+
+        natsort($roomCodes);
+        $roomCodes = array_values($roomCodes);
+
+        $allAssignedPengawas = collect();
+        foreach ($jadwals as $j) {
+            foreach ($j->pengawas as $p) {
+                if ($p->pengawas1?->user) {
+                    $allAssignedPengawas->push($p->pengawas1);
+                }
+            }
+        }
+        $distinctTeachers = $allAssignedPengawas->unique('id')->sortBy(fn ($t) => $t->user?->name ?? '')->values();
+        $teacherCodeMap = [];
+        foreach ($distinctTeachers as $idx => $t) {
+            $teacherCodeMap[$t->id] = $idx + 1;
+        }
+
+        $grouped = $jadwals->groupBy(function ($j) {
+            $tgl = $j->tanggal_ujian instanceof Carbon ? $j->tanggal_ujian->format('Y-m-d') : (string) $j->tanggal_ujian;
+
+            return $tgl.'_'.substr($j->jam_mulai, 0, 5);
+        });
+
+        $rows = [];
+        $legendCounts = [];
+        $legendNames = [];
+        $noUrut = 1;
+        $prevDate = null;
+
+        foreach ($grouped as $key => $slotJadwals) {
+            $firstJadwal = $slotJadwals->first();
+            $tgl = $firstJadwal->tanggal_ujian instanceof Carbon ? $firstJadwal->tanggal_ujian : Carbon::parse($firstJadwal->tanggal_ujian);
+            $tglStr = $tgl->format('Y-m-d');
+            $isNewDate = ($tglStr !== $prevDate);
+            $prevDate = $tglStr;
+
+            $jamMulai = substr($firstJadwal->jam_mulai, 0, 5);
+            $jamSelesai = substr($firstJadwal->jam_selesai, 0, 5);
+            $sesiKe = $firstJadwal->sesi_ke ?? ($jamMulai === '07:30' ? 1 : 2);
+
+            $slotPengawas = collect();
+            foreach ($slotJadwals as $sj) {
+                foreach ($sj->pengawas as $pw) {
+                    $slotPengawas->push($pw);
+                }
+            }
+
+            $roomAssignments = [];
+            foreach ($roomCodes as $rCode) {
+                $level = substr($rCode, 0, 1);
+                $hasExam = $slotJadwals->contains(function ($j) use ($level) {
+                    return in_array($level, $j->getTargetLevels(), true);
+                });
+
+                if (! $hasExam) {
+                    $roomAssignments[$rCode] = null;
+
+                    continue;
+                }
+
+                $pw = $slotPengawas->first(function ($p) use ($rCode) {
+                    if (! $p->ruang) {
+                        return false;
+                    }
+                    $rName = strtolower(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->nama_ruang ?: '')));
+                    $rKode = strtolower(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->kode_ruang ?: '')));
+                    $target = strtolower($rCode);
+
+                    return str_contains($rName, $target) || str_contains($rKode, $target);
+                });
+
+                if ($pw && $pw->pengawas1?->user) {
+                    $tId = $pw->pengawas1->id;
+                    $code = $teacherCodeMap[$tId] ?? $pw->pengawas1->user->id;
+                    $roomAssignments[$rCode] = $code;
+                    $legendCounts[$code] = ($legendCounts[$code] ?? 0) + 1;
+                    $legendNames[$code] = $pw->pengawas1->user->name;
+                } else {
+                    $roomAssignments[$rCode] = '-';
+                }
+            }
+
+            $rows[] = [
+                'no' => $isNewDate ? $noUrut++ : '',
+                'is_new_date' => $isNewDate,
+                'tanggal' => $tgl,
+                'sesi_ke' => $sesiKe,
+                'pukul' => "{$jamMulai} - {$jamSelesai}",
+                'mapel' => $firstJadwal->nama_mapel,
+                'rooms' => $roomAssignments,
+            ];
+        }
+
+        $legend = [];
+        ksort($legendCounts);
+        foreach ($legendCounts as $code => $count) {
+            $legend[] = [
+                'code' => $code,
+                'nama' => $legendNames[$code] ?? 'Pengawas',
+                'jumlah' => $count,
+            ];
+        }
+
+        $ketuaPanitia = UjianPanitia::with('teacher.user')
+            ->where('ujian_periode_id', $activePeriode?->id)
+            ->where(function ($q) {
+                $q->where('jabatan', 'ketua')
+                    ->orWhere('jabatan', 'Ketua')
+                    ->orWhere('jabatan', 'like', '%ketua%');
+            })
+            ->where('is_active', true)
+            ->first();
+
+        $ttdSetting = $activePeriode ? UjianPengaturanTtd::where('ujian_periode_id', $activePeriode->id)->first() : null;
+        $setting = AttendanceSetting::first();
+
+        $namaKepala = $ttdSetting?->nama_kepala ?? ($setting?->card_principal_name ?? ($setting?->headmasterTeacher?->user?->name ?? 'Sipulloh, M.Pd'));
+        $nipKepala = $ttdSetting?->nip_kepala ?? ($setting?->card_principal_nip ?? ($setting?->headmasterTeacher?->nip ?? '-'));
+        $namaKetua = $ketuaPanitia?->teacher?->user?->name ?? '....................................................';
+        $nipKetua = $ketuaPanitia?->teacher?->nip ?? '-';
+        $tempatCetak = $activePeriode?->tempat_cetak ?? ($ttdSetting?->tempat_penetapan ?? ($setting?->school_city ?? 'Tanggamus'));
+        $tanggalCetak = $activePeriode?->tanggal_cetak_kartu ?? now();
+
+        return view('ujian.pengawas.print-matriks', compact(
+            'activePeriode',
+            'kelompok',
+            'showMapel',
+            'rows',
+            'legend',
+            'roomCodes',
+            'namaKepala',
+            'nipKepala',
+            'namaKetua',
+            'nipKetua',
+            'tempatCetak',
+            'tanggalCetak'
         ));
     }
 

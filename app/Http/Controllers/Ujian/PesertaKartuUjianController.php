@@ -61,7 +61,12 @@ class PesertaKartuUjianController extends Controller
                 });
             }
 
-            $pesertas = $query->orderBy('nama_kelas')->orderBy('nama_peserta')->paginate(50)->withQueryString();
+            $pesertas = $query->orderBy('nama_kelas')
+                ->orderByRaw('CASE WHEN nomor_kursi IS NULL THEN 1 ELSE 0 END')
+                ->orderBy('nomor_kursi', 'asc')
+                ->orderBy('nama_peserta', 'asc')
+                ->paginate(50)
+                ->withQueryString();
         }
 
         $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
@@ -105,9 +110,11 @@ class PesertaKartuUjianController extends Controller
             'separator_2' => ['nullable', 'string', 'max:5'],
             'separator_3' => ['nullable', 'string', 'max:5'],
             'digit_urut' => ['nullable', 'integer', 'min:2', 'max:5'],
+            'reset_existing' => ['nullable', 'boolean'],
         ]);
 
         $periode = UjianPeriode::findOrFail($validated['ujian_periode_id']);
+        $validated['reset_existing'] = $request->boolean('reset_existing', false);
         $count = $this->pesertaService->generateStructuredNomorPeserta($periode, $validated['school_class_id'] ?? null, $validated);
 
         return back()->with('success', "Nomor Peserta Ujian berhasil di-generate untuk {$count} peserta.");
@@ -212,7 +219,11 @@ class PesertaKartuUjianController extends Controller
             }
         }
 
-        $pesertaList = $query->orderBy('nama_kelas')->orderBy('nama_peserta')->get();
+        $pesertaList = $query->orderBy('nama_kelas')
+            ->orderByRaw('CASE WHEN nomor_kursi IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('nomor_kursi', 'asc')
+            ->orderBy('nama_peserta', 'asc')
+            ->get();
 
         $isPreview = $request->boolean('preview');
         if ($isPreview) {

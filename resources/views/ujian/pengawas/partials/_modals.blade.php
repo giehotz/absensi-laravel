@@ -48,10 +48,12 @@
                         @foreach($teachers as $t)
                             @php
                                 $isPanitia = in_array($t->id, $panitiaTeacherIds, true);
+                                $allowSupervise = in_array($t->id, $panitiaAllowSuperviseTeacherIds ?? [], true);
+                                $canAssign = ! $isPanitia || $allowSupervise;
                                 $mapping = $mappings[$t->id] ?? null;
                             @endphp
-                            <option value="{{ $t->id }}" {{ $isPanitia ? 'disabled class=text-slate-400' : '' }}>
-                                {{ $t->user?->name }} {{ $isPanitia ? '⛔ (Panitia Ujian)' : ($mapping ? '['.$mapping->formatted_levels.']' : '[Belum Dipetakan]') }}
+                            <option value="{{ $t->id }}" {{ ! $canAssign ? 'disabled class=text-slate-400' : '' }}>
+                                {{ $t->user?->name }} {{ $isPanitia ? ($allowSupervise ? '⚡ (Panitia - Boleh Mengawas)' : '⛔ (Panitia Ujian)') : ($mapping ? '['.$mapping->formatted_levels.']' : '[Belum Dipetakan]') }}
                             </option>
                         @endforeach
                     </select>
@@ -63,10 +65,12 @@
                         @foreach($teachers as $t)
                             @php
                                 $isPanitia = in_array($t->id, $panitiaTeacherIds, true);
+                                $allowSupervise = in_array($t->id, $panitiaAllowSuperviseTeacherIds ?? [], true);
+                                $canAssign = ! $isPanitia || $allowSupervise;
                                 $mapping = $mappings[$t->id] ?? null;
                             @endphp
-                            <option value="{{ $t->id }}" {{ $isPanitia ? 'disabled class=text-slate-400' : '' }}>
-                                {{ $t->user?->name }} {{ $isPanitia ? '⛔ (Panitia Ujian)' : ($mapping ? '['.$mapping->formatted_levels.']' : '[Belum Dipetakan]') }}
+                            <option value="{{ $t->id }}" {{ ! $canAssign ? 'disabled class=text-slate-400' : '' }}>
+                                {{ $t->user?->name }} {{ $isPanitia ? ($allowSupervise ? '⚡ (Panitia - Boleh Mengawas)' : '⛔ (Panitia Ujian)') : ($mapping ? '['.$mapping->formatted_levels.']' : '[Belum Dipetakan]') }}
                             </option>
                         @endforeach
                     </select>
@@ -296,6 +300,25 @@
                 <div class="text-[10px] uppercase font-black text-purple-950">Periode Ujian Aktif:</div>
                 <div class="text-xs font-black text-slate-900">{{ $activePeriode->nama_periode }}</div>
                 <div class="text-[10px] text-slate-700 font-medium">Sistem otomatis menyelaraskan ruang dengan target kelas jadwal dan menjamin 0 bentrok guru & ruang.</div>
+            </div>
+
+            {{-- Target Kelompok Ujian --}}
+            <div>
+                <label class="block text-slate-900 font-black mb-1.5">Target Kelompok Ujian <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <label class="flex items-center gap-1.5 p-2 border-2 border-slate-900 rounded-lg cursor-pointer bg-white font-bold text-xs hover:bg-yellow-50 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+                        <input type="radio" name="kelompok" value="3-6" {{ ($kelompok ?? '3-6') === '3-6' ? 'checked' : '' }} class="accent-slate-900">
+                        <span>Kelas 3–6</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 p-2 border-2 border-slate-900 rounded-lg cursor-pointer bg-white font-bold text-xs hover:bg-yellow-50 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+                        <input type="radio" name="kelompok" value="1-2" {{ ($kelompok ?? '3-6') === '1-2' ? 'checked' : '' }} class="accent-slate-900">
+                        <span>Kelas 1–2</span>
+                    </label>
+                    <label class="flex items-center gap-1.5 p-2 border-2 border-slate-900 rounded-lg cursor-pointer bg-white font-bold text-xs hover:bg-yellow-50 shadow-[1.5px_1.5px_0px_0px_#0f172a]">
+                        <input type="radio" name="kelompok" value="all" {{ ($kelompok ?? '3-6') === 'all' ? 'checked' : '' }} class="accent-slate-900">
+                        <span>Semua</span>
+                    </label>
+                </div>
             </div>
 
             {{-- Opsi Jumlah Pengawas per Ruang --}}

@@ -5,6 +5,7 @@ namespace App\Services\Ujian;
 use App\Models\Teacher;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
+use App\Models\Ujian\UjianPanitia;
 use App\Models\Ujian\UjianPengawasMapping;
 use App\Models\Ujian\UjianPengawasSwapHistory;
 use Illuminate\Support\Collection;
@@ -105,12 +106,19 @@ class PengawasMappingService
         }
 
         if ($teacher->isPanitiaUjian($jadwal->ujian_periode_id)) {
-            $jabatan = $teacher->activePanitiaUjianRole($jadwal->ujian_periode_id) ?? 'Panitia Ujian';
+            $panitia = UjianPanitia::where('ujian_periode_id', $jadwal->ujian_periode_id)
+                ->where('teacher_id', $teacher->id)
+                ->where('is_active', true)
+                ->first();
 
-            return [
-                'eligible' => false,
-                'reason' => "Guru {$teacher->user?->name} adalah {$jabatan} pada periode ini dan tidak boleh bertugas sebagai pengawas.",
-            ];
+            if (! $panitia || ! $panitia->ikut_mengawas) {
+                $jabatan = $teacher->activePanitiaUjianRole($jadwal->ujian_periode_id) ?? 'Panitia Ujian';
+
+                return [
+                    'eligible' => false,
+                    'reason' => "Guru {$teacher->user?->name} adalah {$jabatan} pada periode ini dan tidak diizinkan bertugas sebagai pengawas (ikut_mengawas = false).",
+                ];
+            }
         }
 
         $mapping = $teacher->getPengawasMapping($jadwal->ujian_periode_id);
