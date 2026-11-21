@@ -139,7 +139,7 @@ class AssessmentController extends Controller
 
         // Batasi pilihan sesuai penugasan jika memiliki pembatasan
         if ($teacher->hasTeachingRestrictions()) {
-            $classes = $teacher->assignedClasses()->orderBy('level')->orderBy('name')->get();
+            $classes = $teacher->assignedClasses()->ordered()->get();
             $subjects = $teacher->assignedSubjects()->orderBy('name')->get();
         } else {
             $classes = $teacher->getAccessibleClasses();

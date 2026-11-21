@@ -45,8 +45,7 @@ class HomeroomClassController extends Controller
         // Ambil kelas binaan guru (sebagai wali kelas)
         $homeroomClasses = SchoolClass::with(['academicYear'])
             ->where('homeroom_teacher_id', $teacher->id)
-            ->orderBy('level')
-            ->orderBy('name')
+            ->ordered()
             ->get();
 
         if ($request->filled('school_class_id') && ! $homeroomClasses->contains('id', (int) $request->input('school_class_id'))) {

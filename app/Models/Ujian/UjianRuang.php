@@ -25,6 +25,15 @@ class UjianRuang extends Model
         'keterangan',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (UjianRuang $ruang) {
+            if ($ruang->nama_ruang) {
+                $ruang->nama_ruang = trim(preg_replace('/\s+/', ' ', $ruang->nama_ruang));
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

@@ -39,7 +39,7 @@ class AttendanceReportController extends Controller
         $activeTab = $request->input('tab', 'summary');
 
         // Master data kelas untuk dropdown filter dengan jumlah siswa
-        $classes = SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::withCount('students')->ordered()->get();
         $selectedClass = $schoolClassId && $schoolClassId !== 'all'
             ? $classes->firstWhere('id', (int) $schoolClassId)
             : null;

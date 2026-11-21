@@ -60,7 +60,7 @@ class ManualAttendanceController extends Controller
     {
         $date = $request->input('date', Carbon::today()->toDateString());
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
         $selectedClassId = $request->input('school_class_id', $classes->first()?->id);
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
 

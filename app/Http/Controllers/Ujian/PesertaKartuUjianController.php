@@ -69,7 +69,7 @@ class PesertaKartuUjianController extends Controller
                 ->withQueryString();
         }
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
         $ruangs = UjianRuang::orderBy('kode_ruang')->get();
 
         return view('ujian.kartu.index', compact(
@@ -222,8 +222,19 @@ class PesertaKartuUjianController extends Controller
         $pesertaList = $query->orderBy('nama_kelas')
             ->orderByRaw('CASE WHEN nomor_kursi IS NULL THEN 1 ELSE 0 END')
             ->orderBy('nomor_kursi', 'asc')
+            ->orderBy('nomor_peserta', 'asc')
             ->orderBy('nama_peserta', 'asc')
             ->get();
+
+        // Urutkan presisi sesuai urutan kronologis rombel kelas (Kelas 1 a s.d. Kelas 6 c)
+        $pesertaList = $pesertaList->sortBy(function ($p) {
+            preg_match('/(\d+)\s*([a-zA-Z]?)/', (string) $p->nama_kelas, $m);
+            $num = isset($m[1]) ? (int) $m[1] : 99;
+            $char = strtolower($m[2] ?? '');
+            $kursi = $p->nomor_kursi ?? 9999;
+
+            return sprintf('%02d_%s_%04d_%s', $num, $char, $kursi, $p->nama_peserta);
+        })->values();
 
         $isPreview = $request->boolean('preview');
         if ($isPreview) {

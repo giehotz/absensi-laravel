@@ -27,7 +27,7 @@ class EffectiveWeekController extends Controller
 
         $teachers = Teacher::with('user')->get()->sortBy(fn (Teacher $teacher) => $teacher->user?->name ?? '')->values();
         $subjects = Subject::orderBy('name')->get();
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
 
         return view('admin.effective-weeks.index', array_merge($report, compact('teachers', 'subjects', 'classes')));
     }

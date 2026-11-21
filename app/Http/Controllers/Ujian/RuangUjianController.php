@@ -36,7 +36,7 @@ class RuangUjianController extends Controller
             'mode' => ['required', 'in:all,exclude_grade_6'],
         ]);
 
-        $query = SchoolClass::withCount('students')->orderBy('level')->orderBy('name');
+        $query = SchoolClass::withCount('students')->ordered();
 
         if ($validated['mode'] === 'exclude_grade_6') {
             $query->where('level', '!=', '6');

@@ -63,13 +63,7 @@ class JadwalUjianController extends Controller
         }
 
         $subjects = Subject::orderBy('name')->get();
-        $classes = SchoolClass::orderBy('name')->get()
-            ->sortBy(function (SchoolClass $schoolClass): int {
-                preg_match('/\d+/', $schoolClass->name, $matches);
-
-                return (int) ($matches[0] ?? 0);
-            })
-            ->values();
+        $classes = SchoolClass::ordered()->get();
         $classLevels = $classes->mapWithKeys(function (SchoolClass $schoolClass): array {
             preg_match('/\d+/', $schoolClass->name, $matches);
 

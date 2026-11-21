@@ -58,7 +58,7 @@ class TeachingJournalController extends Controller
             $teachers = Teacher::with('user')->get();
         }
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
         $subjects = Subject::orderBy('name')->get();
 
         // Summary KPI stats for school admin

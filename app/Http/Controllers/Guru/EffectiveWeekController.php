@@ -26,7 +26,7 @@ class EffectiveWeekController extends Controller
         $teacher = Auth::user()->teacher;
         $report = $this->buildReport($request, $teacher?->id);
 
-        $classes = $teacher ? $teacher->getAccessibleClasses() : SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = $teacher ? $teacher->getAccessibleClasses() : SchoolClass::ordered()->get();
 
         $subjectIds = collect();
         if ($teacher) {

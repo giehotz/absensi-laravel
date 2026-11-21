@@ -668,17 +668,17 @@ class SavingsController extends Controller
         $user = Auth::user();
 
         if ($user && $user->isAdmin()) {
-            return SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+            return SchoolClass::withCount('students')->ordered()->get();
         }
 
         $teacher = $user?->teacher;
 
         if ($teacher && $teacher->managesAllSavingsClasses()) {
-            return SchoolClass::withCount('students')->orderBy('level')->orderBy('name')->get();
+            return SchoolClass::withCount('students')->ordered()->get();
         }
 
         if ($teacher) {
-            return $teacher->managedSavingsClasses()->withCount('students')->orderBy('level')->orderBy('name')->get();
+            return $teacher->managedSavingsClasses()->withCount('students')->ordered()->get();
         }
 
         return collect();

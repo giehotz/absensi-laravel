@@ -36,6 +36,15 @@ class UjianPeserta extends Model
         'is_eligible',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (UjianPeserta $peserta) {
+            if ($peserta->nama_kelas) {
+                $peserta->nama_kelas = trim(preg_replace('/\s+/', ' ', $peserta->nama_kelas));
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

@@ -19,6 +19,23 @@ class SchoolClass extends Model
         'homeroom_teacher_id',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (SchoolClass $class) {
+            if ($class->name) {
+                $class->name = trim(preg_replace('/\s+/', ' ', $class->name));
+            }
+        });
+    }
+
+    /**
+     * Scope query untuk mengurutkan rombel secara alfabetis (A-Z).
+     */
+    public function scopeOrdered(Builder $query): Builder
+    {
+        return $query->orderBy('name');
+    }
+
     public function academicYear(): BelongsTo
     {
         return $this->belongsTo(AcademicYear::class);

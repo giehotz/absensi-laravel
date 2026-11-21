@@ -36,8 +36,7 @@ class SavingsController extends Controller
             ->withCount(['students as active_savings_count' => function ($q) {
                 $q->whereHas('savingsAccount', fn ($aq) => $aq->where('status', 'active'));
             }])
-            ->orderBy('level')
-            ->orderBy('name')
+            ->ordered()
             ->get();
 
         $classBalances = Student::join('savings_accounts', 'students.id', '=', 'savings_accounts.student_id')

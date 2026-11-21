@@ -53,7 +53,7 @@ class TeacherController extends Controller
 
         $teachers = $query->paginate(15)->withQueryString();
         $subjects = Subject::orderBy('name')->get();
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
 
         return view('admin.teachers.index', compact('teachers', 'subjects', 'classes', 'search', 'sort'));
     }

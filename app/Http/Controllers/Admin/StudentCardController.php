@@ -28,7 +28,7 @@ class StudentCardController extends Controller
         $selectedClassId = $request->query('class_id');
         $search = $request->query('search');
 
-        $classes = SchoolClass::currentAcademicYear()->orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::currentAcademicYear()->ordered()->get();
 
         $query = Student::with(['user', 'schoolClass']);
 

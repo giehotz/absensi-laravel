@@ -113,8 +113,7 @@ class MbgReportController extends Controller
         // Data rombongan belajar aktif beserta wali kelas dan jumlah siswa
         $classes = SchoolClass::with(['homeroomTeacher.user'])
             ->withCount('students')
-            ->orderBy('level')
-            ->orderBy('name')
+            ->ordered()
             ->get();
 
         // Kalkulasi akumulasi distribusi per kelas pada periode laporan ini

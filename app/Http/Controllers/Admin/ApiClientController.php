@@ -83,7 +83,7 @@ class ApiClientController extends Controller
             'local_classes_count' => SchoolClass::count(),
         ];
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
         $academicYears = AcademicYear::all();
 
         return view('admin.api-clients.index', compact(

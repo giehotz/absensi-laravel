@@ -35,8 +35,7 @@ class ScheduleController extends Controller
             'students' => fn ($q) => $q->select('id', 'school_class_id'),
         ])
             ->when($academicYear, fn ($q) => $q->where('academic_year_id', $academicYear->id))
-            ->orderBy('level')
-            ->orderBy('name')
+            ->ordered()
             ->get();
 
         $targetJpPerClass = 38; // Target standar JP per minggu Kurikulum Merdeka / Kemenag

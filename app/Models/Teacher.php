@@ -192,8 +192,7 @@ class Teacher extends Model
         return SchoolClass::with(['academicYear', 'homeroomTeacher.user'])
             ->whereIn('id', $classIds)
             ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
-            ->orderBy('level')
-            ->orderBy('name')
+            ->ordered()
             ->get();
     }
 

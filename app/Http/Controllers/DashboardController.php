@@ -86,7 +86,52 @@ class DashboardController extends Controller
                     $aq->whereDate('date', $date);
                 }]);
             },
-        ])->orderBy('level')->orderBy('name')->get();
+        ])->get();
+
+        // Natural sort classes chronologically: Kelas 1 a -> Kelas 6 c
+        $classes = $classes->sortBy(function ($cls) {
+            preg_match('/(\d+)\s*([a-zA-Z]?)/', $cls->name, $m);
+            $num = isset($m[1]) ? (int) $m[1] : (int) $cls->level;
+            $char = strtolower($m[2] ?? '');
+
+            return sprintf('%02d_%s', $num, $char);
+        })->values();
+
+        // Precalculate compliance stats per grade level (1 to 6) and overall
+        $gradeStats = [];
+        for ($g = 1; $g <= 6; $g++) {
+            $gradeStats[$g] = [
+                'total' => 0,
+                'completed' => 0,
+            ];
+        }
+
+        $completedClassesCount = 0;
+        foreach ($classes as $cls) {
+            preg_match('/(\d+)/', $cls->name, $m);
+            $gradeNum = isset($m[1]) ? (int) $m[1] : (int) $cls->level;
+
+            $studentCount = $cls->students->count();
+            $recordedCount = $cls->students->flatMap->attendances->count();
+            $isComplete = $studentCount > 0 && $recordedCount >= $studentCount;
+
+            if ($isComplete) {
+                $completedClassesCount++;
+            }
+
+            if ($gradeNum >= 1 && $gradeNum <= 6) {
+                $gradeStats[$gradeNum]['total']++;
+                if ($isComplete) {
+                    $gradeStats[$gradeNum]['completed']++;
+                }
+            }
+        }
+
+        $totalClassesCount = $classes->count();
+        $unfilledClassesCount = max(0, $totalClassesCount - $completedClassesCount);
+        $overallCompliancePercent = $totalClassesCount > 0
+            ? round(($completedClassesCount / $totalClassesCount) * 100)
+            : 0;
 
         // Feed presensi terbaru pada tanggal terpilih
         $recentAttendances = Attendance::with(['student.user', 'student.schoolClass'])
@@ -112,6 +157,11 @@ class DashboardController extends Controller
         return view('dashboard.admin', compact(
             'stats',
             'classes',
+            'gradeStats',
+            'completedClassesCount',
+            'unfilledClassesCount',
+            'totalClassesCount',
+            'overallCompliancePercent',
             'recentAttendances',
             'recentPendingLeaves',
             'recentJournals',

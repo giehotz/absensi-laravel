@@ -128,16 +128,7 @@ class JadwalPengawasController extends Controller
         $mappedCount = $mappings->count();
         $unmappedCount = max(0, $totalTeachersCount - $panitiaCount - $mappedCount);
 
-        $classes = SchoolClass::all()
-            ->sortBy(function ($c) {
-                preg_match('/\d+/', $c->name, $digits);
-                preg_match('/[a-zA-Z]+$/', $c->name, $letter);
-                $lvl = isset($digits[0]) ? (int) $digits[0] : 99;
-                $let = $letter[0] ?? '';
-
-                return sprintf('%02d-%s', $lvl, strtolower($let));
-            })
-            ->values();
+        $classes = SchoolClass::ordered()->get();
 
         return view('ujian.pengawas.index', compact(
             'periodes',

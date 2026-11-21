@@ -59,7 +59,7 @@ class AssessmentController extends Controller
 
         $packages = $query->paginate(15)->withQueryString();
 
-        $classes = SchoolClass::orderBy('level')->orderBy('name')->get();
+        $classes = SchoolClass::ordered()->get();
         $subjects = Subject::orderBy('name')->get();
         $teachers = Teacher::with('user')->get()->sortBy('user.name')->values();
         $academicYears = AcademicYear::orderByDesc('start_date')->get();
