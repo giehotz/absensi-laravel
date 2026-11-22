@@ -603,10 +603,10 @@ class JadwalPengawasController extends Controller
 
         $roomCodes = $ruangs->map(function ($r) {
             if ($r->schoolClass) {
-                return preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name));
+                return strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name)));
             }
 
-            return preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang));
+            return strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang)));
         })->unique()->filter()->values()->all();
 
         if (empty($roomCodes)) {
@@ -623,6 +623,23 @@ class JadwalPengawasController extends Controller
 
         natsort($roomCodes);
         $roomCodes = array_values($roomCodes);
+
+        $roomClassMap = [];
+        foreach ($ruangs as $r) {
+            $code = $r->schoolClass
+                ? strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name)))
+                : strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang)));
+            if ($code && $r->school_class_id) {
+                $roomClassMap[$code] = $r->school_class_id;
+            }
+        }
+        $allClasses = SchoolClass::all();
+        foreach ($allClasses as $c) {
+            $code = strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $c->name)));
+            if ($code && ! isset($roomClassMap[$code])) {
+                $roomClassMap[$code] = $c->id;
+            }
+        }
 
         $allAssignedPengawas = collect();
         foreach ($jadwals as $j) {
@@ -643,6 +660,15 @@ class JadwalPengawasController extends Controller
 
             return $tgl.'_'.substr($j->jam_mulai, 0, 5);
         });
+
+        // Hitung berapa baris slot untuk setiap tanggal agar bisa di-rowspan (merge)
+        $dateRowCounts = [];
+        foreach ($grouped as $key => $slotJadwals) {
+            $firstJadwal = $slotJadwals->first();
+            $tgl = $firstJadwal->tanggal_ujian instanceof Carbon ? $firstJadwal->tanggal_ujian : Carbon::parse($firstJadwal->tanggal_ujian);
+            $tglStr = $tgl->format('Y-m-d');
+            $dateRowCounts[$tglStr] = ($dateRowCounts[$tglStr] ?? 0) + 1;
+        }
 
         $rows = [];
         $legendCounts = [];
@@ -671,41 +697,79 @@ class JadwalPengawasController extends Controller
             $roomAssignments = [];
             foreach ($roomCodes as $rCode) {
                 $level = substr($rCode, 0, 1);
-                $hasExam = $slotJadwals->contains(function ($j) use ($level) {
-                    return in_array($level, $j->getTargetLevels(), true);
+                $targetClassId = $roomClassMap[$rCode] ?? null;
+
+                // 1. Prioritas utama: jadwal spesifik untuk rombel / school_class ini
+                $jRombel = $slotJadwals->first(function ($j) use ($rCode, $targetClassId) {
+                    if ($targetClassId && $j->school_class_id && (int) $j->school_class_id === (int) $targetClassId) {
+                        return true;
+                    }
+
+                    if ($j->schoolClass) {
+                        $clean = strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $j->schoolClass->name)));
+                        if ($clean === $rCode) {
+                            return true;
+                        }
+                    }
+
+                    return false;
                 });
 
-                if (! $hasExam) {
+                // 2. Prioritas kedua: jadwal umum tingkat
+                if (! $jRombel) {
+                    $jRombel = $slotJadwals->first(function ($j) use ($level) {
+                        if ($j->school_class_id !== null) {
+                            return false;
+                        }
+
+                        return in_array((string) $level, array_map('strval', $j->getTargetLevels()), true);
+                    });
+                }
+
+                if (! $jRombel) {
                     $roomAssignments[$rCode] = null;
 
                     continue;
                 }
 
-                $pw = $slotPengawas->first(function ($p) use ($rCode) {
+                $kodeMapel = $jRombel->subject?->code
+                    ?: ($jRombel->nama_mapel ? strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $jRombel->nama_mapel), 0, 4)) : '—');
+
+                $pw = $slotPengawas->first(function ($p) use ($rCode, $targetClassId) {
                     if (! $p->ruang) {
                         return false;
                     }
-                    $rName = strtolower(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->nama_ruang ?: '')));
-                    $rKode = strtolower(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->kode_ruang ?: '')));
-                    $target = strtolower($rCode);
+                    if ($targetClassId && $p->ruang->school_class_id && (int) $p->ruang->school_class_id === (int) $targetClassId) {
+                        return true;
+                    }
 
-                    return str_contains($rName, $target) || str_contains($rKode, $target);
+                    $rName = strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->nama_ruang ?: '')));
+                    $rKode = strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->kode_ruang ?: '')));
+
+                    return $rName === $rCode || $rKode === $rCode || str_contains($rName, $rCode) || str_contains($rKode, $rCode);
                 });
 
                 if ($pw && $pw->pengawas1?->user) {
                     $tId = $pw->pengawas1->id;
                     $code = $teacherCodeMap[$tId] ?? $pw->pengawas1->user->id;
-                    $roomAssignments[$rCode] = $code;
+                    $roomAssignments[$rCode] = [
+                        'mapel' => $kodeMapel,
+                        'pengawas' => (string) $code,
+                    ];
                     $legendCounts[$code] = ($legendCounts[$code] ?? 0) + 1;
                     $legendNames[$code] = $pw->pengawas1->user->name;
                 } else {
-                    $roomAssignments[$rCode] = '-';
+                    $roomAssignments[$rCode] = [
+                        'mapel' => $kodeMapel,
+                        'pengawas' => '-',
+                    ];
                 }
             }
 
             $rows[] = [
                 'no' => $isNewDate ? $noUrut++ : '',
                 'is_new_date' => $isNewDate,
+                'date_rowspan' => $dateRowCounts[$tglStr] ?? 1,
                 'tanggal' => $tgl,
                 'sesi_ke' => $sesiKe,
                 'pukul' => "{$jamMulai} - {$jamSelesai}",
@@ -724,12 +788,40 @@ class JadwalPengawasController extends Controller
             ];
         }
 
+        $distinctMapels = [];
+        foreach ($jadwals as $j) {
+            $code = $j->subject?->code
+                ?: ($j->nama_mapel ? strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $j->nama_mapel), 0, 4)) : '—');
+            $name = $j->nama_mapel ?: '-';
+            if ($code && $code !== '—' && ! isset($distinctMapels[$code])) {
+                $distinctMapels[$code] = $name;
+            }
+        }
+        ksort($distinctMapels);
+        $legendMapel = [];
+        foreach ($distinctMapels as $code => $name) {
+            $legendMapel[] = [
+                'code' => $code,
+                'nama' => $name,
+            ];
+        }
+
         $ketuaPanitia = UjianPanitia::with('teacher.user')
             ->where('ujian_periode_id', $activePeriode?->id)
             ->where(function ($q) {
                 $q->where('jabatan', 'ketua')
                     ->orWhere('jabatan', 'Ketua')
                     ->orWhere('jabatan', 'like', '%ketua%');
+            })
+            ->where('is_active', true)
+            ->first();
+
+        $sekretarisPanitia = UjianPanitia::with('teacher.user')
+            ->where('ujian_periode_id', $activePeriode?->id)
+            ->where(function ($q) {
+                $q->where('jabatan', 'sekretaris')
+                    ->orWhere('jabatan', 'Sekretaris')
+                    ->orWhere('jabatan', 'like', '%sekretaris%');
             })
             ->where('is_active', true)
             ->first();
@@ -741,6 +833,8 @@ class JadwalPengawasController extends Controller
         $nipKepala = $ttdSetting?->nip_kepala ?? ($setting?->card_principal_nip ?? ($setting?->headmasterTeacher?->nip ?? '-'));
         $namaKetua = $ketuaPanitia?->teacher?->user?->name ?? '....................................................';
         $nipKetua = $ketuaPanitia?->teacher?->nip ?? '-';
+        $namaSekretaris = $sekretarisPanitia?->teacher?->user?->name ?? '....................................................';
+        $nipSekretaris = $sekretarisPanitia?->teacher?->nip;
         $tempatCetak = $activePeriode?->tempat_cetak ?? ($ttdSetting?->tempat_penetapan ?? ($setting?->school_city ?? 'Tanggamus'));
         $tanggalCetak = $activePeriode?->tanggal_cetak_kartu ?? now();
 
@@ -750,11 +844,14 @@ class JadwalPengawasController extends Controller
             'showMapel',
             'rows',
             'legend',
+            'legendMapel',
             'roomCodes',
             'namaKepala',
             'nipKepala',
             'namaKetua',
             'nipKetua',
+            'namaSekretaris',
+            'nipSekretaris',
             'tempatCetak',
             'tanggalCetak'
         ));

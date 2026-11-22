@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Ujian;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ujian\ImportJadwalExcelRequest;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Subject;
@@ -13,6 +14,8 @@ use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianRuang;
 use App\Models\Ujian\UjianSesi;
 use App\Services\Ujian\JadwalConflictService;
+use App\Services\Ujian\JadwalExcelImportService;
+use App\Services\Ujian\JadwalExcelTemplateService;
 use App\Services\Ujian\JadwalLevelSyncService;
 use App\Services\Ujian\JadwalPdfParserService;
 use Carbon\Carbon;
@@ -20,15 +23,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
-use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
-use PhpOffice\PhpSpreadsheet\IOFactory;
-use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -107,7 +102,9 @@ class JadwalUjianController extends Controller
             'selectedTingkat' => (string) $selectedTingkat,
         ];
 
-        return view('ujian.jadwal.index', compact('periodes', 'activePeriode', 'allJadwals', 'jadwals', 'subjects', 'classes', 'classLevels', 'sesis', 'bentukUjianList', 'selectedTingkat', 'coverageData'));
+        $pemetaanConfigs = $activePeriode?->kelompokConfigs->keyBy('kelompok') ?? collect();
+
+        return view('ujian.jadwal.index', compact('periodes', 'activePeriode', 'allJadwals', 'jadwals', 'subjects', 'classes', 'classLevels', 'sesis', 'bentukUjianList', 'selectedTingkat', 'coverageData', 'pemetaanConfigs'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -427,12 +424,13 @@ class JadwalUjianController extends Controller
         $jadwals = collect();
         $rekapRows = [];
         $legendPengawas = [];
+        $legendMapel = [];
         $roomCodes = [];
         $ketuaPanitia = null;
         $ttdSetting = null;
 
         if ($activePeriode) {
-            $jadwalsQuery = UjianJadwal::with(['subject', 'schoolClass', 'pengawas.ruang', 'pengawas.pengawas1.user'])
+            $jadwalsQuery = UjianJadwal::with(['subject', 'schoolClass', 'pengawas.ruang.schoolClass', 'pengawas.pengawas1.user'])
                 ->where('ujian_periode_id', $activePeriode->id)
                 ->orderBy('tanggal_ujian')
                 ->orderBy('jam_mulai');
@@ -457,6 +455,7 @@ class JadwalUjianController extends Controller
                 $rekapData = $this->buildRekapMatrixData($jadwals, $activePeriode, $kelompok, $format === 'matriks_rombel');
                 $rekapRows = $rekapData['rows'];
                 $legendPengawas = $rekapData['legend'];
+                $legendMapel = $rekapData['legend_mapel'] ?? [];
                 $roomCodes = $rekapData['room_codes'];
             }
 
@@ -466,6 +465,16 @@ class JadwalUjianController extends Controller
                     $q->where('jabatan', 'ketua')
                         ->orWhere('jabatan', 'Ketua')
                         ->orWhere('jabatan', 'like', '%ketua%');
+                })
+                ->where('is_active', true)
+                ->first();
+
+            $sekretarisPanitia = UjianPanitia::with('teacher.user')
+                ->where('ujian_periode_id', $activePeriode->id)
+                ->where(function ($q) {
+                    $q->where('jabatan', 'sekretaris')
+                        ->orWhere('jabatan', 'Sekretaris')
+                        ->orWhere('jabatan', 'like', '%sekretaris%');
                 })
                 ->where('is_active', true)
                 ->first();
@@ -486,6 +495,9 @@ class JadwalUjianController extends Controller
         $namaKetua = $ketuaPanitia?->teacher?->user?->name ?? '....................................................';
         $nipKetua = $ketuaPanitia?->teacher?->nip ?? '-';
 
+        $namaSekretaris = $sekretarisPanitia?->teacher?->user?->name ?? '....................................................';
+        $nipSekretaris = $sekretarisPanitia?->teacher?->nip;
+
         $tempatCetak = $activePeriode?->tempat_cetak
             ?? ($ttdSetting?->tempat_penetapan
             ?? ($setting?->school_city ?? 'Tanggamus'));
@@ -500,11 +512,14 @@ class JadwalUjianController extends Controller
             'kelompok',
             'rekapRows',
             'legendPengawas',
+            'legendMapel',
             'roomCodes',
             'namaKepala',
             'nipKepala',
             'namaKetua',
             'nipKetua',
+            'namaSekretaris',
+            'nipSekretaris',
             'tempatCetak',
             'tanggalCetak'
         ));
@@ -551,10 +566,10 @@ class JadwalUjianController extends Controller
 
         $roomCodes = $ruangs->map(function ($r) {
             if ($r->schoolClass) {
-                return preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name));
+                return strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name)));
             }
 
-            return preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang));
+            return strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang)));
         })->unique()->filter()->values()->all();
 
         if (empty($roomCodes)) {
@@ -569,6 +584,24 @@ class JadwalUjianController extends Controller
 
         natsort($roomCodes);
         $roomCodes = array_values($roomCodes);
+
+        // Petakan roomCode ke ID SchoolClass agar pencocokan jadwal per-rombel tepat sasaran
+        $roomClassMap = [];
+        foreach ($ruangs as $r) {
+            $code = $r->schoolClass
+                ? strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $r->schoolClass->name)))
+                : strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $r->nama_ruang ?: $r->kode_ruang)));
+            if ($code && $r->school_class_id) {
+                $roomClassMap[$code] = $r->school_class_id;
+            }
+        }
+        $allClasses = SchoolClass::all();
+        foreach ($allClasses as $c) {
+            $code = strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $c->name)));
+            if ($code && ! isset($roomClassMap[$code])) {
+                $roomClassMap[$code] = $c->id;
+            }
+        }
 
         // Kumpulkan semua pengawas di seluruh jadwal ini untuk memberi nomor kode 1..N
         $allAssignedPengawas = collect();
@@ -592,6 +625,15 @@ class JadwalUjianController extends Controller
             return $tgl.'_'.substr($j->jam_mulai, 0, 5);
         });
 
+        // Hitung berapa baris slot untuk setiap tanggal agar bisa di-rowspan (merge)
+        $dateRowCounts = [];
+        foreach ($grouped as $key => $slotJadwals) {
+            $firstJadwal = $slotJadwals->first();
+            $tgl = $firstJadwal->tanggal_ujian instanceof Carbon ? $firstJadwal->tanggal_ujian : Carbon::parse($firstJadwal->tanggal_ujian);
+            $tglStr = $tgl->format('Y-m-d');
+            $dateRowCounts[$tglStr] = ($dateRowCounts[$tglStr] ?? 0) + 1;
+        }
+
         $rows = [];
         $legendCounts = [];
         $legendNames = [];
@@ -609,11 +651,23 @@ class JadwalUjianController extends Controller
             $jamSelesai = substr($firstJadwal->jam_selesai, 0, 5);
             $sesiKe = $firstJadwal->sesi_ke ?? ($jamMulai === '07:30' ? 1 : 2);
 
-            $jadwal12 = $slotJadwals->first(function ($j) {
+            $mapels12 = $slotJadwals->filter(function ($j) {
                 $lvls = $j->getTargetLevels();
 
                 return in_array('1', $lvls, true) || in_array('2', $lvls, true);
-            });
+            })->map(fn ($j) => $j->nama_mapel)->filter()->unique()->values();
+
+            $mapel1 = $slotJadwals->filter(function ($j) {
+                return in_array('1', $j->getTargetLevels(), true);
+            })->map(fn ($j) => $j->nama_mapel)->filter()->unique()->values()->implode(' / ');
+
+            $mapel2 = $slotJadwals->filter(function ($j) {
+                return in_array('2', $j->getTargetLevels(), true);
+            })->map(fn ($j) => $j->nama_mapel)->filter()->unique()->values()->implode(' / ');
+
+            $mapel12Text = $mapels12->isEmpty()
+                ? null
+                : ($mapels12->count() <= 2 ? $mapels12->implode(' / ') : $mapels12->take(2)->implode(' / ').' dll');
 
             $jadwal36 = $slotJadwals->first(function ($j) {
                 $lvls = $j->getTargetLevels();
@@ -631,48 +685,77 @@ class JadwalUjianController extends Controller
             $roomAssignments = [];
             foreach ($roomCodes as $rCode) {
                 $level = substr($rCode, 0, 1);
-                $hasExam = ($level <= 2 && $jadwal12) || ($level >= 3 && $jadwal36);
+                $targetClassId = $roomClassMap[$rCode] ?? null;
 
-                if (! $hasExam) {
-                    $roomAssignments[$rCode] = null;
+                // 1. Prioritas utama: jadwal spesifik untuk rombel / school_class ini
+                $jRombel = $slotJadwals->first(function ($j) use ($rCode, $targetClassId) {
+                    if ($targetClassId && $j->school_class_id && (int) $j->school_class_id === (int) $targetClassId) {
+                        return true;
+                    }
 
-                    continue;
+                    if ($j->schoolClass) {
+                        $clean = strtoupper(preg_replace('/\s+/', '', str_ireplace('kelas', '', $j->schoolClass->name)));
+                        if ($clean === $rCode) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+
+                // 2. Prioritas kedua: jadwal umum tingkat (HANYA jika jadwal tersebut BUKAN jadwal spesifik rombel lain)
+                if (! $jRombel) {
+                    $jRombel = $slotJadwals->first(function ($j) use ($level) {
+                        if ($j->school_class_id !== null) {
+                            return false; // Jangan gunakan jadwal rombel lain sebagai fallback
+                        }
+
+                        return in_array((string) $level, array_map('strval', $j->getTargetLevels()), true);
+                    });
                 }
 
                 if ($showMapelOnly) {
-                    // Tampilkan mata pelajaran untuk rombel ini
-                    $jRombel = $slotJadwals->first(function ($j) use ($rCode, $level) {
-                        if ($j->schoolClass) {
-                            $clean = preg_replace('/\s+/', '', str_ireplace('kelas', '', $j->schoolClass->name));
-                            if (strcasecmp($clean, $rCode) === 0) {
-                                return true;
-                            }
-                        }
-
-                        return in_array($level, $j->getTargetLevels(), true);
-                    });
-                    $roomAssignments[$rCode] = $jRombel?->nama_mapel ?? '-';
+                    // Tampilkan nama mata pelajaran rombel jika terjadwal
+                    $roomAssignments[$rCode] = $jRombel ? ($jRombel->nama_mapel ?: '—') : null;
                 } else {
-                    // Cari penugasan pengawas
-                    $pw = $slotPengawas->first(function ($p) use ($rCode) {
+                    if (! $jRombel) {
+                        $roomAssignments[$rCode] = null;
+
+                        continue;
+                    }
+
+                    $kodeMapel = $jRombel->subject?->code
+                        ?: ($jRombel->nama_mapel ? strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $jRombel->nama_mapel), 0, 4)) : '—');
+
+                    // Cari penugasan pengawas untuk ruangan / rombel ini
+                    $pw = $slotPengawas->first(function ($p) use ($rCode, $targetClassId) {
                         if (! $p->ruang) {
                             return false;
                         }
-                        $rName = strtolower(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->nama_ruang ?: '')));
-                        $rKode = strtolower(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->kode_ruang ?: '')));
-                        $target = strtolower($rCode);
+                        if ($targetClassId && $p->ruang->school_class_id && (int) $p->ruang->school_class_id === (int) $targetClassId) {
+                            return true;
+                        }
 
-                        return str_contains($rName, $target) || str_contains($rKode, $target);
+                        $rName = strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->nama_ruang ?: '')));
+                        $rKode = strtoupper(preg_replace('/\s+/', '', str_ireplace(['ruang', 'kelas'], '', $p->ruang->kode_ruang ?: '')));
+
+                        return $rName === $rCode || $rKode === $rCode || str_contains($rName, $rCode) || str_contains($rKode, $rCode);
                     });
 
                     if ($pw && $pw->pengawas1?->user) {
                         $tId = $pw->pengawas1->id;
                         $code = $teacherCodeMap[$tId] ?? $pw->pengawas1->user->id;
-                        $roomAssignments[$rCode] = $code;
+                        $roomAssignments[$rCode] = [
+                            'mapel' => $kodeMapel,
+                            'pengawas' => (string) $code,
+                        ];
                         $legendCounts[$code] = ($legendCounts[$code] ?? 0) + 1;
                         $legendNames[$code] = $pw->pengawas1->user->name;
                     } else {
-                        $roomAssignments[$rCode] = '-';
+                        $roomAssignments[$rCode] = [
+                            'mapel' => $kodeMapel,
+                            'pengawas' => '-',
+                        ];
                     }
                 }
             }
@@ -680,10 +763,13 @@ class JadwalUjianController extends Controller
             $rows[] = [
                 'no' => $isNewDate ? $noUrut++ : '',
                 'is_new_date' => $isNewDate,
+                'date_rowspan' => $dateRowCounts[$tglStr] ?? 1,
                 'tanggal' => $tgl,
                 'sesi_ke' => $sesiKe,
                 'pukul' => "{$jamMulai} - {$jamSelesai}",
-                'mapel_12' => $jadwal12?->nama_mapel,
+                'mapel_1' => $mapel1 ?: '—',
+                'mapel_2' => $mapel2 ?: '—',
+                'mapel_12' => $mapel12Text,
                 'mapel_36' => $jadwal36?->nama_mapel,
                 'rooms' => $roomAssignments,
             ];
@@ -699,354 +785,93 @@ class JadwalUjianController extends Controller
             ];
         }
 
+        $distinctMapels = [];
+        foreach ($jadwals as $j) {
+            $code = $j->subject?->code
+                ?: ($j->nama_mapel ? strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $j->nama_mapel), 0, 4)) : '—');
+            $name = $j->nama_mapel ?: '-';
+            if ($code && $code !== '—' && ! isset($distinctMapels[$code])) {
+                $distinctMapels[$code] = $name;
+            }
+        }
+        ksort($distinctMapels);
+        $legendMapel = [];
+        foreach ($distinctMapels as $code => $name) {
+            $legendMapel[] = [
+                'code' => $code,
+                'nama' => $name,
+            ];
+        }
+
         return [
             'rows' => $rows,
             'legend' => $legend,
+            'legend_mapel' => $legendMapel,
             'room_codes' => $roomCodes,
         ];
     }
 
-    public function downloadTemplate(Request $request): StreamedResponse
+    public function downloadTemplate(Request $request, JadwalExcelTemplateService $templateService): StreamedResponse
     {
-        $spreadsheet = new Spreadsheet;
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Jadwal Ujian');
+        $kelompok = $request->query('kelompok');
 
-        // Headers
-        $headers = [
-            'A1' => 'No',
-            'B1' => 'Matapelajaran',
-            'C1' => 'tanggal(dd-mm-yyyy)',
-            'D1' => 'sesi',
-            'E1' => 'Kelas',
-        ];
+        if (! $kelompok) {
+            $spreadsheet = $templateService->buildLegacy();
+            $filename = 'template_jadwal_ujian.xlsx';
+        } else {
+            $periodeId = $request->query('periode_id');
+            $periode = $periodeId
+                ? UjianPeriode::find($periodeId)
+                : (UjianPeriode::where('is_active', true)->first() ?: UjianPeriode::first());
 
-        foreach ($headers as $cell => $value) {
-            $sheet->setCellValue($cell, $value);
-        }
-
-        // Header Styling
-        $headerStyle = [
-            'font' => [
-                'bold' => true,
-                'color' => ['rgb' => '000000'],
-                'size' => 11,
-            ],
-            'fill' => [
-                'fillType' => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'FFD43B'], // Kuning Neo-Brutalist
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER,
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_MEDIUM,
-                    'color' => ['rgb' => '000000'],
-                ],
-            ],
-        ];
-        $sheet->getStyle('A1:E1')->applyFromArray($headerStyle);
-        $sheet->getRowDimension(1)->setRowHeight(28);
-
-        // Ambil Data Referensi Mapel & Sesi
-        $subjects = Subject::orderBy('name')->pluck('name')->toArray();
-        $sesis = UjianSesi::where('is_active', true)->orderBy('sesi_ke')->get();
-
-        // Sample Data
-        $sampleDate = now()->addDays(7)->format('d-m-Y');
-        $sampleRows = [
-            [1, $subjects[0] ?? "Al-Qur'an Hadis", $sampleDate, 1, '123'],
-            [2, $subjects[1] ?? 'Akidah Akhlak', $sampleDate, 2, '456'],
-            [3, $subjects[2] ?? 'Bahasa Indonesia', now()->addDays(8)->format('d-m-Y'), 1, '123456'],
-        ];
-
-        $rowIdx = 2;
-        foreach ($sampleRows as $row) {
-            $sheet->setCellValue("A{$rowIdx}", $row[0]);
-            $sheet->setCellValue("B{$rowIdx}", $row[1]);
-            $sheet->setCellValue("C{$rowIdx}", $row[2]);
-            $sheet->setCellValue("D{$rowIdx}", $row[3]);
-            $sheet->setCellValue("E{$rowIdx}", $row[4]);
-            $rowIdx++;
-        }
-
-        // Apply borders & alignment to sample data
-        $dataStyle = [
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => '000000'],
-                ],
-            ],
-        ];
-        $sheet->getStyle("A2:E{$rowIdx}")->applyFromArray($dataStyle);
-        $sheet->getStyle("A2:A{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("C2:E{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-        // Sheet Referensi Bantuan untuk Dropdown Mapel & Petunjuk
-        $refSheet = $spreadsheet->createSheet();
-        $refSheet->setTitle('Referensi');
-        $refSheet->setCellValue('A1', 'Daftar Mata Pelajaran');
-        $refSheet->setCellValue('B1', 'Daftar Sesi Ujian');
-        $refSheet->setCellValue('C1', 'Petunjuk Format Kelas / Tingkat');
-        $refSheet->getStyle('A1:C1')->getFont()->setBold(true);
-
-        $refRow = 2;
-        foreach ($subjects as $sName) {
-            $refSheet->setCellValue("A{$refRow}", $sName);
-            $refRow++;
-        }
-        $maxSubjectRow = max(2, $refRow - 1);
-
-        $sesiRow = 2;
-        foreach ($sesis as $s) {
-            $refSheet->setCellValue("B{$sesiRow}", "Sesi {$s->sesi_ke} (".substr($s->jam_mulai, 0, 5).' - '.substr($s->jam_selesai, 0, 5).')');
-            $sesiRow++;
-        }
-
-        $petunjuk = [
-            '123 : Tingkat 1, 2, 3 (Kelas Rendah)',
-            '456 : Tingkat 4, 5, 6 (Kelas Atas)',
-            '123456 : Semua Tingkat (Kelas 1 s/d 6)',
-            '1, 2, 3 : Format koma juga didukung',
-            '6A, 6B : Nama rombel spesifik',
-        ];
-        foreach ($petunjuk as $pIdx => $pText) {
-            $refSheet->setCellValue('C'.($pIdx + 2), $pText);
-        }
-
-        foreach (range('A', 'C') as $col) {
-            $refSheet->getColumnDimension($col)->setAutoSize(true);
-        }
-
-        // Data Validation untuk Kolom B, D, E
-        if (! empty($subjects)) {
-            for ($r = 2; $r <= 100; $r++) {
-                $validation = $sheet->getCell("B{$r}")->getDataValidation();
-                $validation->setType(DataValidation::TYPE_LIST);
-                $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $validation->setAllowBlank(false);
-                $validation->setShowInputMessage(true);
-                $validation->setShowErrorMessage(true);
-                $validation->setShowDropDown(true);
-                $validation->setErrorTitle('Pilihan Mata Pelajaran');
-                $validation->setError('Pilih mata pelajaran dari daftar atau ketik nama mapel.');
-                $validation->setPromptTitle('Mata Pelajaran');
-                $validation->setPrompt('Pilih mata pelajaran dari daftar pilihan.');
-                $validation->setFormula1("Referensi!\$A\$2:\$A\${$maxSubjectRow}");
-
-                // Data Validation untuk Kolom D (Sesi)
-                $validationSesi = $sheet->getCell("D{$r}")->getDataValidation();
-                $validationSesi->setType(DataValidation::TYPE_LIST);
-                $validationSesi->setErrorStyle(DataValidation::STYLE_STOP);
-                $validationSesi->setShowDropDown(true);
-                $validationSesi->setFormula1('"1, 2, 3, 4"');
-
-                // Data Validation untuk Kolom E (Kelas)
-                $validationKelas = $sheet->getCell("E{$r}")->getDataValidation();
-                $validationKelas->setType(DataValidation::TYPE_LIST);
-                $validationKelas->setErrorStyle(DataValidation::STYLE_INFORMATION);
-                $validationKelas->setShowDropDown(true);
-                $validationKelas->setFormula1('"123, 456, 123456, 1, 2, 3, 4, 5, 6"');
+            if (! $periode) {
+                abort(404, 'Periode ujian tidak ditemukan.');
             }
-        }
 
-        // Auto-width columns di sheet utama
-        foreach (range('A', 'E') as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+            $config = $periode->getKelompokConfig($kelompok);
+            $spreadsheet = $templateService->build($periode, $kelompok, $config);
+            $filename = $templateService->filename($periode, $kelompok);
         }
-
-        $spreadsheet->setActiveSheetIndex(0);
 
         return response()->streamDownload(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
             $writer->save('php://output');
-        }, 'template_jadwal_ujian.xlsx', [
+        }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'max-age=0, no-cache, must-revalidate, proxy-revalidate',
         ]);
     }
 
-    public function import(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
-        ], [
-            'ujian_periode_id.required' => 'Periode ujian wajib dipilih.',
-            'file.required' => 'File Excel wajib diunggah.',
-            'file.mimes' => 'Format file harus berupa Excel (.xlsx, .xls) atau .csv.',
-            'file.max' => 'Ukuran file maksimal adalah 5MB.',
-        ]);
-
+    public function import(
+        ImportJadwalExcelRequest $request,
+        JadwalExcelImportService $importService
+    ): RedirectResponse {
         try {
-            $file = $request->file('file');
-            $spreadsheet = IOFactory::load($file->getRealPath());
-            $sheet = $spreadsheet->getActiveSheet();
-            $rows = $sheet->toArray(null, true, true, true);
+            $result = $importService->import(
+                $request->file('file'),
+                (int) $request->input('ujian_periode_id')
+            );
 
-            if (count($rows) <= 1) {
-                return back()->with('error', 'File Excel kosong atau tidak memiliki baris data jadwal.');
-            }
-
-            $periodeId = (int) $request->input('ujian_periode_id');
-            $sessions = UjianSesi::all()->keyBy('sesi_ke');
-            $subjects = Subject::all();
-            $classes = SchoolClass::all();
-
-            $importedCount = 0;
-            $skipped = [];
-
-            DB::transaction(function () use (
-                $rows,
-                $periodeId,
-                $sessions,
-                $subjects,
-                $classes,
-                &$importedCount,
-                &$skipped
-            ) {
-                foreach ($rows as $index => $row) {
-                    if ($index === 1) {
-                        continue; // Lewati header
-                    }
-
-                    $mapelName = trim((string) ($row['B'] ?? ''));
-                    $tanggalRaw = trim((string) ($row['C'] ?? ''));
-                    $sesiRaw = trim((string) ($row['D'] ?? '1'));
-                    $kelasRaw = trim((string) ($row['E'] ?? ''));
-
-                    // Lewati baris kosong
-                    if ($mapelName === '' && $tanggalRaw === '' && $kelasRaw === '') {
-                        continue;
-                    }
-
-                    if ($mapelName === '' || $tanggalRaw === '' || $kelasRaw === '') {
-                        $skipped[] = "Baris {$index}: Kolom Mata Pelajaran, Tanggal, atau Kelas tidak boleh kosong.";
-
-                        continue;
-                    }
-
-                    // 1. Parsing Tanggal
-                    $tanggalUjian = null;
-                    if (is_numeric($tanggalRaw)) {
-                        try {
-                            $tanggalUjian = Carbon::instance(ExcelDate::excelToDateTimeObject((float) $tanggalRaw));
-                        } catch (\Throwable) {
-                            $tanggalUjian = null;
-                        }
-                    } else {
-                        try {
-                            $tanggalUjian = Carbon::createFromFormat('d-m-Y', $tanggalRaw);
-                        } catch (\Throwable) {
-                            try {
-                                $tanggalUjian = Carbon::parse($tanggalRaw);
-                            } catch (\Throwable) {
-                                $tanggalUjian = null;
-                            }
-                        }
-                    }
-
-                    if (! $tanggalUjian) {
-                        $skipped[] = "Baris {$index}: Format tanggal '{$tanggalRaw}' tidak valid (gunakan format dd-mm-yyyy).";
-
-                        continue;
-                    }
-
-                    // 2. Parsing Sesi & Jam Mulai/Selesai
-                    $sesiKe = max(1, (int) preg_replace('/\D/', '', $sesiRaw));
-                    $sesiObj = $sessions->get($sesiKe) ?? $sessions->first();
-                    $jamMulai = $sesiObj ? substr($sesiObj->jam_mulai, 0, 5) : '07:30';
-                    $jamSelesai = $sesiObj ? substr($sesiObj->jam_selesai, 0, 5) : '09:30';
-                    $durasiMenit = $sesiObj ? (int) $sesiObj->durasi_menit : 120;
-
-                    // 3. Resolusi Mata Pelajaran
-                    $matchedSubject = $subjects->first(function ($s) use ($mapelName) {
-                        return strcasecmp($s->name, $mapelName) === 0 || strcasecmp($s->code ?? '', $mapelName) === 0;
-                    });
-                    $subjectId = $matchedSubject?->id;
-                    $namaMapelKustom = $matchedSubject ? null : $mapelName;
-
-                    // 4. Resolusi Kelas / Tingkat
-                    $schoolClassId = null;
-                    $tingkat = null;
-
-                    $matchedClass = $classes->first(function ($c) use ($kelasRaw) {
-                        return strcasecmp($c->name, $kelasRaw) === 0;
-                    });
-
-                    if ($matchedClass) {
-                        $schoolClassId = $matchedClass->id;
-                        $tingkat = null;
-                    } else {
-                        $cleanStr = strtolower(trim($kelasRaw));
-                        if (in_array($cleanStr, ['123456', 'semua', 'semua kelas', '1-6'], true)) {
-                            $tingkat = '1, 2, 3, 4, 5, 6';
-                        } elseif (in_array($cleanStr, ['123', '1-3', 'rendah'], true)) {
-                            $tingkat = '1, 2, 3';
-                        } elseif (in_array($cleanStr, ['456', '4-6', 'atas'], true)) {
-                            $tingkat = '4, 5, 6';
-                        } else {
-                            preg_match_all('/[1-6]/', $cleanStr, $digits);
-                            $uniqueDigits = array_unique($digits[0] ?? []);
-                            sort($uniqueDigits, SORT_NATURAL);
-                            $tingkat = ! empty($uniqueDigits) ? implode(', ', $uniqueDigits) : $kelasRaw;
-                        }
-                    }
-
-                    // 5. Cek Bentrok Jadwal Kelas / Tingkat
-                    $conflict = $this->conflictService->checkClassScheduleConflict(
-                        $periodeId,
-                        $schoolClassId,
-                        $tingkat,
-                        $tanggalUjian->format('Y-m-d'),
-                        $jamMulai,
-                        $jamSelesai
-                    );
-
-                    if ($conflict) {
-                        $targetStr = $conflict->schoolClass?->name ?? ($conflict->tingkat ? "Tingkat {$conflict->tingkat}" : 'Semua');
-                        $skipped[] = "Baris {$index}: Bentrok dengan jadwal {$conflict->nama_mapel} ({$targetStr}) pada {$tanggalUjian->format('d/m/Y')} ({$jamMulai}-{$jamSelesai}).";
-
-                        continue;
-                    }
-
-                    UjianJadwal::create([
-                        'ujian_periode_id' => $periodeId,
-                        'subject_id' => $subjectId,
-                        'nama_mapel_kustom' => $namaMapelKustom,
-                        'school_class_id' => $schoolClassId,
-                        'tingkat' => $tingkat,
-                        'tanggal_ujian' => $tanggalUjian->format('Y-m-d'),
-                        'jam_mulai' => $jamMulai,
-                        'jam_selesai' => $jamSelesai,
-                        'sesi_ke' => $sesiKe,
-                        'durasi_menit' => $durasiMenit,
-                        'jenis_soal' => 'Tertulis',
-                        'catatan' => 'Import Template Excel',
-                    ]);
-
-                    $importedCount++;
+            if ($result['imported'] > 0) {
+                $msg = "Berhasil mengimpor {$result['imported']} slot jadwal ujian ({$result['format']}).";
+                if (($result['replaced'] ?? 0) > 0) {
+                    $msg .= " Menimpa {$result['replaced']} slot jadwal sebelumnya.";
                 }
-            });
-
-            if ($importedCount > 0) {
-                $msg = "Berhasil mengimpor {$importedCount} slot jadwal ujian.";
-                if (! empty($skipped)) {
-                    $msg .= ' Namun '.count($skipped).' baris dilewati: '.implode('; ', array_slice($skipped, 0, 3));
+                if (! empty($result['skipped'])) {
+                    $msg .= ' Namun '.count($result['skipped']).' baris dilewati: '.implode('; ', array_slice($result['skipped'], 0, 3));
                 }
 
                 return back()->with('success', $msg);
             }
 
             $errMsg = 'Tidak ada jadwal yang berhasil diimpor.';
-            if (! empty($skipped)) {
-                $errMsg .= ' Alasan: '.implode('; ', array_slice($skipped, 0, 3));
+            if (! empty($result['skipped'])) {
+                $errMsg .= ' Alasan: '.implode('; ', array_slice($result['skipped'], 0, 3));
             }
 
             return back()->with('error', $errMsg);
+        } catch (\DomainException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
             return back()->with('error', 'Gagal memproses file Excel: '.$e->getMessage());
         }

@@ -26,11 +26,14 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
         Route::prefix('jenis-ujian')->name('jenis.')->group(function () {
             Route::get('/', [JenisUjianController::class, 'index'])->name('index');
             Route::post('/', [JenisUjianController::class, 'storeJenis'])->name('store');
+            Route::post('/pemetaan-hari', [JenisUjianController::class, 'storePemetaanHari'])->name('pemetaan-hari.store');
+            Route::post('/pemetaan-hari/preview', [JenisUjianController::class, 'previewPemetaanHari'])->name('pemetaan-hari.preview');
             Route::put('/{jeni}', [JenisUjianController::class, 'updateJenis'])->name('update');
         });
 
         Route::prefix('periode')->name('periode.')->group(function () {
             Route::post('/', [JenisUjianController::class, 'storePeriode'])->name('store');
+            Route::put('/{periode}', [JenisUjianController::class, 'updatePeriode'])->name('update');
             Route::post('/{periode}/activate', [JenisUjianController::class, 'activatePeriode'])->name('activate');
         });
 

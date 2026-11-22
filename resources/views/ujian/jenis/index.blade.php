@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="space-y-6">
-    {{-- Header --}}
+    {{-- Header Card --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
         <div>
             <div class="flex items-center gap-2 mb-1">
@@ -17,7 +17,7 @@
                 Jenis Asesmen & Periode Ujian
             </h1>
             <p class="text-xs font-semibold text-slate-600 mt-0.5">
-                Mengelola master jenis asesmen Kurikulum Merdeka (SLM, STS, SAS, SAT, UM) serta penetapan kalender periode ujian aktif.
+                Mengelola master jenis asesmen Kurikulum Merdeka (SLM, STS, SAS, SAT, UM), penetapan periode aktif, dan pemetaan kalender ujian per kelompok.
             </p>
         </div>
 
@@ -35,133 +35,51 @@
         </div>
     </div>
 
-    {{-- Alerts --}}
+    {{-- Flash Alerts --}}
     @if(session('success'))
         <div class="p-4 bg-[#D3F9D8] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-emerald-950 font-bold text-xs flex items-center justify-between">
             <div class="flex items-center gap-2"><span>✅</span><span>{{ session('success') }}</span></div>
             <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black">✕</button>
         </div>
     @endif
-
-    {{-- 1. Daftar Periode Pelaksanaan Ujian --}}
-    <div class="p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
-        <div class="pb-3 border-b-2 border-black flex items-center justify-between">
-            <h2 class="text-base font-black font-heading text-black flex items-center gap-2">
-                <span>🗓️</span>
-                <span>Daftar Periode Pelaksanaan Ujian</span>
-            </h2>
-            <span class="text-xs font-bold text-slate-500">Total: {{ $periodes->count() }} Periode</span>
+    @if(session('error'))
+        <div class="p-4 bg-[#FFE3E3] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-rose-950 font-bold text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2"><span>⚠️</span><span>{{ session('error') }}</span></div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-xs font-black">✕</button>
         </div>
+    @endif
 
-        <div class="mt-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse border-2 border-black">
-                <thead class="bg-slate-100 uppercase font-black text-black border-b-2 border-black">
-                    <tr>
-                        <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                        <th class="p-2.5 border-r border-black">Nama Periode Ujian</th>
-                        <th class="p-2.5 border-r border-black">Jenis Asesmen</th>
-                        <th class="p-2.5 border-r border-black text-center">Tahun Ajaran / Sem</th>
-                        <th class="p-2.5 border-r border-black text-center">Rentang Tanggal</th>
-                        <th class="p-2.5 border-r border-black text-center">Status</th>
-                        <th class="p-2.5 text-center w-36">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-black font-medium">
-                    @forelse($periodes as $idx => $p)
-                        <tr class="hover:bg-amber-50/50 {{ $p->is_active ? 'bg-emerald-50/60 font-semibold' : '' }}">
-                            <td class="p-2.5 border-r border-black text-center font-bold">{{ $idx + 1 }}</td>
-                            <td class="p-2.5 border-r border-black font-bold text-black">
-                                {{ $p->nama_periode }}
-                            </td>
-                            <td class="p-2.5 border-r border-black">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 border border-black">
-                                    {{ $p->jenis?->nama_jenis }}
-                                </span>
-                            </td>
-                            <td class="p-2.5 border-r border-black text-center font-mono">
-                                {{ $p->tahun_pelajaran }} ({{ $p->semester }})
-                            </td>
-                            <td class="p-2.5 border-r border-black text-center font-mono text-[11px]">
-                                {{ $p->tanggal_mulai ? $p->tanggal_mulai->format('d/m/Y') : '-' }} s.d. {{ $p->tanggal_selesai ? $p->tanggal_selesai->format('d/m/Y') : '-' }}
-                            </td>
-                            <td class="p-2.5 border-r border-black text-center">
-                                @if($p->is_active)
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-black bg-[#20C997] text-white border border-black shadow-[1px_1px_0px_0px_#000]">
-                                        AKTIF
-                                    </span>
-                                @else
-                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700 border border-slate-400">
-                                        Nonaktif
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="p-2.5 text-center flex items-center justify-center gap-1.5">
-                                @if(! $p->is_active)
-                                    <form action="{{ route('ujian.periode.activate', $p) }}" method="POST">
-                                        @csrf
-                                        <button type="submit" class="px-2 py-1 bg-[#20C997] hover:bg-emerald-400 text-white rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
-                                            Aktifkan
-                                        </button>
-                                    </form>
-                                @endif
-                                <a href="{{ route('ujian.kartu.index', ['periode_id' => $p->id]) }}" class="px-2 py-1 bg-[#FFD43B] text-black rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000]">
-                                    Peserta
-                                </a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="p-6 text-center text-slate-500 italic">Belum ada periode ujian yang dibuat.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    {{-- Navigasi Tab Neo-Brutalism --}}
+    @php
+        $tabs = [
+            'periode' => ['label' => 'Periode Pelaksanaan', 'icon' => '🗓️'],
+            'jenis' => ['label' => 'Master Jenis Asesmen', 'icon' => '📚'],
+            'pemetaan-hari' => ['label' => 'Pemetaan Hari & Sesi Ujian', 'icon' => '⏱️'],
+        ];
+    @endphp
+
+    <div class="flex items-center gap-2 border-b-3 border-black pb-0 overflow-x-auto">
+        @foreach($tabs as $key => $tab)
+            @php $isActive = ($activeTab === $key); @endphp
+            <a href="{{ route('ujian.jenis.index', ['tab' => $key, 'periode_id' => $selectedPeriodeId]) }}"
+               class="px-4 py-2.5 rounded-t-xl border-t-3 border-x-3 border-black font-black text-xs flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap {{ $isActive ? 'bg-white text-black shadow-[2px_-2px_0px_0px_#000] -mb-[3px] border-b-3 border-b-white z-10' : 'bg-slate-100 hover:bg-slate-200 text-slate-700' }}">
+                <span>{{ $tab['icon'] }}</span>
+                <span>{{ $tab['label'] }}</span>
+                @if($key === 'pemetaan-hari' && $configs->isNotEmpty())
+                    <span class="w-2 h-2 rounded-full bg-[#20C997] border border-black"></span>
+                @endif
+            </a>
+        @endforeach
     </div>
 
-    {{-- 2. Master Jenis Asesmen Kurikulum Merdeka --}}
-    <div class="p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
-        <div class="pb-3 border-b-2 border-black flex items-center justify-between">
-            <h2 class="text-base font-black font-heading text-black flex items-center gap-2">
-                <span>📚</span>
-                <span>Daftar Master Jenis Asesmen (Kurikulum Merdeka)</span>
-            </h2>
-            <span class="text-xs font-bold text-slate-500">Total: {{ $jenisList->count() }} Jenis</span>
-        </div>
-
-        <div class="mt-4 overflow-x-auto">
-            <table class="w-full text-xs text-left border-collapse border-2 border-black">
-                <thead class="bg-slate-100 uppercase font-black text-black border-b-2 border-black">
-                    <tr>
-                        <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                        <th class="p-2.5 border-r border-black w-24">Kode</th>
-                        <th class="p-2.5 border-r border-black">Nama Jenis Asesmen</th>
-                        <th class="p-2.5 border-r border-black">Kategori Kurikulum</th>
-                        <th class="p-2.5 border-r border-black">Fase Sasaran</th>
-                        <th class="p-2.5 border-r border-black">Teks Kop Kartu (Kop 2)</th>
-                        <th class="p-2.5 border-r border-black text-center">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-black font-medium">
-                    @foreach($jenisList as $idx => $j)
-                        <tr class="hover:bg-amber-50/50">
-                            <td class="p-2.5 border-r border-black text-center font-bold">{{ $idx + 1 }}</td>
-                            <td class="p-2.5 border-r border-black font-mono font-bold">{{ $j->kode_jenis }}</td>
-                            <td class="p-2.5 border-r border-black font-bold text-black">{{ $j->nama_jenis }}</td>
-                            <td class="p-2.5 border-r border-black">{{ $j->kategori_kurikulum }}</td>
-                            <td class="p-2.5 border-r border-black font-semibold text-slate-700">{{ $j->fase_sasaran }}</td>
-                            <td class="p-2.5 border-r border-black text-[11px] font-bold text-slate-800">{{ $j->judul_kop_kartu ?: '-' }}</td>
-                            <td class="p-2.5 border-r border-black text-center">
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $j->status_aktif ? 'bg-emerald-100 text-emerald-950 border border-emerald-600' : 'bg-slate-100 text-slate-500' }}">
-                                    {{ $j->status_aktif ? 'Aktif' : 'Nonaktif' }}
-                                </span>
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </div>
+    {{-- Konten Tab Aktif --}}
+    @if($activeTab === 'periode')
+        @include('ujian.jenis.partials._tab-periode')
+    @elseif($activeTab === 'jenis')
+        @include('ujian.jenis.partials._tab-jenis')
+    @elseif($activeTab === 'pemetaan-hari')
+        @include('ujian.jenis.partials._tab-pemetaan-hari')
+    @endif
 </div>
 
 {{-- Modal Tambah Periode --}}
@@ -239,6 +157,83 @@
     </div>
 </div>
 
+{{-- Modal Edit Periode --}}
+<div id="modalEditPeriode" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b-2 border-black mb-4">
+            <h3 class="text-sm font-black font-heading text-black flex items-center gap-2">
+                <span>✏️</span>
+                <span>Edit Periode Pelaksanaan Ujian</span>
+            </h3>
+            <button type="button" onclick="closeEditPeriodeModal()" class="text-sm font-black text-slate-500 hover:text-black">✕</button>
+        </div>
+
+        <form id="formEditPeriode" action="" method="POST" class="space-y-3 text-xs font-semibold">
+            @csrf
+            @method('PUT')
+
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Pilih Jenis Asesmen</label>
+                <select name="ujian_jenis_id" id="edit_ujian_jenis_id" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                    @foreach($jenisList as $j)
+                        <option value="{{ $j->id }}">{{ $j->nama_jenis }} ({{ $j->kode_jenis }})</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-slate-700 font-bold mb-1">Nama Periode Ujian</label>
+                <input type="text" name="nama_periode" id="edit_nama_periode" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Tahun Pelajaran</label>
+                    <input type="text" name="tahun_pelajaran" id="edit_tahun_pelajaran" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Semester</label>
+                    <select name="semester" id="edit_semester" required class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                        <option value="Ganjil">Ganjil</option>
+                        <option value="Genap">Genap</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Tanggal Mulai</label>
+                    <input type="date" name="tanggal_mulai" id="edit_tanggal_mulai" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Tanggal Selesai</label>
+                    <input type="date" name="tanggal_selesai" id="edit_tanggal_selesai" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Tempat Cetak Kartu</label>
+                    <input type="text" name="tempat_cetak" id="edit_tempat_cetak" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+                <div>
+                    <label class="block text-slate-700 font-bold mb-1">Tanggal Cetak Kartu</label>
+                    <input type="date" name="tanggal_cetak_kartu" id="edit_tanggal_cetak_kartu" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+                </div>
+            </div>
+
+            <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
+                <button type="button" onclick="closeEditPeriodeModal()" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
+                    Batal
+                </button>
+                <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-white bg-[#4DABF7] hover:bg-blue-500 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
+                    Perbarui Periode
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 {{-- Modal Tambah Jenis Asesmen --}}
 <div id="modalTambahJenis" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
     <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
@@ -303,4 +298,32 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+    <script>
+        function openEditPeriodeModal(data) {
+            const modal = document.getElementById('modalEditPeriode');
+            const form = document.getElementById('formEditPeriode');
+            if (!modal || !form) return;
+
+            form.action = data.update_url;
+            document.getElementById('edit_ujian_jenis_id').value = data.ujian_jenis_id || '';
+            document.getElementById('edit_nama_periode').value = data.nama_periode || '';
+            document.getElementById('edit_tahun_pelajaran').value = data.tahun_pelajaran || '';
+            document.getElementById('edit_semester').value = data.semester || 'Ganjil';
+            document.getElementById('edit_tanggal_mulai').value = data.tanggal_mulai || '';
+            document.getElementById('edit_tanggal_selesai').value = data.tanggal_selesai || '';
+            document.getElementById('edit_tempat_cetak').value = data.tempat_cetak || 'Tanggamus';
+            document.getElementById('edit_tanggal_cetak_kartu').value = data.tanggal_cetak_kartu || '';
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeEditPeriodeModal() {
+            const modal = document.getElementById('modalEditPeriode');
+            if (modal) modal.classList.add('hidden');
+        }
+    </script>
+    @include('ujian.jenis.partials._pemetaan-scripts')
+@endpush
 @endsection

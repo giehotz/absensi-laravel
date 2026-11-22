@@ -1,27 +1,34 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jadwal Pengawas Ruang Matriks - {{ ($kelompok ?? '3-6') === '1-2' ? 'Sheet 4 (Kelas 1–2)' : 'Sheet 3 (Kelas 3–6)' }}</title>
+<x-print-preview-layout 
+    :title="'Jadwal Pengawas Ruang Matriks - ' . (($kelompok ?? '3-6') === '1-2' ? 'Sheet 4 (Kelas 1–2)' : (($kelompok ?? '3-6') === '3-6' ? 'Sheet 3 (Kelas 3–6)' : 'Rekap Semua (1–6)'))"
+    orientation="landscape"
+    paperSize="A4"
+    :backUrl="route('ujian.pengawas.index')"
+    pageMargin="3mm 5mm 3mm 5mm"
+    sheetClass="p-2 sm:p-3"
+>
+    <x-slot:actions>
+        <span class="text-[11px] font-bold text-slate-600 hidden sm:inline mr-1">Matriks:</span>
+        <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => '1-2', 'show_mapel' => 0]) }}"
+           class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ ($kelompok ?? '3-6') === '1-2' ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
+            📋 Sheet 4: Kelompok 1–2
+        </a>
+        <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => '3-6', 'show_mapel' => 1]) }}"
+           class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ ($kelompok ?? '3-6') === '3-6' ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
+            📊 Sheet 3: Kelompok 3–6
+        </a>
+        <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => 'all', 'show_mapel' => 1]) }}"
+           class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ in_array(($kelompok ?? '3-6'), ['all', '1-6'], true) ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
+            📊 Rekap Semua (1–6)
+        </a>
+    </x-slot:actions>
+
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 3mm 5mm 3mm 5mm;
-        }
-        * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-        }
-        body {
+        .sheet-matriks {
             font-family: 'Times New Roman', Times, serif;
             font-size: 7.5pt;
             line-height: 1.15;
             color: #000;
-            background: #fff;
-            margin: 0;
-            padding: 4px 6px;
+            width: 100%;
         }
         .judul-dokumen {
             text-align: center;
@@ -88,72 +95,18 @@
             margin-top: 1px !important;
         }
 
-        .rekap-sheet {
-            width: 100%;
-        }
-
-        .print-toolbar {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            background: #fff;
-            border: 2px solid #000;
-            padding: 6px 12px;
-            box-shadow: 2px 2px 0 0 #000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-family: sans-serif;
-            font-size: 11px;
-            z-index: 9999;
-        }
-        .btn-toolbar {
-            padding: 4px 10px;
-            border: 1px solid #000;
-            background: #f8fafc;
-            color: #000;
-            font-weight: bold;
-            text-decoration: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .btn-toolbar.active {
-            background: #FFD43B;
-        }
-        .btn-toolbar:hover {
-            background: #e2e8f0;
-        }
-        .btn-print {
-            background: #51CF66 !important;
-            color: #000 !important;
-            font-weight: 900;
-        }
-
         @media print {
-            .print-toolbar {
-                display: none !important;
+            .sheet-matriks {
+                max-height: 202mm !important;
+                overflow: hidden !important;
+                page-break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
         }
     </style>
-</head>
-<body>
-    {{-- Toolbar Cetak & Pilihan Format --}}
-    <div class="print-toolbar">
-        <span style="font-weight: bold;">Pilihan Cetak Matriks:</span>
-        <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => '3-6', 'show_mapel' => 1]) }}"
-           class="btn-toolbar {{ ($kelompok ?? '3-6') === '3-6' ? 'active' : '' }}">
-            📊 Sheet 3: Kelompok 3–6 (Mapel + Kode 1..N)
-        </a>
-        <a href="{{ route('ujian.pengawas.print-matriks', ['periode_id' => $activePeriode->id, 'kelompok' => '1-2', 'show_mapel' => 0]) }}"
-           class="btn-toolbar {{ ($kelompok ?? '3-6') === '1-2' ? 'active' : '' }}">
-            📋 Sheet 4: Kelompok 1–2 (Kode 1..M)
-        </a>
-        <button type="button" onclick="window.print()" class="btn-toolbar btn-print">
-            🖨️ Cetak / Simpan PDF
-        </button>
-    </div>
 
-    <div class="rekap-sheet">
+    <div class="sheet-matriks">
         {{-- Kop Surat Resmi Lembaga Compact --}}
         <div class="kop-rekap-compact">
             <x-kop-surat :useBase64="true" />
@@ -161,7 +114,13 @@
 
         <div class="judul-dokumen">
             <h4>
-                {{ ($kelompok ?? '3-6') === '1-2' ? 'JADWAL PENGAWAS RUANG UJIAN (KELOMPOK KELAS 1–2)' : 'JADWAL PENGAWAS RUANG & MATA PELAJARAN UJIAN (KELOMPOK KELAS 3–6)' }}
+                @if(($kelompok ?? '3-6') === '1-2')
+                    JADWAL PENGAWAS RUANG UJIAN (KELOMPOK KELAS 1–2)
+                @elseif(($kelompok ?? '3-6') === '3-6')
+                    JADWAL PENGAWAS RUANG & MATA PELAJARAN UJIAN (KELOMPOK KELAS 3–6)
+                @else
+                    JADWAL PENGAWAS RUANG & MATA PELAJARAN UJIAN (SEMUA KELAS 1–6)
+                @endif
             </h4>
             <div style="font-size: 8pt; font-weight: bold; margin-top: 1px;">
                 {{ strtoupper($activePeriode->nama_periode ?? 'ASESMEN SUMATIF') }} - TAHUN PELAJARAN {{ $activePeriode->tahun_pelajaran ?? '-' }}
@@ -194,20 +153,22 @@
                         </tr>
                         <tr>
                             @foreach($roomCodes ?? [] as $rc)
-                                <th style="min-width: 18px;">{{ substr($rc, 1) ?: $rc }}</th>
+                                <th style="min-width: 18px;">{{ strtoupper(substr($rc, 1) ?: $rc) }}</th>
                             @endforeach
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($rows as $r)
                             <tr>
-                                <td class="text-center font-bold">{{ $r['no'] }}</td>
-                                <td style="white-space: nowrap;">
-                                    @if($r['is_new_date'])
+                                @if($r['is_new_date'])
+                                    <td rowspan="{{ $r['date_rowspan'] ?? 1 }}" class="text-center font-bold" style="vertical-align: middle;">
+                                        {{ $r['no'] }}
+                                    </td>
+                                    <td rowspan="{{ $r['date_rowspan'] ?? 1 }}" style="white-space: nowrap; vertical-align: middle; text-align: center;">
                                         <strong>{{ $r['tanggal']->locale('id')->translatedFormat('l') }},</strong><br>
                                         {{ $r['tanggal']->format('d/m/Y') }}
-                                    @endif
-                                </td>
+                                    </td>
+                                @endif
                                 <td class="text-center font-bold">{{ $r['sesi_ke'] }}</td>
                                 @if($showMapel)
                                     <td class="font-bold">{{ $r['mapel'] ?: '—' }}</td>
@@ -220,8 +181,20 @@
                                     @if($val === null)
                                         <td class="bg-shaded"></td>
                                     @else
-                                        <td class="text-center font-bold {{ $val === '-' ? 'text-slate-400' : '' }}" style="font-size: 7.5pt;">
-                                            {{ $val }}
+                                        @php
+                                            $isArr = is_array($val);
+                                            $pw = $isArr ? ($val['pengawas'] ?? '-') : $val;
+                                            $mpl = $isArr ? ($val['mapel'] ?? '—') : null;
+                                        @endphp
+                                        <td class="text-center font-bold {{ $pw === '-' ? 'text-slate-400' : '' }}" style="font-size: 7.2pt; padding: 2px 1px; vertical-align: middle;">
+                                            @if($isArr)
+                                                <div style="font-size: 7pt; font-weight: 800; line-height: 1.1; color: #0f172a;">{{ $mpl }}</div>
+                                                <div style="font-size: 6.8pt; line-height: 1.1; margin-top: 1.5px; font-weight: 700; color: {{ $pw === '-' ? '#94a3b8' : '#334155' }};">
+                                                    {{ $pw === '-' ? '-' : '[' . $pw . ']' }}
+                                                </div>
+                                            @else
+                                                {{ $val }}
+                                            @endif
                                         </td>
                                     @endif
                                 @endforeach
@@ -234,6 +207,28 @@
                     </tbody>
                 </table>
             </div>
+
+            @if(($kelompok ?? '3-6') === '1-2' && !empty($legendMapel))
+                {{-- Tabel Keterangan Kode & Mata Pelajaran (Setelah Tabel Kelas 2, Sebelum Tabel Kode Pengawas) --}}
+                <div style="width: 220px; flex-shrink: 0;">
+                    <table class="tabel-legenda">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px;" title="Kode Mata Pelajaran">KODE</th>
+                                <th>MATA PELAJARAN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($legendMapel as $lm)
+                                <tr>
+                                    <td class="text-center font-bold" style="font-size: 7.2pt;">{{ $lm['code'] }}</td>
+                                    <td style="font-size: 7pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;" title="{{ $lm['nama'] }}">{{ $lm['nama'] }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
 
             {{-- Tabel Legenda Pengawas Kanan --}}
             @php
@@ -306,25 +301,51 @@
             </div>
         </div>
 
-        {{-- Blok Tanda Tangan Resmi Compact --}}
-        <table style="width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 7.5pt;">
+        {{-- Blok Tanda Tangan 3 Pihak: Atas Kiri Ketua, Atas Kanan Sekretaris, Bawah Tengah Kepala Madrasah --}}
+        @php
+            $formattedTglCetak = $tanggalCetak instanceof \Carbon\Carbon 
+                ? $tanggalCetak->locale('id')->translatedFormat('d F Y') 
+                : \Carbon\Carbon::parse($tanggalCetak)->locale('id')->translatedFormat('d F Y');
+        @endphp
+        <table class="ttd-table" style="width: 100%; border-collapse: collapse; border: none; margin-top: 6px; font-size: 7.5pt;">
             <tr>
-                <td style="width: 50%; vertical-align: top; border: none; padding: 0 4px;">
-                    <div>Mengetahui,</div>
-                    <div style="font-weight: bold;">Kepala Madrasah</div>
+                <td style="width: 44%; text-align: center; vertical-align: top; border: none; padding: 0;">
+                    <div style="visibility: hidden; font-size: 7pt; line-height: 1.15;">&nbsp;</div>
+                    <div style="font-weight: bold;">Ketua</div>
                     <div style="height: 38px;"></div>
-                    <div style="font-weight: bold; text-decoration: underline;">{{ $namaKepala }}</div>
-                    <div>NIP. {{ $nipKepala }}</div>
+                    <div style="font-weight: bold; text-decoration: underline;">
+                        {{ $namaKetua }}
+                    </div>
+                    <div style="font-size: 7.2pt; margin-top: 1px;">
+                        NIP. {{ $nipKetua }}
+                    </div>
                 </td>
-                <td style="width: 50%; vertical-align: top; text-align: right; border: none; padding: 0 4px;">
-                    <div>{{ $tempatCetak }}, {{ $tanggalCetak instanceof \Carbon\Carbon ? $tanggalCetak->locale('id')->translatedFormat('d F Y') : \Carbon\Carbon::parse($tanggalCetak)->locale('id')->translatedFormat('d F Y') }}</div>
-                    <div style="font-weight: bold;">Ketua Panitia Ujian</div>
+                <td style="width: 12%; border: none;"></td>
+                <td style="width: 44%; text-align: center; vertical-align: top; border: none; padding: 0;">
+                    <div>{{ $tempatCetak }}, {{ $formattedTglCetak }}</div>
+                    <div style="font-weight: bold;">Sekretaris</div>
                     <div style="height: 38px;"></div>
-                    <div style="font-weight: bold; text-decoration: underline;">{{ $namaKetua }}</div>
-                    <div>NIP. {{ $nipKetua }}</div>
+                    <div style="font-weight: bold; text-decoration: underline;">
+                        {{ $namaSekretaris }}
+                    </div>
+                    <div style="font-size: 7.2pt; margin-top: 1px;">
+                        NIP. {{ $nipSekretaris ?? '' }}
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="3" style="text-align: center; vertical-align: top; border: none; padding-top: 6px;">
+                    <div>Mengetahui</div>
+                    <div style="font-weight: bold; margin-top: 1px;">Kepala Madrasah,</div>
+                    <div style="height: 38px;"></div>
+                    <div style="font-weight: bold; text-decoration: underline;">
+                        {{ $namaKepala }}
+                    </div>
+                    <div style="font-size: 7.2pt; margin-top: 1px;">
+                        NIP. {{ $nipKepala }}
+                    </div>
                 </td>
             </tr>
         </table>
     </div>
-</body>
-</html>
+</x-print-preview-layout>

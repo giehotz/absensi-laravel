@@ -373,20 +373,59 @@
 
         {{-- Tab 1: Form Excel --}}
         <div id="tabContentExcel">
-            <div class="p-3 bg-amber-50 border-2 border-black rounded-lg mb-3.5 text-xs">
-                <div class="font-black text-black flex items-center justify-between mb-1">
-                    <span>Unduh Format Template Excel:</span>
-                    <a href="{{ route('ujian.jadwal.template') }}" class="px-2.5 py-1 bg-[#FFD43B] hover:bg-yellow-400 text-black border border-black rounded font-black text-[11px] shadow-[1px_1px_0px_0px_#000] inline-flex items-center gap-1 cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-                        </svg>
-                        <span>Download Template</span>
+            <div class="p-3.5 bg-amber-50 border-2 border-black rounded-lg mb-3.5 text-xs space-y-2.5">
+                <div class="font-black text-black flex items-center justify-between">
+                    <span>Unduh Template Excel Resmi:</span>
+                    <span class="text-[10px] text-slate-500 font-normal">Sesuai Kalender Pemetaan</span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <a href="{{ route('ujian.jadwal.template', ['periode_id' => $activePeriode->id, 'kelompok' => 'bawah']) }}"
+                       class="px-2.5 py-1.5 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg font-black text-[11px] shadow-[1.5px_1.5px_0px_0px_#000] inline-flex items-center gap-1.5 cursor-pointer">
+                        <span>📥</span>
+                        <span>Template Kelas Bawah (1–2)</span>
+                    </a>
+                    <a href="{{ route('ujian.jadwal.template', ['periode_id' => $activePeriode->id, 'kelompok' => 'atas']) }}"
+                       class="px-2.5 py-1.5 bg-[#4DABF7] hover:bg-sky-400 text-black border-2 border-black rounded-lg font-black text-[11px] shadow-[1.5px_1.5px_0px_0px_#000] inline-flex items-center gap-1.5 cursor-pointer">
+                        <span>📥</span>
+                        <span>Template Kelas Atas (3–6)</span>
+                    </a>
+                    <a href="{{ route('ujian.jadwal.template') }}" title="Template Legacy 5 Kolom"
+                       class="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-black rounded font-bold text-[10px] inline-flex items-center gap-1">
+                        <span>Format Lama (5 Kolom)</span>
                     </a>
                 </div>
-                <p class="text-[11px] text-slate-700 font-medium leading-relaxed">
-                    Format: <strong class="font-bold">No | Matapelajaran | tanggal(dd-mm-yyyy) | sesi | Kelas</strong>.
-                    Tingkat kelas dapat diisi <code class="bg-amber-100 px-1 rounded font-bold">123</code>, <code class="bg-amber-100 px-1 rounded font-bold">456</code>, atau <code class="bg-amber-100 px-1 rounded font-bold">123456</code>.
+
+                @php
+                    $hasBawahConfig = isset($pemetaanConfigs['bawah']);
+                    $hasAtasConfig = isset($pemetaanConfigs['atas']);
+                @endphp
+
+                @if(! $hasBawahConfig || ! $hasAtasConfig)
+                    <div class="p-2 bg-yellow-100/80 border border-yellow-800 rounded text-[11px] text-yellow-950 flex items-start gap-1.5">
+                        <span class="shrink-0">⚠️</span>
+                        <div class="leading-tight">
+                            <span>Pemetaan kalender belum lengkap di Sub-Menu 1. Template akan menggunakan tanggal periode sebagai fallback.</span>
+                            <a href="{{ route('ujian.jenis.index', ['tab' => 'pemetaan-hari', 'periode_id' => $activePeriode->id]) }}" class="font-bold underline ml-1 text-black">
+                                Atur Pemetaan Hari & Sesi →
+                            </a>
+                        </div>
+                    </div>
+                @endif
+
+                <p class="text-[11px] text-slate-600 font-medium leading-relaxed">
+                    Sistem otomatis mendeteksi format template (v2 Bawah per rombel, v2 Atas per tingkat, atau template lama).
                 </p>
+
+                <div class="p-2.5 bg-blue-50 border-2 border-black rounded-lg text-[11px] text-blue-950 flex items-start gap-2">
+                    <span class="text-sm shrink-0">ℹ️</span>
+                    <div>
+                        <span class="font-bold">Mode Timpa Otomatis:</span>
+                        <span class="font-medium text-slate-700">
+                            Mengunggah template akan secara otomatis mengganti (menimpa) seluruh jadwal yang ada pada kelompok kelas tersebut (misal template Kelas Atas menimpa jadwal kelas 3–6), sehingga tidak memicu bentrok dengan jadwal lama.
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <form action="{{ route('ujian.jadwal.import') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs font-semibold">

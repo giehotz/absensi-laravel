@@ -69,6 +69,20 @@ class UjianPeriode extends Model
         return $this->hasOne(UjianPengaturanTtd::class, 'ujian_periode_id');
     }
 
+    public function kelompokConfigs(): HasMany
+    {
+        return $this->hasMany(UjianPeriodeKelompok::class, 'ujian_periode_id');
+    }
+
+    public function getKelompokConfig(string $kelompok): ?UjianPeriodeKelompok
+    {
+        if ($this->relationLoaded('kelompokConfigs')) {
+            return $this->kelompokConfigs->firstWhere('kelompok', $kelompok);
+        }
+
+        return $this->kelompokConfigs()->where('kelompok', $kelompok)->first();
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);

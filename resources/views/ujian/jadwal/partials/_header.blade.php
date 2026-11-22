@@ -76,7 +76,7 @@
                 </a>
                 <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'matriks_rombel', 'kelompok' => '1-2']) }}" target="_blank"
                    title="Cetak Jadwal Mapel per Rombel (Sheet 1: Kelompok 1–2)"
-                   class="px-4 py-2 bg-[#74C0FC] hover:bg-[#4DABF7] text-black text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer border-r-2 border-black transition-colors">
+                   class="px-3 sm:px-4 py-2 bg-[#74C0FC] hover:bg-[#4DABF7] text-black text-xs sm:text-sm font-black flex items-center gap-1.5 sm:gap-2 cursor-pointer border-r-2 border-black transition-colors">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#93C5FD"/>
                         <path d="M14 2v6h6" fill="#60A5FA"/>
@@ -85,15 +85,36 @@
                     </svg>
                     <span>Sheet 1</span>
                 </a>
-                <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap']) }}" target="_blank"
-                   title="Cetak Format Rekap Matriks 1 Lembar Landscape (Seperti jadwal.pdf)"
-                   class="px-4 py-2 bg-[#FFDE59] hover:bg-yellow-400 text-black text-xs sm:text-sm font-black flex items-center gap-2 cursor-pointer transition-colors">
+                <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'matriks_rombel', 'kelompok' => '3-6']) }}" target="_blank"
+                   title="Cetak Jadwal Mapel per Rombel (Sheet 2: Kelompok 3–6)"
+                   class="px-3 sm:px-4 py-2 bg-[#69DB7C] hover:bg-[#51CF66] text-black text-xs sm:text-sm font-black flex items-center gap-1.5 sm:gap-2 cursor-pointer border-r-2 border-black transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#86EFAC"/>
+                        <path d="M14 2v6h6" fill="#4ADE80"/>
+                        <line x1="8" y1="13" x2="16" y2="13" stroke="#166534" stroke-width="1.5"/>
+                        <line x1="8" y1="17" x2="13" y2="17" stroke="#166534" stroke-width="1.5"/>
+                    </svg>
+                    <span>Sheet 2</span>
+                </a>
+                <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap', 'kelompok' => '1-2']) }}" target="_blank"
+                   title="Cetak Format Rekap Pengawas Matriks Kelas 1–2"
+                   class="px-3 sm:px-3.5 py-2 bg-[#FFE066] hover:bg-[#FFD43B] text-black text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer border-r-2 border-black transition-colors">
+                    <span>Pengawas 1–2</span>
+                </a>
+                <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap', 'kelompok' => '3-6']) }}" target="_blank"
+                   title="Cetak Format Rekap Pengawas Matriks Kelas 3–6"
+                   class="px-3 sm:px-3.5 py-2 bg-[#FFD43B] hover:bg-yellow-400 text-black text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer border-r-2 border-black transition-colors">
+                    <span>Pengawas 3–6</span>
+                </a>
+                <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap', 'kelompok' => 'all']) }}" target="_blank"
+                   title="Cetak Format Rekap Pengawas Matriks Gabungan Semua Kelas (1–6)"
+                   class="px-3 sm:px-3.5 py-2 bg-[#FFA94D] hover:bg-[#FF922B] text-black text-xs sm:text-sm font-black flex items-center gap-1.5 cursor-pointer transition-colors">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none">
                         <rect x="3" y="12" width="4.5" height="9" rx="1" fill="#38BDF8"/>
                         <rect x="9.5" y="7" width="4.5" height="14" rx="1" fill="#4ADE80"/>
                         <rect x="16" y="3" width="4.5" height="18" rx="1" fill="#FBBF24"/>
                     </svg>
-                    <span>Rekap</span>
+                    <span>Rekap 1–6</span>
                 </a>
             </div>
 

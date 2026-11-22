@@ -1,20 +1,16 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Label Pintu Ruang - {{ $ruang->nama_ruang }}</title>
+<x-print-preview-layout 
+    :title="'Label Pintu Ruang - ' . $ruang->nama_ruang"
+    orientation="landscape"
+    paperSize="A4"
+    :backUrl="route('ujian.ruang.index')"
+    pageMargin="0.8cm"
+    sheetClass="p-4 sm:p-6"
+>
     <style>
-        @page {
-            size: A4 landscape;
-            margin: 0.8cm;
-        }
-        body {
+        .sheet-label-pintu {
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
             color: #000;
-            background: #fff;
+            width: 100%;
         }
         .banner-ruang {
             border: 4px solid #000;
@@ -27,7 +23,7 @@
         }
         .banner-ruang h1 {
             margin: 0;
-            font-size: 42pt;
+            font-size: 40pt;
             font-weight: 900;
             letter-spacing: 2px;
             text-transform: uppercase;
@@ -80,131 +76,108 @@
             font-weight: bold;
             background-color: #fff3cd;
         }
-        .print-toolbar {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            background: #FFD43B;
-            border: 2px solid #000;
-            padding: 8px 16px;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
-            box-shadow: 2px 2px 0 #000;
-            border-radius: 6px;
-            z-index: 999;
-        }
-        @media print {
-            .print-toolbar { display: none; }
-            body { padding: 0; }
-        }
     </style>
-</head>
-<body>
-    <button type="button" onclick="window.print()" class="print-toolbar">
-        🖨️ Cetak / Simpan PDF
-    </button>
 
-    <!-- Kop Surat Resmi -->
-    <x-kop-surat :useBase64="true" />
+    <div class="sheet-label-pintu">
+        <!-- Kop Surat Resmi -->
+        <x-kop-surat :useBase64="true" />
 
-    <!-- Banner Ruang Raksasa -->
-    <div class="banner-ruang">
-        <h1>{{ $ruang->nama_ruang }}</h1>
-        <div class="sub-banner">
-            {{ strtoupper($activePeriode->nama_periode ?? 'UJIAN MADRASAH') }}
-            @if($activePeriode && $activePeriode->tahun_pelajaran)
-                - TAHUN PELAJARAN {{ $activePeriode->tahun_pelajaran }}
-            @endif
+        <!-- Banner Ruang Raksasa -->
+        <div class="banner-ruang">
+            <h1>{{ $ruang->nama_ruang }}</h1>
+            <div class="sub-banner">
+                {{ strtoupper($activePeriode->nama_periode ?? 'UJIAN MADRASAH') }}
+                @if($activePeriode && $activePeriode->tahun_pelajaran)
+                    - TAHUN PELAJARAN {{ $activePeriode->tahun_pelajaran }}
+                @endif
+            </div>
+        </div>
+
+        @php
+            $nomorAwal = $pesertas->first()?->nomor_peserta ?? '-';
+            $nomorAkhir = $pesertas->last()?->nomor_peserta ?? '-';
+            $kelasUnik = $pesertas->pluck('nama_kelas')->filter()->unique()->implode(', ');
+            if (empty($kelasUnik)) {
+                $kelasUnik = $ruang->isKelas() && $ruang->schoolClass ? 'Kelas ' . $ruang->schoolClass->name : 'Semua Rombel Terdaftar';
+            }
+        @endphp
+
+        <table class="meta-grid">
+            <tr>
+                <td style="width: 20%;" class="font-bold">Daftar Rombel / Kelas</td>
+                <td style="width: 30%;" class="font-bold">: {{ $kelasUnik }}</td>
+                <td style="width: 20%;" class="font-bold">Rentang No. Peserta</td>
+                <td style="width: 30%;" class="font-bold font-mono">: {{ $nomorAwal }} s.d. {{ $nomorAkhir }}</td>
+            </tr>
+            <tr>
+                <td class="font-bold">Kapasitas Tempat Duduk</td>
+                <td>: {{ $ruang->kapasitas_maksimal }} Meja / Kursi</td>
+                <td class="font-bold">Jumlah Peserta Terdaftar</td>
+                <td class="font-bold">: {{ $pesertas->count() }} Siswa</td>
+            </tr>
+        </table>
+
+        <!-- Daftar Peserta 2 Kolom -->
+        @php
+            $half = (int) ceil($pesertas->count() / 2);
+            $col1 = $pesertas->slice(0, $half);
+            $col2 = $pesertas->slice($half);
+        @endphp
+
+        <div class="tabel-peserta-multi">
+            <table class="tabel-kolom">
+                <thead>
+                    <tr>
+                        <th style="width: 25px;">No</th>
+                        <th style="width: 45px;">Meja</th>
+                        <th style="width: 80px;">No. Peserta</th>
+                        <th>Nama Peserta</th>
+                        <th style="width: 60px;">Kelas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($col1 as $idx => $p)
+                        <tr>
+                            <td class="text-center">{{ $idx + 1 }}</td>
+                            <td class="text-center font-bold">{{ $p->nomor_kursi }}</td>
+                            <td class="text-center font-mono font-bold">{{ $p->nomor_peserta }}</td>
+                            <td class="font-bold">{{ $p->nama_peserta }}</td>
+                            <td class="text-center">{{ $p->nama_kelas ?? ($p->schoolClass?->name ?? '') }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center" style="padding: 10px;">Belum ada peserta yang dialokasikan di ruang ini.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            <table class="tabel-kolom">
+                <thead>
+                    <tr>
+                        <th style="width: 25px;">No</th>
+                        <th style="width: 45px;">Meja</th>
+                        <th style="width: 80px;">No. Peserta</th>
+                        <th>Nama Peserta</th>
+                        <th style="width: 60px;">Kelas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($col2 as $idx => $p)
+                        <tr>
+                            <td class="text-center">{{ $half + $loop->iteration }}</td>
+                            <td class="text-center font-bold">{{ $p->nomor_kursi }}</td>
+                            <td class="text-center font-mono font-bold">{{ $p->nomor_peserta }}</td>
+                            <td class="font-bold">{{ $p->nama_peserta }}</td>
+                            <td class="text-center">{{ $p->nama_kelas ?? ($p->schoolClass?->name ?? '') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div class="peringatan-box">
+            ⚠️ PERHATIAN: Peserta dilarang membawa tas, buku, catatan, handphone (HP), atau perangkat elektronik lainnya ke dalam ruang ujian. Harap duduk sesuai nomor meja masing-masing.
         </div>
     </div>
-
-    @php
-        $nomorAwal = $pesertas->first()?->nomor_peserta ?? '-';
-        $nomorAkhir = $pesertas->last()?->nomor_peserta ?? '-';
-        $kelasUnik = $pesertas->pluck('nama_kelas')->filter()->unique()->implode(', ');
-        if (empty($kelasUnik)) {
-            $kelasUnik = $ruang->isKelas() && $ruang->schoolClass ? 'Kelas ' . $ruang->schoolClass->name : 'Semua Rombel Terdaftar';
-        }
-    @endphp
-
-    <table class="meta-grid">
-        <tr>
-            <td style="width: 20%;" class="font-bold">Daftar Rombel / Kelas</td>
-            <td style="width: 30%;" class="font-bold">: {{ $kelasUnik }}</td>
-            <td style="width: 20%;" class="font-bold">Rentang No. Peserta</td>
-            <td style="width: 30%;" class="font-bold font-mono">: {{ $nomorAwal }} s.d. {{ $nomorAkhir }}</td>
-        </tr>
-        <tr>
-            <td class="font-bold">Kapasitas Tempat Duduk</td>
-            <td>: {{ $ruang->kapasitas_maksimal }} Meja / Kursi</td>
-            <td class="font-bold">Jumlah Peserta Terdaftar</td>
-            <td class="font-bold">: {{ $pesertas->count() }} Siswa</td>
-        </tr>
-    </table>
-
-    <!-- Daftar Peserta 2 Kolom -->
-    @php
-        $half = (int) ceil($pesertas->count() / 2);
-        $col1 = $pesertas->slice(0, $half);
-        $col2 = $pesertas->slice($half);
-    @endphp
-
-    <div class="tabel-peserta-multi">
-        <table class="tabel-kolom">
-            <thead>
-                <tr>
-                    <th style="width: 25px;">No</th>
-                    <th style="width: 45px;">Meja</th>
-                    <th style="width: 80px;">No. Peserta</th>
-                    <th>Nama Peserta</th>
-                    <th style="width: 60px;">Kelas</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($col1 as $idx => $p)
-                    <tr>
-                        <td class="text-center">{{ $idx + 1 }}</td>
-                        <td class="text-center font-bold">{{ $p->nomor_kursi }}</td>
-                        <td class="text-center font-mono font-bold">{{ $p->nomor_peserta }}</td>
-                        <td class="font-bold">{{ $p->nama_peserta }}</td>
-                        <td class="text-center">{{ $p->nama_kelas ?? ($p->schoolClass?->name ?? '') }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="text-center" style="padding: 10px;">Belum ada peserta yang dialokasikan di ruang ini.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-
-        <table class="tabel-kolom">
-            <thead>
-                <tr>
-                    <th style="width: 25px;">No</th>
-                    <th style="width: 45px;">Meja</th>
-                    <th style="width: 80px;">No. Peserta</th>
-                    <th>Nama Peserta</th>
-                    <th style="width: 60px;">Kelas</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($col2 as $idx => $p)
-                    <tr>
-                        <td class="text-center">{{ $half + $loop->iteration }}</td>
-                        <td class="text-center font-bold">{{ $p->nomor_kursi }}</td>
-                        <td class="text-center font-mono font-bold">{{ $p->nomor_peserta }}</td>
-                        <td class="font-bold">{{ $p->nama_peserta }}</td>
-                        <td class="text-center">{{ $p->nama_kelas ?? ($p->schoolClass?->name ?? '') }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-
-    <div class="peringatan-box">
-        ⚠️ PERHATIAN: Peserta dilarang membawa tas, buku, catatan, handphone (HP), atau perangkat elektronik lainnya ke dalam ruang ujian. Harap duduk sesuai nomor meja masing-masing.
-    </div>
-</body>
-</html>
+</x-print-preview-layout>
