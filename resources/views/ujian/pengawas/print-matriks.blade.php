@@ -25,7 +25,7 @@
     <style>
         .sheet-matriks {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 7.5pt;
+            font-size: 8pt;
             line-height: 1.15;
             color: #000;
             width: 100%;
@@ -36,7 +36,7 @@
         }
         .judul-dokumen h4 {
             margin: 0;
-            font-size: 9.5pt;
+            font-size: 10pt;
             text-transform: uppercase;
             text-decoration: underline;
         }
@@ -48,7 +48,7 @@
         .tabel-legenda th, .tabel-legenda td {
             border: 1px solid #000;
             padding: 2px 3px;
-            font-size: 7.2pt;
+            font-size: 7.8pt;
             line-height: 1.15;
         }
         .tabel-matriks th, .tabel-legenda th {
@@ -61,6 +61,95 @@
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
         .bg-shaded { background-color: #FEF08A; }
+
+        .tabel-matriks thead {
+            display: table-header-group;
+        }
+        .tabel-matriks tbody tr,
+        .tabel-legenda tbody tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        .same-date-row {
+            page-break-before: avoid;
+            break-before: avoid;
+        }
+
+        .matriks-layout {
+            width: 100%;
+        }
+        .matriks-layout.layout-side {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+        }
+        .layout-side .matriks-main {
+            flex: 1;
+            min-width: 0;
+        }
+        .layout-side .matriks-legends {
+            display: contents;
+        }
+        .layout-side .legend-pengawas {
+            flex: 0 0 auto;
+            width: 220px;
+        }
+        .layout-side .legend-pengawas.is-dual {
+            width: 360px;
+        }
+        .matriks-main {
+            width: 100%;
+        }
+        .matriks-legends {
+            display: flex;
+            gap: 6px;
+            align-items: flex-start;
+            margin-top: 5px;
+        }
+        .legend-box {
+            min-width: 0;
+        }
+        .legend-mapel {
+            flex: 0 0 220px;
+        }
+        .legend-pengawas {
+            flex: 1 1 0;
+        }
+        .legend-name {
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .room-head {
+            min-width: 26px;
+        }
+        .room-cell {
+            text-align: center;
+            vertical-align: middle;
+            padding: 2px 1px;
+            font-weight: 700;
+        }
+        .room-mapel {
+            font-size: 7.6pt;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #0f172a;
+        }
+        .room-pengawas {
+            font-size: 7.2pt;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-top: 1.5px;
+            color: #334155;
+        }
+        .room-pengawas.is-empty {
+            color: #94a3b8;
+        }
+        .pukul-cell {
+            text-align: center;
+            font-size: 7.2pt;
+            white-space: nowrap;
+        }
 
         /* Compact Kop Surat Khusus Rekap 1 Lembar Landscape */
         .kop-rekap-compact .kop-surat-container {
@@ -97,11 +186,31 @@
 
         @media print {
             .sheet-matriks {
-                max-height: 202mm !important;
-                overflow: hidden !important;
-                page-break-after: avoid !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+                max-height: none !important;
+                overflow: visible !important;
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            .kop-rekap-compact,
+            .judul-dokumen {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+            .matriks-legends,
+            .ttd-table {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            .tabel-matriks th, .tabel-matriks td,
+            .tabel-legenda th, .tabel-legenda td {
+                font-size: 8pt;
+            }
+            .room-mapel {
+                font-size: 7.8pt;
+            }
+            .room-pengawas,
+            .pukul-cell {
+                font-size: 7.5pt;
             }
         }
     </style>
@@ -127,9 +236,12 @@
             </div>
         </div>
 
-        <div style="display: flex; gap: 6px; align-items: flex-start; width: 100%;">
-            {{-- Tabel Matriks Kiri --}}
-            <div style="flex: 1; min-width: 0;">
+        @php
+            $stackLegends = in_array(($kelompok ?? '3-6'), ['all', '1-6'], true);
+        @endphp
+        <div class="matriks-layout {{ $stackLegends ? 'layout-stacked' : 'layout-side' }}">
+            {{-- Tabel Matriks --}}
+            <div class="matriks-main">
                 <table class="tabel-matriks">
                     <thead>
                         <tr>
@@ -153,13 +265,13 @@
                         </tr>
                         <tr>
                             @foreach($roomCodes ?? [] as $rc)
-                                <th style="min-width: 18px;">{{ strtoupper(substr($rc, 1) ?: $rc) }}</th>
+                                <th class="room-head">{{ strtoupper(substr($rc, 1) ?: $rc) }}</th>
                             @endforeach
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($rows as $r)
-                            <tr>
+                            <tr class="{{ $r['is_new_date'] ? 'date-start-row' : 'same-date-row' }}">
                                 @if($r['is_new_date'])
                                     <td rowspan="{{ $r['date_rowspan'] ?? 1 }}" class="text-center font-bold" style="vertical-align: middle;">
                                         {{ $r['no'] }}
@@ -173,7 +285,7 @@
                                 @if($showMapel)
                                     <td class="font-bold">{{ $r['mapel'] ?: '—' }}</td>
                                 @endif
-                                <td class="text-center font-mono" style="font-size: 6.8pt; white-space: nowrap;">{{ $r['pukul'] }}</td>
+                                <td class="pukul-cell">{{ $r['pukul'] }}</td>
 
                                 {{-- Kolom Ruangan Dinamis --}}
                                 @foreach($roomCodes ?? [] as $code)
@@ -186,10 +298,10 @@
                                             $pw = $isArr ? ($val['pengawas'] ?? '-') : $val;
                                             $mpl = $isArr ? ($val['mapel'] ?? '—') : null;
                                         @endphp
-                                        <td class="text-center font-bold {{ $pw === '-' ? 'text-slate-400' : '' }}" style="font-size: 7.2pt; padding: 2px 1px; vertical-align: middle;">
+                                        <td class="room-cell">
                                             @if($isArr)
-                                                <div style="font-size: 7pt; font-weight: 800; line-height: 1.1; color: #0f172a;">{{ $mpl }}</div>
-                                                <div style="font-size: 6.8pt; line-height: 1.1; margin-top: 1.5px; font-weight: 700; color: {{ $pw === '-' ? '#94a3b8' : '#334155' }};">
+                                                <div class="room-mapel">{{ $mpl }}</div>
+                                                <div class="room-pengawas {{ $pw === '-' ? 'is-empty' : '' }}">
                                                     {{ $pw === '-' ? '-' : '[' . $pw . ']' }}
                                                 </div>
                                             @else
@@ -208,96 +320,98 @@
                 </table>
             </div>
 
-            @if(($kelompok ?? '3-6') === '1-2' && !empty($legendMapel))
-                {{-- Tabel Keterangan Kode & Mata Pelajaran (Setelah Tabel Kelas 2, Sebelum Tabel Kode Pengawas) --}}
-                <div style="width: 220px; flex-shrink: 0;">
+            <div class="matriks-legends">
+                @if(($kelompok ?? '3-6') === '1-2' && !empty($legendMapel))
+                    {{-- Tabel Keterangan Kode & Mata Pelajaran --}}
+                    <div class="legend-box legend-mapel">
+                        <table class="tabel-legenda">
+                            <thead>
+                                <tr>
+                                    <th style="width: 44px;" title="Kode Mata Pelajaran">KODE</th>
+                                    <th>MATA PELAJARAN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($legendMapel as $lm)
+                                    <tr>
+                                        <td class="text-center font-bold">{{ $lm['code'] }}</td>
+                                        <td class="legend-name">{{ $lm['nama'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                {{-- Tabel Legenda Pengawas --}}
+                @php
+                    $totalLegenda = count($legend);
+                    $isDualCol = $totalLegenda > 12;
+                    $halfLegenda = $isDualCol ? (int) ceil($totalLegenda / 2) : $totalLegenda;
+                    $legendaCol1 = array_slice($legend, 0, $halfLegenda);
+                    $legendaCol2 = $isDualCol ? array_slice($legend, $halfLegenda) : [];
+                @endphp
+                <div class="legend-box legend-pengawas {{ $isDualCol ? 'is-dual' : '' }}">
                     <table class="tabel-legenda">
                         <thead>
-                            <tr>
-                                <th style="width: 44px;" title="Kode Mata Pelajaran">KODE</th>
-                                <th>MATA PELAJARAN</th>
-                            </tr>
+                            @if($isDualCol)
+                                <tr>
+                                    <th style="width: 22px;">KD</th>
+                                    <th>NAMA PENGAWAS</th>
+                                    <th style="width: 20px;">JML</th>
+                                    <th style="width: 22px;">KD</th>
+                                    <th>NAMA PENGAWAS</th>
+                                    <th style="width: 20px;">JML</th>
+                                </tr>
+                            @else
+                                <tr>
+                                    <th style="width: 26px;">KODE</th>
+                                    <th>NAMA PENGAWAS</th>
+                                    <th style="width: 24px;">JML</th>
+                                </tr>
+                            @endif
                         </thead>
                         <tbody>
-                            @foreach($legendMapel as $lm)
-                                <tr>
-                                    <td class="text-center font-bold" style="font-size: 7.2pt;">{{ $lm['code'] }}</td>
-                                    <td style="font-size: 7pt; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;" title="{{ $lm['nama'] }}">{{ $lm['nama'] }}</td>
-                                </tr>
-                            @endforeach
+                            @if($isDualCol)
+                                @for($i = 0; $i < $halfLegenda; $i++)
+                                    @php
+                                        $p1 = $legendaCol1[$i] ?? null;
+                                        $p2 = $legendaCol2[$i] ?? null;
+                                    @endphp
+                                    <tr>
+                                        @if($p1)
+                                            <td class="text-center font-bold">{{ $p1['code'] }}</td>
+                                            <td class="legend-name">{{ $p1['nama'] }}</td>
+                                            <td class="text-center">{{ $p1['jumlah'] }}</td>
+                                        @else
+                                            <td colspan="3"></td>
+                                        @endif
+
+                                        @if($p2)
+                                            <td class="text-center font-bold">{{ $p2['code'] }}</td>
+                                            <td class="legend-name">{{ $p2['nama'] }}</td>
+                                            <td class="text-center">{{ $p2['jumlah'] }}</td>
+                                        @else
+                                            <td colspan="3"></td>
+                                        @endif
+                                    </tr>
+                                @endfor
+                            @else
+                                @forelse($legend as $lp)
+                                    <tr>
+                                        <td class="text-center font-bold">{{ $lp['code'] }}</td>
+                                        <td class="legend-name">{{ $lp['nama'] }}</td>
+                                        <td class="text-center">{{ $lp['jumlah'] }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center" style="padding: 6px;">Belum ada penugasan</td>
+                                    </tr>
+                                @endforelse
+                            @endif
                         </tbody>
                     </table>
                 </div>
-            @endif
-
-            {{-- Tabel Legenda Pengawas Kanan --}}
-            @php
-                $totalLegenda = count($legend);
-                $isDualCol = $totalLegenda > 12;
-                $halfLegenda = $isDualCol ? (int) ceil($totalLegenda / 2) : $totalLegenda;
-                $legendaCol1 = array_slice($legend, 0, $halfLegenda);
-                $legendaCol2 = $isDualCol ? array_slice($legend, $halfLegenda) : [];
-            @endphp
-            <div style="{{ $isDualCol ? 'width: 360px;' : 'width: 220px;' }} flex-shrink: 0;">
-                <table class="tabel-legenda">
-                    <thead>
-                        @if($isDualCol)
-                            <tr>
-                                <th style="width: 22px;">KD</th>
-                                <th>NAMA PENGAWAS</th>
-                                <th style="width: 20px;">JML</th>
-                                <th style="width: 22px;">KD</th>
-                                <th>NAMA PENGAWAS</th>
-                                <th style="width: 20px;">JML</th>
-                            </tr>
-                        @else
-                            <tr>
-                                <th style="width: 26px;">KODE</th>
-                                <th>NAMA PENGAWAS</th>
-                                <th style="width: 24px;">JML</th>
-                            </tr>
-                        @endif
-                    </thead>
-                    <tbody>
-                        @if($isDualCol)
-                            @for($i = 0; $i < $halfLegenda; $i++)
-                                @php
-                                    $p1 = $legendaCol1[$i] ?? null;
-                                    $p2 = $legendaCol2[$i] ?? null;
-                                @endphp
-                                <tr>
-                                    @if($p1)
-                                        <td class="text-center font-bold">{{ $p1['code'] }}</td>
-                                        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">{{ $p1['nama'] }}</td>
-                                        <td class="text-center">{{ $p1['jumlah'] }}</td>
-                                    @else
-                                        <td colspan="3"></td>
-                                    @endif
-
-                                    @if($p2)
-                                        <td class="text-center font-bold">{{ $p2['code'] }}</td>
-                                        <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px;">{{ $p2['nama'] }}</td>
-                                        <td class="text-center">{{ $p2['jumlah'] }}</td>
-                                    @else
-                                        <td colspan="3"></td>
-                                    @endif
-                                </tr>
-                            @endfor
-                        @else
-                            @forelse($legend as $lp)
-                                <tr>
-                                    <td class="text-center font-bold">{{ $lp['code'] }}</td>
-                                    <td style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px;">{{ $lp['nama'] }}</td>
-                                    <td class="text-center">{{ $lp['jumlah'] }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="3" class="text-center" style="padding: 6px;">Belum ada penugasan</td>
-                                </tr>
-                            @endforelse
-                        @endif
-                    </tbody>
-                </table>
             </div>
         </div>
 

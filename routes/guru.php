@@ -7,6 +7,7 @@ use App\Http\Controllers\Guru\AttendanceUploadController;
 use App\Http\Controllers\Guru\CalendarController;
 use App\Http\Controllers\Guru\EffectiveWeekController;
 use App\Http\Controllers\Guru\HomeroomClassController;
+use App\Http\Controllers\Guru\JadwalPengawasController;
 use App\Http\Controllers\Guru\LeaveRequestController;
 use App\Http\Controllers\Guru\ProfileController;
 use App\Http\Controllers\Guru\QrGeneratorController;
@@ -43,6 +44,13 @@ Route::get('/jadwal/index', [ScheduleController::class, 'index'])->name('schedul
 Route::post('/jadwal', [ScheduleController::class, 'store'])->name('schedules.store');
 Route::put('/jadwal/{schedule}', [ScheduleController::class, 'update'])->name('schedules.update');
 Route::delete('/jadwal/{schedule}', [ScheduleController::class, 'destroy'])->name('schedules.destroy');
+
+// Jadwal Pengawas Ujian Guru
+Route::prefix('jadwal-pengawas')->name('pengawas.')->group(function () {
+    Route::get('/', [JadwalPengawasController::class, 'index'])->name('index');
+    Route::get('/ruang/{ruang}/peserta', [JadwalPengawasController::class, 'pesertaRuang'])->name('peserta');
+    Route::get('/cetak-surat-tugas', [JadwalPengawasController::class, 'printSuratTugas'])->name('print');
+});
 
 // Perizinan Siswa (Guru / Wali Kelas)
 Route::get('/perizinan', [LeaveRequestController::class, 'index'])->name('leave-requests.index');

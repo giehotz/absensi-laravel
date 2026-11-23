@@ -83,68 +83,153 @@ class JadwalExcelImportService
     }
 
     /**
-     * Membersihkan jadwal yang sudah ada sesuai cakupan kelompok template yang diimpor.
+     * Menentukan cakupan target (kelas/tingkat) dari baris file yang valid.
      *
      * @param  Collection<int, SchoolClass>  $allClasses
+     * @param  array<string, SchoolClass>  $columnClassMap
+     * @return array{class_ids: array<int, int>, levels: array<int, string>}
      */
-    protected function clearExistingSchedules(int $periodeId, string $format, Collection $allClasses): int
+    protected function resolveImportScope(Worksheet $sheet, string $format, Collection $allClasses, array $columnClassMap = []): array
     {
-        if ($format === 'v2_per_rombel') {
-            $bawahClassIds = $allClasses->filter(function ($c) {
-                $lvl = ClassLabelResolver::levelFromName($c->name);
+        $classIds = [];
+        $levels = [];
+        $highestRow = $sheet->getHighestRow();
 
-                return in_array($lvl, ['1', '2'], true);
-            })->pluck('id')->all();
+        for ($row = 2; $row <= $highestRow; $row++) {
+            if (! $this->parseDate($sheet->getCell("C{$row}")->getValue())) {
+                continue;
+            }
 
-            return UjianJadwal::where('ujian_periode_id', $periodeId)
-                ->where(function ($query) use ($bawahClassIds) {
-                    $query->whereIn('school_class_id', $bawahClassIds)
-                        ->orWhere(function ($q) {
-                            $q->whereNull('school_class_id')
-                                ->where(function ($sub) {
-                                    $sub->where('tingkat', '1')
-                                        ->orWhere('tingkat', '2')
-                                        ->orWhere('tingkat', 'like', '1%')
-                                        ->orWhere('tingkat', 'like', '2%')
-                                        ->orWhere('tingkat', '1, 2')
-                                        ->orWhere('tingkat', '1,2');
-                                })
-                                ->where('tingkat', 'not like', '%3%')
-                                ->where('tingkat', 'not like', '%4%')
-                                ->where('tingkat', 'not like', '%5%')
-                                ->where('tingkat', 'not like', '%6%');
-                        });
-                })
-                ->delete();
+            if ($format === 'v2_per_rombel') {
+                foreach ($columnClassMap as $colLetter => $class) {
+                    if (trim((string) $sheet->getCell("{$colLetter}{$row}")->getValue()) !== '') {
+                        $classIds[$class->id] = $class->id;
+                    }
+                }
+
+                continue;
+            }
+
+            $mapelCol = $format === 'v2_per_tingkat' ? 'F' : 'B';
+            $targetCol = $format === 'v2_per_tingkat' ? 'G' : 'E';
+
+            if (trim((string) $sheet->getCell("{$mapelCol}{$row}")->getValue()) === '') {
+                continue;
+            }
+
+            $targetRaw = trim((string) $sheet->getCell("{$targetCol}{$row}")->getValue());
+            $matchedClass = ClassLabelResolver::resolveClassByLabel($targetRaw, $allClasses);
+
+            if ($matchedClass) {
+                $classIds[$matchedClass->id] = $matchedClass->id;
+
+                continue;
+            }
+
+            if ($format === 'v2_per_tingkat' && $targetRaw === '') {
+                $targetRaw = '3, 4, 5, 6';
+            }
+
+            foreach ($this->parseTargetLevels($targetRaw) as $level) {
+                $levels[$level] = $level;
+            }
         }
 
-        if ($format === 'v2_per_tingkat') {
-            $atasClassIds = $allClasses->filter(function ($c) {
-                $lvl = ClassLabelResolver::levelFromName($c->name);
+        return [
+            'class_ids' => array_values($classIds),
+            'levels' => array_values($levels),
+        ];
+    }
 
-                return in_array($lvl, ['3', '4', '5', '6'], true);
-            })->pluck('id')->all();
+    /**
+     * Mengubah kode tingkat/kelas menjadi daftar angka tingkat.
+     *
+     * @return array<int, string>
+     */
+    protected function parseTargetLevels(string $raw): array
+    {
+        $clean = mb_strtolower(trim($raw));
 
-            return UjianJadwal::where('ujian_periode_id', $periodeId)
-                ->where(function ($query) use ($atasClassIds) {
-                    $query->whereIn('school_class_id', $atasClassIds)
-                        ->orWhere(function ($q) {
-                            $q->whereNull('school_class_id')
-                                ->where(function ($sub) {
-                                    $sub->where('tingkat', 'like', '%3%')
-                                        ->orWhere('tingkat', 'like', '%4%')
-                                        ->orWhere('tingkat', 'like', '%5%')
-                                        ->orWhere('tingkat', 'like', '%6%');
-                                })
-                                ->where('tingkat', 'not like', '%1%')
-                                ->where('tingkat', 'not like', '%2%');
-                        });
-                })
-                ->delete();
+        if (in_array($clean, ['123456', '1-6', 'semua', 'semua kelas', 'semua tingkat'], true)) {
+            return ['1', '2', '3', '4', '5', '6'];
         }
 
-        // Legacy: membersihkan seluruh jadwal pada periode ini
-        return UjianJadwal::where('ujian_periode_id', $periodeId)->delete();
+        if (in_array($clean, ['123', '1-3', 'rendah'], true)) {
+            return ['1', '2', '3'];
+        }
+
+        if (in_array($clean, ['456', '4-6', 'atas'], true)) {
+            return ['4', '5', '6'];
+        }
+
+        preg_match_all('/[1-6]/', $clean, $digits);
+
+        $unique = array_values(array_unique($digits[0] ?? []));
+        sort($unique, SORT_NATURAL);
+
+        return $unique;
+    }
+
+    /**
+     * Menghapus/menyesuaikan jadwal lama yang tercakup target import.
+     *
+     * @param  array<int, int>  $classIds
+     * @param  array<int, string>  $levels
+     * @param  Collection<int, SchoolClass>  $allClasses
+     */
+    protected function clearExistingSchedules(int $periodeId, array $classIds, array $levels, Collection $allClasses): int
+    {
+        $classesById = $allClasses->keyBy('id');
+
+        $classLevels = [];
+        foreach ($classIds as $classId) {
+            $class = $classesById->get($classId);
+            $level = $class ? ClassLabelResolver::levelFromName($class->name) : null;
+            if ($level !== null) {
+                $classLevels[$level] = $level;
+            }
+        }
+
+        $affectedLevels = array_values(array_unique(array_merge($levels, array_values($classLevels))));
+
+        if ($classIds === [] && $affectedLevels === []) {
+            return 0;
+        }
+
+        $replaced = 0;
+        $existing = UjianJadwal::where('ujian_periode_id', $periodeId)->get(['id', 'school_class_id', 'tingkat']);
+
+        foreach ($existing as $jadwal) {
+            if ($jadwal->school_class_id !== null) {
+                $class = $classesById->get($jadwal->school_class_id);
+                $level = $class ? ClassLabelResolver::levelFromName($class->name) : null;
+
+                if (in_array((int) $jadwal->school_class_id, $classIds, true)
+                    || ($level !== null && in_array($level, $levels, true))) {
+                    $jadwal->delete();
+                    $replaced++;
+                }
+
+                continue;
+            }
+
+            $existingLevels = $jadwal->getTargetLevels();
+            $remaining = array_values(array_diff($existingLevels, $affectedLevels));
+
+            if ($remaining === $existingLevels) {
+                continue;
+            }
+
+            if ($remaining === []) {
+                $jadwal->delete();
+            } else {
+                $jadwal->update(['tingkat' => implode(', ', $remaining)]);
+            }
+
+            $replaced++;
+        }
+
+        return $replaced;
     }
 
     /**
@@ -233,6 +318,8 @@ class JadwalExcelImportService
             }
         }
 
+        $scope = $this->resolveImportScope($sheet, 'v2_per_rombel', $allClasses, $columnClassMap);
+
         DB::transaction(function () use (
             $sheet,
             $periodeId,
@@ -241,11 +328,12 @@ class JadwalExcelImportService
             $allClasses,
             $allSubjects,
             $activeSessions,
+            $scope,
             &$replacedCount,
             &$importedCount,
             &$skipped
         ) {
-            $replacedCount = $this->clearExistingSchedules($periodeId, 'v2_per_rombel', $allClasses);
+            $replacedCount = $this->clearExistingSchedules($periodeId, $scope['class_ids'], $scope['levels'], $allClasses);
 
             for ($row = 2; $row <= $highestRow; $row++) {
                 $noRaw = trim((string) $sheet->getCell("A{$row}")->getValue());
@@ -341,6 +429,8 @@ class JadwalExcelImportService
         $activeSessions = UjianSesi::where('is_active', true)->orderBy('sesi_ke')->get()->keyBy('sesi_ke');
         $highestRow = $sheet->getHighestRow();
 
+        $scope = $this->resolveImportScope($sheet, 'v2_per_tingkat', $allClasses);
+
         DB::transaction(function () use (
             $sheet,
             $periodeId,
@@ -348,11 +438,12 @@ class JadwalExcelImportService
             $allClasses,
             $allSubjects,
             $activeSessions,
+            $scope,
             &$replacedCount,
             &$importedCount,
             &$skipped
         ) {
-            $replacedCount = $this->clearExistingSchedules($periodeId, 'v2_per_tingkat', $allClasses);
+            $replacedCount = $this->clearExistingSchedules($periodeId, $scope['class_ids'], $scope['levels'], $allClasses);
 
             for ($row = 2; $row <= $highestRow; $row++) {
                 $noRaw = trim((string) $sheet->getCell("A{$row}")->getValue());
@@ -462,6 +553,8 @@ class JadwalExcelImportService
         $activeSessions = UjianSesi::where('is_active', true)->orderBy('sesi_ke')->get()->keyBy('sesi_ke');
         $highestRow = $sheet->getHighestRow();
 
+        $scope = $this->resolveImportScope($sheet, 'legacy', $allClasses);
+
         DB::transaction(function () use (
             $sheet,
             $periodeId,
@@ -469,11 +562,12 @@ class JadwalExcelImportService
             $allClasses,
             $allSubjects,
             $activeSessions,
+            $scope,
             &$replacedCount,
             &$importedCount,
             &$skipped
         ) {
-            $replacedCount = $this->clearExistingSchedules($periodeId, 'legacy', $allClasses);
+            $replacedCount = $this->clearExistingSchedules($periodeId, $scope['class_ids'], $scope['levels'], $allClasses);
 
             for ($row = 2; $row <= $highestRow; $row++) {
                 $noRaw = trim((string) $sheet->getCell("A{$row}")->getValue());

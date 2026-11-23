@@ -248,7 +248,7 @@
                         Pilih Hari / Tanggal Ujian <span class="text-red-500">*</span>
                     </label>
                     <select name="tanggal" required class="w-full px-3 py-2 border-2 border-slate-900 rounded-lg bg-slate-50 font-bold text-xs shadow-[2px_2px_0px_0px_#0f172a] focus:outline-none">
-                        <option value="all">Semua Hari Ujian (Otomatis Pisah Halaman per Hari)</option>
+                        <option value="all">Semua Hari Ujian (Otomatis Pisah Halaman per Hari &amp; Sesi)</option>
                         @foreach($examDates as $date)
                             <option value="{{ $date->format('Y-m-d') }}">
                                 {{ $date->locale('id')->translatedFormat('l, d F Y') }}

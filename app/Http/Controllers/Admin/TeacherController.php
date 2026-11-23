@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -437,17 +438,33 @@ class TeacherController extends Controller
     {
         $teacher->load(['user', 'homeroomClasses', 'assignments.subject', 'assignments.schoolClass']);
 
-        $grouped = [];
+        // Kelompokkan kelas per mapel terlebih dahulu
+        $subjectClasses = [];
+        $subjectNames = [];
         foreach ($teacher->assignments as $assignment) {
             $subId = $assignment->subject_id;
-            if (! isset($grouped[$subId])) {
-                $grouped[$subId] = [
+            $classId = $assignment->school_class_id;
+            $subjectClasses[$subId][] = $classId;
+            if (! isset($subjectNames[$subId])) {
+                $subjectNames[$subId] = $assignment->subject?->name ?? 'Mapel #'.$subId;
+            }
+        }
+
+        // Kelompokkan mapel yang memiliki himpunan rombel kelas persis sama ke satu kartu
+        $groupedByClasses = [];
+        foreach ($subjectClasses as $subId => $classIds) {
+            sort($classIds);
+            $signature = implode(',', $classIds);
+            if (! isset($groupedByClasses[$signature])) {
+                $groupedByClasses[$signature] = [
                     'subject_id' => $subId,
-                    'subject_name' => $assignment->subject?->name ?? 'Mapel #'.$subId,
-                    'class_ids' => [],
+                    'subject_ids' => [],
+                    'subject_names' => [],
+                    'class_ids' => $classIds,
                 ];
             }
-            $grouped[$subId]['class_ids'][] = $assignment->school_class_id;
+            $groupedByClasses[$signature]['subject_ids'][] = $subId;
+            $groupedByClasses[$signature]['subject_names'][] = $subjectNames[$subId];
         }
 
         return response()->json([
@@ -458,9 +475,11 @@ class TeacherController extends Controller
                 'nuptk' => $teacher->nuptk ?? '-',
                 'is_homeroom' => $teacher->homeroomClasses->isNotEmpty(),
                 'homeroom_classes' => $teacher->homeroomClasses->pluck('name')->all(),
+                'homeroom_class_ids' => $teacher->homeroomClasses->pluck('id')->all(),
+                'homeroom_class_id' => $teacher->homeroomClasses->first()?->id,
             ],
             'has_restrictions' => $teacher->assignments->isNotEmpty(),
-            'assignments' => array_values($grouped),
+            'assignments' => array_values($groupedByClasses),
         ]);
     }
 
@@ -471,29 +490,62 @@ class TeacherController extends Controller
     {
         $validated = $request->validate([
             'mode' => ['required', 'in:unrestricted,restricted'],
+            'homeroom_class_id' => ['nullable', 'exists:school_classes,id'],
+            'has_homeroom_update' => ['nullable'],
             'assignments' => ['nullable', 'array'],
-            'assignments.*.subject_id' => ['required_if:mode,restricted', 'exists:subjects,id'],
+            'assignments.*.subject_id' => ['nullable', 'exists:subjects,id'],
+            'assignments.*.subject_ids' => ['nullable', 'array'],
+            'assignments.*.subject_ids.*' => ['exists:subjects,id'],
             'assignments.*.class_ids' => ['required_if:mode,restricted', 'array', 'min:1'],
             'assignments.*.class_ids.*' => ['exists:school_classes,id'],
         ], [
-            'assignments.*.subject_id.required_if' => 'Mata pelajaran wajib dipilih untuk setiap baris penugasan.',
-            'assignments.*.class_ids.required_if' => 'Minimal 1 kelas harus dipilih untuk mata pelajaran tersebut.',
+            'assignments.*.class_ids.required_if' => 'Minimal 1 kelas harus dipilih untuk setiap baris penugasan.',
         ]);
 
-        DB::transaction(function () use ($teacher, $validated) {
+        if ($validated['mode'] === 'restricted' && ! empty($validated['assignments'])) {
+            foreach ($validated['assignments'] as $idx => $row) {
+                $hasSingle = ! empty($row['subject_id']);
+                $hasMulti = ! empty($row['subject_ids']) && is_array($row['subject_ids']) && count($row['subject_ids']) > 0;
+                if (! $hasSingle && ! $hasMulti) {
+                    throw ValidationException::withMessages([
+                        "assignments.{$idx}.subject_ids" => 'Minimal 1 mata pelajaran harus dipilih untuk setiap baris penugasan.',
+                    ]);
+                }
+            }
+        }
+
+        DB::transaction(function () use ($teacher, $validated, $request) {
+            // Perbarui penetapan wali kelas jika form menyertakan parameter has_homeroom_update
+            if ($request->has('has_homeroom_update')) {
+                SchoolClass::where('homeroom_teacher_id', $teacher->id)->update(['homeroom_teacher_id' => null]);
+
+                if (! empty($validated['homeroom_class_id'])) {
+                    SchoolClass::where('id', $validated['homeroom_class_id'])->update(['homeroom_teacher_id' => $teacher->id]);
+                }
+            }
+
             $teacher->assignments()->delete();
 
             if ($validated['mode'] === 'restricted' && ! empty($validated['assignments'])) {
                 foreach ($validated['assignments'] as $row) {
-                    $subjectId = $row['subject_id'];
-                    $classIds = $row['class_ids'] ?? [];
+                    $subjectIds = [];
+                    if (! empty($row['subject_ids']) && is_array($row['subject_ids'])) {
+                        $subjectIds = array_map('intval', $row['subject_ids']);
+                    }
+                    if (! empty($row['subject_id'])) {
+                        $subjectIds[] = (int) $row['subject_id'];
+                    }
+                    $subjectIds = array_unique(array_filter($subjectIds));
+                    $classIds = array_unique(array_filter(array_map('intval', $row['class_ids'] ?? [])));
 
-                    foreach ($classIds as $classId) {
-                        TeacherAssignment::firstOrCreate([
-                            'teacher_id' => $teacher->id,
-                            'subject_id' => $subjectId,
-                            'school_class_id' => $classId,
-                        ]);
+                    foreach ($subjectIds as $subjectId) {
+                        foreach ($classIds as $classId) {
+                            TeacherAssignment::firstOrCreate([
+                                'teacher_id' => $teacher->id,
+                                'subject_id' => $subjectId,
+                                'school_class_id' => $classId,
+                            ]);
+                        }
                     }
                 }
             }

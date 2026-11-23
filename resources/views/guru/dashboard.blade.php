@@ -8,6 +8,9 @@
     {{-- 1. Welcome Banner & Quick Actions --}}
     @include('guru._welcome-banner')
 
+    {{-- Alert Jadwal Pengawas Ujian (Jika ada penugasan mengawas) --}}
+    @include('guru._jadwal-pengawas-alert')
+
     {{-- Mobile Quick Jump Strip (md:hidden) --}}
     <div class="md:hidden flex items-center gap-2 overflow-x-auto pb-1 text-xs font-heading font-black no-scrollbar">
         <a href="#jadwal" class="px-3 py-1.5 bg-white text-black border-2 border-black rounded-xs shadow-[2px_2px_0px_#000] shrink-0 active:translate-x-0.5">

@@ -67,46 +67,59 @@
             border: none;
             padding: 0;
         }
+        .sesi-sheet-content {
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
     </style>
 
     <div class="sheet-daftar-hadir-pengawas">
-        @forelse($groupedPengawas as $dateKey => $items)
+        @forelse($groupedPengawas as $items)
             @php
                 $firstItem = $items->first();
                 $jadwalDate = $firstItem?->jadwal?->tanggal_ujian;
-                $namaHari = $jadwalDate ? $jadwalDate->locale('id')->translatedFormat('l, d F Y') : ($dateKey !== 'unknown' ? $dateKey : '-');
+                $namaHari = $jadwalDate ? $jadwalDate->locale('id')->translatedFormat('l, d F Y') : '-';
+                $sesiKe = $firstItem?->jadwal?->sesi_ke ?? 1;
+                $jamMulai = substr($firstItem?->jadwal?->jam_mulai ?? '07:30', 0, 5);
+                $jamSelesai = substr($firstItem?->jadwal?->jam_selesai ?? '09:30', 0, 5);
+                $jumlahPengawas = $items->filter(fn ($pw) => $pw->pengawas1)->count()
+                    + $items->filter(fn ($pw) => $pw->pengawas2)->count();
             @endphp
 
             <div class="{{ !$loop->last ? 'page-break' : '' }}">
-                {{-- Kop Surat Resmi Lembaga --}}
-                <x-kop-surat :useBase64="true" />
+                <div class="sesi-sheet-content">
+                    {{-- Kop Surat Resmi Lembaga --}}
+                    <x-kop-surat :useBase64="true" />
 
-                <div class="judul-dokumen">
-                    <h3>DAFTAR HADIR PENGAWAS RUANG UJIAN {{ ($kelompok ?? 'all') === '1-2' ? '(KELOMPOK KELAS 1–2)' : (($kelompok ?? 'all') === '3-6' ? '(KELOMPOK KELAS 3–6)' : '') }}</h3>
-                    <div class="periode-info">
-                        {{ strtoupper($activePeriode->nama_periode ?? 'UJIAN MADRASAH') }}
+                    <div class="judul-dokumen">
+                        <h3>DAFTAR HADIR PENGAWAS RUANG UJIAN {{ ($kelompok ?? 'all') === '1-2' ? '(KELOMPOK KELAS 1–2)' : (($kelompok ?? 'all') === '3-6' ? '(KELOMPOK KELAS 3–6)' : '') }}</h3>
+                        <div class="periode-info">
+                            {{ strtoupper($activePeriode->nama_periode ?? 'UJIAN MADRASAH') }}
+                        </div>
+                        <div style="font-size: 10pt; font-weight: normal; margin-top: 1px;">
+                            Tahun Pelajaran {{ $activePeriode->tahun_pelajaran ?? '-' }} (Semester {{ ucfirst($activePeriode->semester ?? '-') }})
+                        </div>
                     </div>
-                    <div style="font-size: 10pt; font-weight: normal; margin-top: 1px;">
-                        Tahun Pelajaran {{ $activePeriode->tahun_pelajaran ?? '-' }} (Semester {{ ucfirst($activePeriode->semester ?? '-') }})
-                    </div>
-                </div>
 
-                <div class="info-hari-box">
-                    <div>
-                        <strong>Hari / Tanggal :</strong> {{ $namaHari }}
+                    <div class="info-hari-box">
+                        <div>
+                            <strong>Hari / Tanggal :</strong> {{ $namaHari }}
+                            <span style="margin: 0 8px;">|</span>
+                            <strong>Sesi :</strong> {{ $sesiKe }}
+                            <span style="font-size: 10pt;">({{ $jamMulai }} - {{ $jamSelesai }} WIB)</span>
+                        </div>
+                        <div>
+                            <strong>Jumlah Pengawas :</strong> {{ $jumlahPengawas }} Orang ({{ $items->count() }} Ruang)
+                        </div>
                     </div>
-                    <div>
-                        <strong>Jumlah Pengawas :</strong> {{ $items->count() * 2 }} Orang ({{ $items->count() }} Ruang/Sesi)
-                    </div>
-                </div>
 
                 <table class="tabel-data">
                     <thead>
                         <tr>
                             <th style="width: 35px;">No</th>
                             <th style="width: 260px;">Nama Pengawas Ruang</th>
-                            <th style="width: 140px;">Sesi / Waktu</th>
-                            <th style="width: 90px;">Ruang</th>
+                            <th style="width: 70px;">Sesi</th>
+                            <th style="width: 160px;">Ruang</th>
                             <th>Mata Pelajaran</th>
                             <th style="width: 210px;">Tanda Tangan Pengawas</th>
                         </tr>
@@ -122,10 +135,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="font-bold">Sesi {{ $pw->jadwal?->sesi_ke ?? '1' }}</span><br>
-                                    <span style="font-size: 10pt;">
-                                        {{ substr($pw->jadwal?->jam_mulai ?? '07:30', 0, 5) }} - {{ substr($pw->jadwal?->jam_selesai ?? '09:30', 0, 5) }}
-                                    </span>
+                                    <span class="font-bold">Sesi {{ $pw->jadwal?->sesi_ke ?? '1' }}</span>
                                 </td>
                                 <td class="text-center font-bold">
                                     {{ $pw->ruang?->nama_ruang ?? '-' }}
@@ -181,6 +191,7 @@
                         </td>
                     </tr>
                 </table>
+                </div>
             </div>
         @empty
             <div style="text-align: center; padding: 40px;">
@@ -193,5 +204,31 @@
                 </p>
             </div>
         @endforelse
+
+        <script>
+            (function () {
+                var pageContentHeightPx = Math.floor(((210 - 16) / 25.4) * 96 * 0.92);
+
+                function fitSessionSheets() {
+                    document.querySelectorAll('.sesi-sheet-content').forEach(function (sheet) {
+                        sheet.style.zoom = '';
+                        var naturalHeight = sheet.offsetHeight;
+
+                        if (naturalHeight > pageContentHeightPx) {
+                            var scale = pageContentHeightPx / naturalHeight;
+                            sheet.style.zoom = scale.toFixed(3);
+                        }
+                    });
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fitSessionSheets);
+                } else {
+                    fitSessionSheets();
+                }
+
+                window.addEventListener('beforeprint', fitSessionSheets);
+            })();
+        </script>
     </div>
 </x-print-preview-layout>

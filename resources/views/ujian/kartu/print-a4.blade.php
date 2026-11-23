@@ -436,8 +436,9 @@
 
         <div id="kartuContainer">
             @forelse($pages as $page)
-                <div class="kertas-kartu-grid {{ !$loop->last ? 'page-break' : '' }}">
-                    @foreach($page as $peserta)
+                <div class="kertas-a4">
+                    <div class="kertas-kartu-grid {{ !$loop->last ? 'page-break' : '' }}">
+                        @foreach($page as $peserta)
                         <div class="kartu-wrapper">
                             {{-- 1. Bagian Kop / Header Kartu --}}
                             <div class="header-kartu">
@@ -511,6 +512,7 @@
                         </div>
                     @endforeach
                 </div>
+            </div>
             @empty
                 <div style="text-align: center; padding: 40px;">
                     <h3>Tidak ada data peserta ujian yang siap dicetak.</h3>

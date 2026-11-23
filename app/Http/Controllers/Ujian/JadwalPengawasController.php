@@ -510,9 +510,12 @@ class JadwalPengawasController extends Controller
             $pengawas = $pengawas->filter(fn ($p) => $p->jadwal && ! empty(array_intersect($p->jadwal->getTargetLevels(), $targetLevels)))->values();
         }
 
-        // Kelompokkan data penugasan per tanggal ujian untuk mendukung cetak per hari maupun multi-hari
+        // Kelompokkan data penugasan per tanggal ujian dan sesi agar setiap sesi dicetak pada lembar A4 terpisah
         $groupedPengawas = $pengawas->groupBy(function ($item) {
-            return $item->jadwal?->tanggal_ujian?->format('Y-m-d') ?? 'unknown';
+            $tanggal = $item->jadwal?->tanggal_ujian?->format('Y-m-d') ?? 'unknown';
+            $sesi = $item->jadwal?->sesi_ke ?? 1;
+
+            return $tanggal.'|'.$sesi;
         });
 
         // Ambil data Ketua Panitia Ujian yang aktif

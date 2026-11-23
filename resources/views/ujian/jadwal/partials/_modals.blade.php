@@ -422,7 +422,7 @@
                     <div>
                         <span class="font-bold">Mode Timpa Otomatis:</span>
                         <span class="font-medium text-slate-700">
-                            Mengunggah template akan secara otomatis mengganti (menimpa) seluruh jadwal yang ada pada kelompok kelas tersebut (misal template Kelas Atas menimpa jadwal kelas 3–6), sehingga tidak memicu bentrok dengan jadwal lama.
+                            Mengunggah template hanya mengganti (menimpa) jadwal untuk kelas/tingkat yang terisi pada file. Jadwal kelas lain tidak diubah, misalnya file yang hanya berisi kelas 3 tidak menghapus jadwal kelas 4–6.
                         </span>
                     </div>
                 </div>

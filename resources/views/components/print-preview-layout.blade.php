@@ -100,6 +100,11 @@
                 display: block !important;
             }
 
+            .print-desk > main {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
             .print-paper-sheet {
                 transform: none !important;
                 box-shadow: none !important;

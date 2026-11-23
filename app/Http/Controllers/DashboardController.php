@@ -15,6 +15,8 @@ use App\Models\SchoolClass;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\TeachingJournal;
+use App\Models\Ujian\UjianJadwalPengawas;
+use App\Models\Ujian\UjianPeriode;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -287,6 +289,25 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
+        // Informasi Jadwal Pengawas Ujian Guru (jika ada periode aktif)
+        $activeExamPeriode = UjianPeriode::firstWhere('is_active', true);
+        $examDutiesTodayCount = 0;
+        $totalExamDutiesCount = 0;
+        if ($activeExamPeriode && $teacher) {
+            $examDutiesTodayCount = UjianJadwalPengawas::whereHas('jadwal', function ($q) use ($activeExamPeriode, $today) {
+                $q->where('ujian_periode_id', $activeExamPeriode->id)
+                    ->whereDate('tanggal_ujian', $today);
+            })
+                ->where(fn ($q) => $q->where('pengawas_1_id', $teacher->id)->orWhere('pengawas_2_id', $teacher->id))
+                ->count();
+
+            $totalExamDutiesCount = UjianJadwalPengawas::whereHas('jadwal', function ($q) use ($activeExamPeriode) {
+                $q->where('ujian_periode_id', $activeExamPeriode->id);
+            })
+                ->where(fn ($q) => $q->where('pengawas_1_id', $teacher->id)->orWhere('pengawas_2_id', $teacher->id))
+                ->count();
+        }
+
         return view('guru.dashboard', compact(
             'teacher',
             'todaySchedules',
@@ -295,7 +316,10 @@ class DashboardController extends Controller
             'stats',
             'recentAttendances',
             'weeklyStats',
-            'pendingLeaveRequests'
+            'pendingLeaveRequests',
+            'activeExamPeriode',
+            'examDutiesTodayCount',
+            'totalExamDutiesCount'
         ));
     }
 
