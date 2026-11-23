@@ -93,6 +93,7 @@
                 $j = $sheet['jadwal'];
                 $pesertaCount = $sheet['peserta_count'];
                 $pengawas = $sheet['pengawas'];
+                $ba = (!$isBlangko && isset($sheet['berita_acara'])) ? $sheet['berita_acara'] : null;
             @endphp
 
             <div class="{{ !$loop->last ? 'page-break' : '' }}">
@@ -153,17 +154,17 @@
                     <tr>
                         <td style="width: 45%;">1. Jumlah Peserta Seharusnya</td>
                         <td style="width: 3%;">:</td>
-                        <td style="width: 52%;" class="font-bold">{{ $pesertaCount ?: '..........' }} Orang</td>
+                        <td style="width: 52%;" class="font-bold">{{ $ba ? $ba->peserta_seharusnya : ($pesertaCount ?: '..........') }} Orang</td>
                     </tr>
                     <tr>
                         <td>2. Jumlah Peserta Hadir</td>
                         <td>:</td>
-                        <td class="font-bold">.......... Orang</td>
+                        <td class="font-bold">{{ $ba ? $ba->peserta_hadir . ' Orang' : '.......... Orang' }}</td>
                     </tr>
                     <tr>
                         <td>3. Jumlah Peserta Tidak Hadir</td>
                         <td>:</td>
-                        <td class="font-bold">.......... Orang</td>
+                        <td class="font-bold">{{ $ba ? $ba->peserta_tidak_hadir . ' Orang' : '.......... Orang' }}</td>
                     </tr>
                 </table>
 
@@ -179,22 +180,55 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @for($k = 1; $k <= 3; $k++)
-                            <tr>
-                                <td class="text-center">{{ $k }}</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                                <td>&nbsp;</td>
-                            </tr>
-                        @endfor
+                        @if($ba)
+                            @php $daftarAbsen = $ba->daftar_absen_siswa ?: []; @endphp
+                            @forelse($daftarAbsen as $idx => $absen)
+                                <tr>
+                                    <td class="text-center">{{ $idx + 1 }}</td>
+                                    <td class="text-center">{{ $absen['nomor_peserta'] ?? '-' }}</td>
+                                    <td>{{ $absen['nama_peserta'] ?? '-' }}</td>
+                                    <td class="text-center">{{ $absen['nama_kelas'] ?? '-' }}</td>
+                                    <td class="text-center">
+                                        {{ $absen['alasan'] ?? 'Tanpa Keterangan' }}
+                                        @if(!empty($absen['catatan']))
+                                            <span style="font-size: 8.5pt; color: #444;">({{ $absen['catatan'] }})</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center" style="font-style: italic; color: #555; padding: 10px;">
+                                        Nihil (Seluruh peserta hadir lengkap)
+                                    </td>
+                                </tr>
+                            @endforelse
+                        @else
+                            @for($k = 1; $k <= 3; $k++)
+                                <tr>
+                                    <td class="text-center">{{ $k }}</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                </tr>
+                            @endfor
+                        @endif
                     </tbody>
                 </table>
 
                 <div class="font-bold" style="margin-top: 8px; margin-bottom: 4px;">III. CATATAN SELAMA PELAKSANAAN UJIAN:</div>
                 <div class="kotak-catatan">
-                    <em>(Catatan kondisi naskah soal/LJK, ketertiban ruang, penggantian soal rusak, insiden khusus):</em>
-                    <br><br><br>
+                    @if($ba)
+                        <div>{!! nl2br(e($ba->catatan_kejadian ?: 'Pelaksanaan ujian berjalan tertib, tertib, dan lancar.')) !!}</div>
+                        @if(($ba->naskah_soal_rusak ?? 0) > 0)
+                            <div style="margin-top: 6px; font-weight: bold; color: #991b1b; font-size: 9.5pt;">
+                                * Catatan Naskah: Teridentifikasi {{ $ba->naskah_soal_rusak }} eksemplar naskah soal rusak dan telah diganti naskah cadangan.
+                            </div>
+                        @endif
+                    @else
+                        <em>(Catatan kondisi naskah soal/LJK, ketertiban ruang, penggantian soal rusak, insiden khusus):</em>
+                        <br><br><br>
+                    @endif
                 </div>
 
                 <p style="text-indent: 2.5em; margin-bottom: 20px;">

@@ -505,6 +505,8 @@
 
         <!-- Page Body -->
         <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+            @include('partials._impersonation-banner')
+
             <!-- Flash Alerts via SweetAlert2 -->
             @if(session('success'))
             <script>

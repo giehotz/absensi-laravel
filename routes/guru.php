@@ -50,6 +50,9 @@ Route::prefix('jadwal-pengawas')->name('pengawas.')->group(function () {
     Route::get('/', [JadwalPengawasController::class, 'index'])->name('index');
     Route::get('/ruang/{ruang}/peserta', [JadwalPengawasController::class, 'pesertaRuang'])->name('peserta');
     Route::get('/cetak-surat-tugas', [JadwalPengawasController::class, 'printSuratTugas'])->name('print');
+    Route::get('/{jadwalPengawas}/berita-acara', [JadwalPengawasController::class, 'beritaAcara'])->name('berita-acara');
+    Route::post('/{jadwalPengawas}/berita-acara', [JadwalPengawasController::class, 'storeBeritaAcara'])->name('berita-acara.store');
+    Route::post('/{jadwalPengawas}/check-in', [JadwalPengawasController::class, 'checkIn'])->name('check-in');
 });
 
 // Perizinan Siswa (Guru / Wali Kelas)

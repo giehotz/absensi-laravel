@@ -128,11 +128,21 @@
                         <!-- Jadwal Pengawas Ruang -->
                         <a href="{{ route('ujian.pengawas.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('ujian.pengawas.*') 
+                           {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*')
                                 ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
                                 : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                             <span class="text-sm">👮</span>
                             <span>Jadwal Pengawas Ruang</span>
+                        </a>
+
+                        <!-- Presensi Pengawas -->
+                        <a href="{{ route('ujian.pengawas.presensi.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('ujian.pengawas.presensi.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <span class="text-sm">📋</span>
+                            <span>Presensi Pengawas</span>
                         </a>
 
                         <!-- Peserta & Cetak Kartu Ujian -->
@@ -256,6 +266,7 @@
 
         <!-- Content Area -->
         <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+            @include('partials._impersonation-banner')
             @yield('content')
         </main>
     </div>

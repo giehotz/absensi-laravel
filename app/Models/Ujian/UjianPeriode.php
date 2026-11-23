@@ -27,12 +27,14 @@ class UjianPeriode extends Model
         'tempat_cetak',
         'tanggal_cetak_kartu',
         'is_active',
+        'izinkan_pengisian_awal',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'izinkan_pengisian_awal' => 'boolean',
             'tanggal_mulai' => 'date',
             'tanggal_selesai' => 'date',
             'tanggal_cetak_kartu' => 'date',

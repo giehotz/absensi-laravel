@@ -7,6 +7,7 @@ use App\Http\Controllers\Ujian\JadwalUjianController;
 use App\Http\Controllers\Ujian\JenisUjianController;
 use App\Http\Controllers\Ujian\PanitiaUjianController;
 use App\Http\Controllers\Ujian\PengaturanTtdController;
+use App\Http\Controllers\Ujian\PengawasAbsensiAdminController;
 use App\Http\Controllers\Ujian\PesertaKartuUjianController;
 use App\Http\Controllers\Ujian\RuangUjianController;
 use App\Http\Controllers\Ujian\SesiUjianController;
@@ -86,6 +87,13 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::get('/cetak-daftar-hadir', [JadwalPengawasController::class, 'printDaftarHadir'])->name('print-daftar-hadir');
             Route::get('/cetak-matriks', [JadwalPengawasController::class, 'printMatriks'])->name('print-matriks');
             Route::get('/cetak-tugas-guru', [JadwalPengawasController::class, 'printJadwalGuru'])->name('print-jadwal-guru');
+
+            // Presensi Pengawas Admin
+            Route::get('/presensi', [PengawasAbsensiAdminController::class, 'index'])->name('presensi.index');
+            Route::match(['GET', 'POST'], '/presensi/toggle-pengisian-awal', [PengawasAbsensiAdminController::class, 'togglePengisianAwal'])->name('presensi.toggle-pengisian-awal');
+            Route::post('/presensi/{jadwalPengawas}', [PengawasAbsensiAdminController::class, 'update'])->name('presensi.update');
+            Route::get('/presensi/cetak', [PengawasAbsensiAdminController::class, 'printRekap'])->name('presensi.print');
+            Route::get('/presensi/export', [PengawasAbsensiAdminController::class, 'exportExcel'])->name('presensi.export');
         });
 
         // 5. Sub-Menu 4: Cetak Kartu Ujian & Manajemen Peserta
@@ -106,6 +114,7 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::get('/', [AdministrasiUjianController::class, 'index'])->name('index');
             Route::get('/daftar-hadir-peserta', [AdministrasiUjianController::class, 'printDaftarHadirPeserta'])->name('daftar-hadir-peserta');
             Route::get('/berita-acara', [AdministrasiUjianController::class, 'printBeritaAcara'])->name('berita-acara');
+            Route::post('/berita-acara/{beritaAcara}/verifikasi', [AdministrasiUjianController::class, 'verifikasiBeritaAcara'])->name('berita-acara.verifikasi');
             Route::get('/label-amplop', [AdministrasiUjianController::class, 'printLabelAmplop'])->name('label-amplop');
             Route::get('/tata-tertib', [AdministrasiUjianController::class, 'printTataTertib'])->name('tata-tertib');
             Route::post('/tata-tertib/update', [AdministrasiUjianController::class, 'updateTataTertib'])->name('tata-tertib.update');

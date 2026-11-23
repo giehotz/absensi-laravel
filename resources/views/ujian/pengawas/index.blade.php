@@ -86,6 +86,10 @@
                         </svg>
                         <span>Tugas per Guru</span>
                     </a>
+                    <a href="{{ route('ujian.pengawas.presensi.index', ['periode_id' => $activePeriode->id]) }}"
+                       class="inline-flex items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#20C997] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-emerald-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                        <span>📋 Presensi Pengawas</span>
+                    </a>
                     <button type="button" onclick="document.getElementById('modalImportPdfMatriks').classList.remove('hidden')"
                             title="Import penugasan & jadwal dari file PDF matriks"
                             class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#51CF66] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-green-500 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
@@ -111,6 +115,43 @@
             @endif
         </div>
     </div>
+
+    {{-- Toggle Pengaturan Akses Presensi & Berita Acara Sebelum Hari H --}}
+    @if($activePeriode)
+        <div class="rounded-xl border-2 border-slate-900 p-4 shadow-[4px_4px_0px_0px_#0f172a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 {{ $activePeriode->izinkan_pengisian_awal ? 'bg-[#D3F9D8]' : 'bg-white' }}">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg border-2 border-slate-900 flex items-center justify-center text-lg shadow-[2px_2px_0px_0px_#0f172a] shrink-0 {{ $activePeriode->izinkan_pengisian_awal ? 'bg-[#20C997]' : 'bg-slate-100' }}">
+                    {{ $activePeriode->izinkan_pengisian_awal ? '🔓' : '🔒' }}
+                </div>
+                <div>
+                    <div class="font-heading font-black text-xs sm:text-sm text-slate-900 uppercase flex items-center gap-2">
+                        <span>Akses Pengisian Sebelum Hari H Pelaksanaan Ujian</span>
+                        <span class="text-[10px] font-black px-2 py-0.5 rounded border border-slate-900 {{ $activePeriode->izinkan_pengisian_awal ? 'bg-[#20C997] text-black' : 'bg-slate-200 text-slate-700' }}">
+                            {{ $activePeriode->izinkan_pengisian_awal ? 'AKTIF (DIIZINKAN)' : 'NONAKTIF (TERKUNCI)' }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-700 font-semibold mt-0.5">
+                        {{ $activePeriode->izinkan_pengisian_awal 
+                            ? 'Pengawas ruangan diizinkan untuk melakukan check-in kehadiran dan mengisi serta mengirim Berita Acara lebih awal sebelum tanggal pelaksanaan ujian.' 
+                            : 'Pengawas hanya dapat melakukan check-in dan mengisi Berita Acara tepat pada hari H pelaksanaan masing-masing sesi ujian.' }}
+                    </p>
+                </div>
+            </div>
+
+            <form action="{{ route('ujian.pengawas.presensi.toggle-pengisian-awal') }}" method="POST" class="shrink-0">
+                @csrf
+                <input type="hidden" name="periode_id" value="{{ $activePeriode->id }}">
+                <button type="submit" 
+                        class="w-full sm:w-auto px-4 py-2 rounded-lg border-2 border-slate-900 text-xs font-heading font-black flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 transition-all {{ $activePeriode->izinkan_pengisian_awal ? 'bg-[#FF6B6B] text-white hover:bg-rose-600' : 'bg-[#FFD43B] text-black hover:bg-yellow-400' }}">
+                    @if($activePeriode->izinkan_pengisian_awal)
+                        <span>🔒</span> Nonaktifkan Pengisian Awal
+                    @else
+                        <span>⚡</span> Aktifkan Pengisian Sebelum Hari H
+                    @endif
+                </button>
+            </form>
+        </div>
+    @endif
 
     {{-- Flash Alerts Neo-Brutalism --}}
     @if(session('success'))

@@ -245,6 +245,7 @@
 
         <!-- Main Body -->
         <main class="flex-1 p-4 sm:p-8">
+            @include('partials._impersonation-banner')
             @yield('content')
         </main>
     </div>

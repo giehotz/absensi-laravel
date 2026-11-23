@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\TeacherController;
 use App\Http\Controllers\Admin\TeachingJournalController as AdminTeachingJournalController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\ManualAttendanceController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,7 @@ Route::get('teachers/{teacher}/assignments', [TeacherController::class, 'getAssi
 Route::match(['post', 'patch'], 'teachers/{teacher}/assignments', [TeacherController::class, 'updateAssignments'])->name('teachers.assignments.update');
 Route::match(['post', 'patch'], 'teachers/{teacher}/savings-assignment', [TeacherController::class, 'updateSavingsAssignment'])->name('teachers.savings-assignment');
 Route::patch('teachers/{teacher}/toggle-savings-officer', [TeacherController::class, 'toggleSavingsOfficer'])->name('teachers.toggle-savings-officer');
+Route::post('teachers/{teacher}/impersonate', [ImpersonationController::class, 'start'])->name('teachers.impersonate');
 Route::resource('teachers', TeacherController::class)->except(['create', 'edit', 'show']);
 
 // Master Data Kelas

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\SubjectReferenceController;
+use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\PublicVerificationController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +24,11 @@ Route::get('/', function () {
 
 // Autentikasi (Login & Logout)
 require __DIR__.'/auth.php';
+
+// Keluar dari Mode Impersonasi (dapat diakses oleh akun yang sedang di-impersonasi)
+Route::post('/impersonation/stop', [ImpersonationController::class, 'stop'])
+    ->name('impersonation.stop')
+    ->middleware('auth');
 
 // API Referensi Mata Pelajaran (Publik / Internal)
 Route::prefix('api/v1')->group(function () {

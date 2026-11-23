@@ -1,3 +1,115 @@
+@push('styles')
+<style>
+    .teachers-table-wrapper {
+        container: teachers-table / inline-size;
+    }
+
+    @media (pointer: coarse) {
+        .teachers-page :where(button, select, input:not([type="checkbox"], [type="radio"])) {
+            min-block-size: 2.75rem;
+        }
+    }
+
+    @container teachers-table (width < 56rem) {
+        .teachers-table-wrapper .teachers-table {
+            min-inline-size: 0;
+            inline-size: 100%;
+        }
+
+        .teachers-table thead {
+            display: none;
+        }
+
+        .teachers-table tbody {
+            display: flex;
+            flex-direction: column;
+            gap: 0.875rem;
+            padding: 0.875rem;
+            background-color: #FFFDF5;
+        }
+
+        .teachers-table tbody tr {
+            display: block;
+            inline-size: 100%;
+        }
+
+        .teachers-table tbody tr:not(.teacher-row) > td {
+            display: block;
+            inline-size: 100%;
+        }
+
+        .teachers-table tbody tr.teacher-row {
+            overflow: hidden;
+            border: 2px solid #000;
+            border-radius: 0.75rem;
+            background-color: #fff;
+            box-shadow: 3px 3px 0 0 #000;
+        }
+
+        .teachers-table tbody tr.teacher-row + tr.teacher-row {
+            border-top: 2px solid #000;
+        }
+
+        .teachers-table tbody tr.teacher-row > td {
+            display: block;
+            inline-size: 100%;
+            padding: 0.875rem 1rem;
+            text-align: start;
+            border-top: 2px solid rgb(0 0 0 / 0.1);
+        }
+
+        .teachers-table tbody tr.teacher-row > td.teacher-row-number {
+            display: none;
+        }
+
+        .teachers-table tbody tr.teacher-row > td.teacher-card-head {
+            border-top: 0;
+            background-color: #FFF9DB;
+        }
+
+        .teachers-table tbody tr.teacher-row > td[data-label]::before {
+            content: attr(data-label);
+            display: block;
+            margin-block-end: 0.4rem;
+            font-size: 0.625rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            line-height: 1.2;
+            text-transform: uppercase;
+            color: #64748b;
+        }
+
+        .teachers-table tbody tr.teacher-row > td.teacher-card-actions > div {
+            display: flex;
+            inline-size: 100%;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .teachers-table tbody tr.teacher-row > td.teacher-card-actions > div > div {
+            display: grid;
+            inline-size: 100%;
+            grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+            gap: 0.5rem;
+        }
+
+        .teachers-table tbody tr.teacher-row > td.teacher-card-actions > div > div > form {
+            display: block;
+            inline-size: 100%;
+        }
+
+        .teachers-table tbody tr.teacher-row > td.teacher-card-actions > div > div > form > button,
+        .teachers-table tbody tr.teacher-row > td.teacher-card-actions > div > div > button {
+            inline-size: 100%;
+            min-block-size: 2.75rem;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+@endpush
+
 <!-- Main Data Card (Integrated Toolbar + Table + Pagination) -->
 <div class="overflow-hidden rounded-xl border-2 border-black bg-white shadow-[5px_5px_0px_0px_#000]">
     <!-- Search & Sort Toolbar -->
@@ -12,12 +124,13 @@
                        name="search"
                        value="{{ $search ?? '' }}"
                        placeholder="Cari nama guru, NUPTK, NIP, atau email..."
-                       class="w-full rounded-lg border-2 border-black bg-white py-2 pl-9 pr-9 text-xs font-semibold text-black placeholder:font-medium placeholder:text-slate-400 shadow-[2px_2px_0px_0px_#000] transition-all focus:bg-[#FFF9DB]/50 focus:shadow-[3px_3px_0px_0px_#000] focus:outline-none sm:text-sm">
+                       class="min-h-11 w-full rounded-lg border-2 border-black bg-white py-2 pl-9 pr-12 text-xs font-semibold text-black placeholder:font-medium placeholder:text-slate-400 shadow-[2px_2px_0px_0px_#000] transition-all focus:bg-[#FFF9DB]/50 focus:shadow-[3px_3px_0px_0px_#000] focus:outline-none sm:text-sm">
                 @if(!empty($search))
                     <a href="{{ route('admin.teachers.index', request()->except(['search', 'page'])) }}"
-                       class="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-black bg-slate-100 p-0.5 text-black transition hover:bg-[#FF6B6B] hover:text-white"
-                       title="Hapus kata kunci">
-                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                       class="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded border border-black bg-slate-100 text-black transition hover:bg-[#FF6B6B] hover:text-white"
+                       title="Hapus kata kunci"
+                       aria-label="Hapus kata kunci pencarian">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </a>
@@ -25,13 +138,13 @@
             </div>
 
             <!-- Sort & Filter Controls -->
-            <div class="flex flex-wrap items-center gap-2">
-                <div class="flex items-center gap-2">
+            <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <div class="flex w-full items-center gap-2 sm:w-auto">
                     <label for="sort_select" class="text-xs font-extrabold uppercase tracking-wider text-black whitespace-nowrap">Urutkan:</label>
                     <select id="sort_select"
                             name="sort"
                             onchange="this.form.submit()"
-                            class="cursor-pointer rounded-lg border-2 border-black bg-white py-2 pl-3 pr-8 text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] transition-all focus:bg-[#FFF9DB]/50 focus:outline-none sm:text-sm">
+                            class="min-h-11 min-w-0 flex-1 cursor-pointer rounded-lg border-2 border-black bg-white py-2 pl-3 pr-8 text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] transition-all focus:bg-[#FFF9DB]/50 focus:outline-none sm:flex-none sm:text-sm">
                         <option value="name_asc" {{ ($sort ?? 'name_asc') === 'name_asc' ? 'selected' : '' }}>Nama: A - Z</option>
                         <option value="name_desc" {{ ($sort ?? '') === 'name_desc' ? 'selected' : '' }}>Nama: Z - A</option>
                         <option value="latest" {{ ($sort ?? '') === 'latest' ? 'selected' : '' }}>Terbaru Dibuat</option>
@@ -40,13 +153,13 @@
                 </div>
 
                 <button type="submit"
-                        class="inline-flex cursor-pointer items-center rounded-lg border-2 border-black bg-[#FFD43B] px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FCC419] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:text-sm">
+                        class="inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border-2 border-black bg-[#FFD43B] px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FCC419] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:flex-none sm:text-sm">
                     Cari
                 </button>
 
                 @if(!empty($search) || ($sort ?? 'name_asc') !== 'name_asc')
                     <a href="{{ route('admin.teachers.index') }}"
-                       class="inline-flex items-center gap-1 rounded-lg border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:text-sm"
+                       class="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:flex-none sm:text-sm"
                        title="Reset Semua Filter">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -58,7 +171,7 @@
         </form>
 
         @if(!empty($search))
-            <div class="mt-3 flex items-center justify-between rounded-lg border-2 border-black bg-[#FFF9DB] px-3.5 py-2 text-xs text-black shadow-[2px_2px_0px_0px_#000]">
+            <div class="mt-3 flex flex-col items-start gap-2 rounded-lg border-2 border-black bg-[#FFF9DB] px-3.5 py-2 text-xs text-black shadow-[2px_2px_0px_0px_#000] sm:flex-row sm:items-center sm:justify-between">
                 <span class="font-medium">
                     Menampilkan <strong class="font-black tabular-nums">{{ $teachers->total() }}</strong> hasil untuk
                     <strong class="font-black">"{{ $search }}"</strong>
@@ -71,8 +184,9 @@
     </div>
 
     <!-- Data Table -->
-    <div class="overflow-x-auto">
-        <table class="w-full min-w-[960px] text-left text-sm">
+    <div class="teachers-table-wrapper overflow-x-auto" tabindex="0" role="region" aria-label="Daftar guru dan tenaga pendidik">
+        <table class="teachers-table w-full min-w-[960px] text-left text-sm">
+            <caption class="sr-only">Daftar guru dan tenaga pendidik</caption>
             <thead class="border-b-2 border-black bg-[#FFF9DB] text-xs font-black uppercase tracking-wider text-black">
                 <tr>
                     <th class="w-12 py-3.5 pl-5 pr-3 text-right">No</th>
@@ -111,14 +225,14 @@
                             default => 'bg-slate-200 text-black',
                         };
                     @endphp
-                    <tr class="transition-colors hover:bg-[#FFFDF0]">
+                    <tr class="teacher-row transition-colors hover:bg-[#FFFDF0]">
                         <!-- No -->
-                        <td class="py-4 pl-5 pr-3 text-right align-top text-xs font-extrabold text-slate-500 tabular-nums">
+                        <td class="teacher-row-number py-4 pl-5 pr-3 text-right align-top text-xs font-extrabold text-slate-500 tabular-nums">
                             {{ $teachers->firstItem() + $index }}
                         </td>
 
                         <!-- Profil Guru (Avatar, Name, Gender, Email, Phone) -->
-                        <td class="px-4 py-4 align-top">
+                        <td class="teacher-card-head px-4 py-4 align-top">
                             <div class="flex items-start gap-3">
                                 <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-black text-xs font-black shadow-[2px_2px_0px_0px_#000] {{ $avatarTone }}">
                                     {{ $initials ?: '?' }}
@@ -187,7 +301,7 @@
                         </td>
 
                         <!-- TTL & Pendidikan -->
-                        <td class="px-4 py-4 align-top">
+                        <td class="px-4 py-4 align-top" data-label="TTL &amp; Pendidikan">
                             <div class="space-y-1.5">
                                 <div class="text-xs">
                                     <div class="font-bold text-black">{{ $teacher->birth_place ?: '—' }}</div>
@@ -204,7 +318,7 @@
                         </td>
 
                         <!-- Peran & Penugasan -->
-                        <td class="px-4 py-4 align-top">
+                        <td class="px-4 py-4 align-top" data-label="Peran &amp; Penugasan">
                             <div class="space-y-2 text-xs">
                                 <!-- Wali Kelas -->
                                 <div class="flex items-start gap-2">
@@ -289,7 +403,7 @@
                         </td>
 
                         <!-- Aksi -->
-                        <td class="py-4 pl-4 pr-5 text-right align-top">
+                        <td class="teacher-card-actions py-4 pl-4 pr-5 text-right align-top" data-label="Aksi">
                             <div class="inline-flex flex-col items-end gap-2">
                                 <!-- Role / Assignment Actions -->
                                 <div class="inline-flex items-center gap-1.5">
@@ -323,6 +437,22 @@
 
                                 <!-- Edit & Delete Actions -->
                                 <div class="inline-flex items-center gap-1.5">
+                                    <form action="{{ route('admin.teachers.impersonate', $teacher) }}"
+                                          method="POST"
+                                          data-teacher-name="{{ $teacherName }}"
+                                          onsubmit="return confirmTeacherImpersonation(this)"
+                                          class="inline">
+                                        @csrf
+                                        <button type="submit"
+                                                class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#A5D8FF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#74C0FC] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                                title="Masuk sebagai akun guru ini (Impersonasi)">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                            </svg>
+                                            <span>Masuk</span>
+                                        </button>
+                                    </form>
+
                                     <button type="button"
                                             onclick="editTeacher({{ json_encode([
                                                 'id' => $teacher->id,

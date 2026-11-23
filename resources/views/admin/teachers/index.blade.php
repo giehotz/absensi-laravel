@@ -3,7 +3,7 @@
 @section('title', 'Data Guru & Penugasan Mengajar')
 
 @section('content')
-<div class="space-y-6">
+<div class="teachers-page space-y-6">
     @include('admin.teachers.partials._header')
     @include('admin.teachers.partials._table')
 </div>

@@ -8,15 +8,49 @@
             'createTeacherModal',
             'editTeacherModal',
             'assignmentTeacherModal',
-            'savingsOfficerModal'
+            'savingsOfficerModal',
+            'impersonationTeacherModal'
         ];
         modalIds.forEach(id => {
             const modal = document.getElementById(id);
             if (modal && !modal.classList.contains('hidden')) {
-                closeModal(id);
+                if (id === 'impersonationTeacherModal') {
+                    cancelTeacherImpersonation();
+                } else {
+                    closeModal(id);
+                }
             }
         });
     });
+
+    let pendingImpersonationForm = null;
+
+    function confirmTeacherImpersonation(form) {
+        if (!form) return false;
+
+        pendingImpersonationForm = form;
+        const nameElement = document.getElementById('impersonation_teacher_name');
+        if (nameElement) {
+            nameElement.textContent = form.dataset.teacherName || 'Guru';
+        }
+
+        openModal('impersonationTeacherModal');
+        return false;
+    }
+
+    function submitTeacherImpersonation() {
+        if (!pendingImpersonationForm) return;
+
+        const form = pendingImpersonationForm;
+        pendingImpersonationForm = null;
+        closeModal('impersonationTeacherModal');
+        form.submit();
+    }
+
+    function cancelTeacherImpersonation() {
+        pendingImpersonationForm = null;
+        closeModal('impersonationTeacherModal');
+    }
 
     function togglePasswordVisibility(inputId, iconContainerId) {
         const input = document.getElementById(inputId);

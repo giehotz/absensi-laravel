@@ -46,20 +46,20 @@
         </div>
     @else
         <!-- Header Card Neo-Brutalism -->
-        <div class="bg-[#FFF3BF] neo-box-lg p-5 sm:p-7 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+        <div class="bg-[#FFF3BF] neo-box-lg p-4 sm:p-7 text-black relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-5">
             <div class="space-y-1.5 z-10">
                 <div class="flex items-center gap-2 flex-wrap">
-                    <span class="neo-badge bg-[#5294FF] text-white font-black">PORTAL GURU</span>
-                    <span class="text-xs font-mono font-bold bg-white px-2 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_#000]">
+                    <span class="neo-badge bg-[#5294FF] text-white font-black text-[10px] sm:text-xs">PORTAL GURU</span>
+                    <span class="text-[11px] sm:text-xs font-mono font-bold bg-white px-2 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_#000]">
                         PENGAWAS UJIAN
                     </span>
                     @if($activePeriode)
-                        <span class="text-xs font-mono font-black bg-black text-[#FFD43B] px-2 py-0.5 rounded border border-black shadow-[2px_2px_0px_0px_#000]">
+                        <span class="text-[11px] sm:text-xs font-mono font-black bg-black text-[#FFD43B] px-2 py-0.5 rounded border border-black shadow-[2px_2px_0px_0px_#000]">
                             {{ $activePeriode->tahun_pelajaran ?? '-' }}
                         </span>
                     @endif
                 </div>
-                <h1 class="font-heading text-xl sm:text-2xl font-black tracking-tight text-black uppercase">
+                <h1 class="font-heading text-lg sm:text-2xl font-black tracking-tight text-black uppercase">
                     Jadwal Pengawas Ujian
                 </h1>
                 <p class="text-xs sm:text-sm font-semibold text-slate-800 max-w-2xl">
@@ -69,17 +69,17 @@
 
             <!-- Form Filter Periode & Aksi Cetak -->
             <div class="z-10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full md:w-auto">
-                <form method="GET" action="{{ route('guru.pengawas.index') }}" class="flex items-center gap-2">
-                    <div class="relative">
+                <form method="GET" action="{{ route('guru.pengawas.index') }}" class="w-full sm:w-auto">
+                    <div class="relative w-full sm:w-auto">
                         <select name="periode_id" onchange="this.form.submit()" 
-                                class="bg-white text-black font-bold text-xs border-2 border-black rounded-lg py-2 pl-3 pr-8 shadow-[2px_2px_0px_0px_#000] focus:ring-0 focus:border-black cursor-pointer appearance-none">
+                                class="w-full sm:w-auto bg-white text-black font-bold text-xs border-2 border-black rounded-lg py-2.5 pl-3 pr-8 min-h-[44px] shadow-[2px_2px_0px_0px_#000] focus:ring-0 focus:border-black cursor-pointer appearance-none">
                             @foreach($periodes as $p)
                                 <option value="{{ $p->id }}" {{ $activePeriode && $activePeriode->id === $p->id ? 'selected' : '' }}>
                                     {{ $p->nama_periode }} {{ $p->is_active ? '★ (Aktif)' : '' }}
                                 </option>
                             @endforeach
                         </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-black font-black text-xs">
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-black font-black text-xs">
                             ▼
                         </div>
                     </div>
@@ -88,7 +88,7 @@
                 @if($activePeriode && $totalDuties > 0)
                     <a href="{{ route('guru.pengawas.print', ['periode_id' => $activePeriode->id]) }}" 
                        target="_blank"
-                       class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-black px-4 py-2 flex items-center justify-center gap-1.5 cursor-pointer shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all">
+                       class="neo-btn bg-white hover:bg-slate-100 text-black text-xs font-black px-4 py-2.5 min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all w-full sm:w-auto text-center">
                         <span>🖨️</span> Cetak Surat Tugas
                     </a>
                 @endif
@@ -96,51 +96,51 @@
         </div>
 
         <!-- 4 KPI Summary Cards -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <div class="bg-white neo-box p-4 border-3 border-black flex items-center justify-between">
-                <div>
-                    <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider">Total Penugasan</span>
-                    <div class="text-xl sm:text-2xl font-heading font-black text-black mt-0.5">
-                        {{ $totalDuties }} <span class="text-xs font-bold text-slate-500">Sesi</span>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <div class="bg-white neo-box p-3 sm:p-4 border-2 sm:border-3 border-black flex items-center justify-between">
+                <div class="min-w-0 pr-1">
+                    <span class="text-[9px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider truncate block">Total Penugasan</span>
+                    <div class="text-lg sm:text-2xl font-heading font-black text-black mt-0.5">
+                        {{ $totalDuties }} <span class="text-[11px] sm:text-xs font-bold text-slate-500">Sesi</span>
                     </div>
                 </div>
-                <div class="w-10 h-10 sm:w-11 sm:h-11 bg-[#E7F5FF] border-2 border-black flex items-center justify-center text-lg sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 bg-[#E7F5FF] border-2 border-black flex items-center justify-center text-base sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
                     📋
                 </div>
             </div>
 
-            <div class="bg-white neo-box p-4 border-3 border-black flex items-center justify-between">
-                <div>
-                    <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider">Mengawas Hari Ini</span>
-                    <div class="text-xl sm:text-2xl font-heading font-black text-black mt-0.5">
-                        {{ $todayDutiesCount }} <span class="text-xs font-bold text-slate-500">Sesi</span>
+            <div class="bg-white neo-box p-3 sm:p-4 border-2 sm:border-3 border-black flex items-center justify-between">
+                <div class="min-w-0 pr-1">
+                    <span class="text-[9px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider truncate block">Mengawas Hari Ini</span>
+                    <div class="text-lg sm:text-2xl font-heading font-black text-black mt-0.5">
+                        {{ $todayDutiesCount }} <span class="text-[11px] sm:text-xs font-bold text-slate-500">Sesi</span>
                     </div>
                 </div>
-                <div class="w-10 h-10 sm:w-11 sm:h-11 {{ $todayDutiesCount > 0 ? 'bg-[#FFD43B] animate-pulse' : 'bg-slate-100' }} border-2 border-black flex items-center justify-center text-lg sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 {{ $todayDutiesCount > 0 ? 'bg-[#FFD43B] animate-pulse' : 'bg-slate-100' }} border-2 border-black flex items-center justify-center text-base sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
                     ⚡
                 </div>
             </div>
 
-            <div class="bg-white neo-box p-4 border-3 border-black flex items-center justify-between">
-                <div>
-                    <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider">Total Alokasi Waktu</span>
-                    <div class="text-xl sm:text-2xl font-heading font-black text-black mt-0.5">
-                        {{ $totalMinutes }} <span class="text-xs font-bold text-slate-500">Mnt ({{ round($totalMinutes / 60, 1) }} Jam)</span>
+            <div class="bg-white neo-box p-3 sm:p-4 border-2 sm:border-3 border-black flex items-center justify-between">
+                <div class="min-w-0 pr-1">
+                    <span class="text-[9px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider truncate block">Total Alokasi</span>
+                    <div class="text-lg sm:text-2xl font-heading font-black text-black mt-0.5">
+                        {{ $totalMinutes }} <span class="text-[10px] sm:text-xs font-bold text-slate-500">Mnt ({{ round($totalMinutes / 60, 1) }} Jam)</span>
                     </div>
                 </div>
-                <div class="w-10 h-10 sm:w-11 sm:h-11 bg-[#FFF3BF] border-2 border-black flex items-center justify-center text-lg sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 bg-[#FFF3BF] border-2 border-black flex items-center justify-center text-base sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
                     ⏱️
                 </div>
             </div>
 
-            <div class="bg-white neo-box p-4 border-3 border-black flex items-center justify-between">
-                <div>
-                    <span class="text-[10px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider">Selesai Dijalani</span>
-                    <div class="text-xl sm:text-2xl font-heading font-black text-black mt-0.5">
-                        {{ $completedDutiesCount }} <span class="text-xs font-bold text-slate-500">Sesi</span>
+            <div class="bg-white neo-box p-3 sm:p-4 border-2 sm:border-3 border-black flex items-center justify-between">
+                <div class="min-w-0 pr-1">
+                    <span class="text-[9px] sm:text-[11px] font-black uppercase text-slate-500 tracking-wider truncate block">Selesai Dijalani</span>
+                    <div class="text-lg sm:text-2xl font-heading font-black text-black mt-0.5">
+                        {{ $completedDutiesCount }} <span class="text-[11px] sm:text-xs font-bold text-slate-500">Sesi</span>
                     </div>
                 </div>
-                <div class="w-10 h-10 sm:w-11 sm:h-11 bg-[#D3F9D8] border-2 border-black flex items-center justify-center text-lg sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
+                <div class="w-9 h-9 sm:w-11 sm:h-11 bg-[#D3F9D8] border-2 border-black flex items-center justify-center text-base sm:text-xl shadow-[2px_2px_0px_0px_#000] shrink-0">
                     ✅
                 </div>
             </div>
@@ -160,19 +160,19 @@
             </div>
         @else
             <!-- Toolbar Switcher: Mode Kartu Timeline vs Mode Tabel -->
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-3 border-2 border-black shadow-[2px_2px_0px_0px_#000] rounded-lg">
-                <div class="text-xs font-black uppercase text-slate-700 flex items-center gap-2">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 border-2 border-black shadow-[2px_2px_0px_0px_#000] rounded-lg">
+                <div class="text-xs font-black uppercase text-slate-700 flex items-center justify-between sm:justify-start gap-2">
                     <span>🗓️ DAFTAR TUGAS MENGAWAS</span>
                     <span class="bg-black text-[#FFD43B] text-[10px] px-2 py-0.5 rounded font-mono">{{ $totalDuties }} Sesi</span>
                 </div>
                 
                 <div class="flex items-center gap-2 w-full sm:w-auto">
                     <button type="button" id="btnModeCard" onclick="switchView('card')" 
-                            class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-[#FFD43B] text-black shadow-[2px_2px_0px_0px_#000]">
+                            class="flex-1 sm:flex-none px-3.5 py-2 min-h-[40px] text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-[#FFD43B] text-black shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5">
                         🗂️ Mode Kartu
                     </button>
                     <button type="button" id="btnModeTable" onclick="switchView('table')" 
-                            class="flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000]">
+                            class="flex-1 sm:flex-none px-3.5 py-2 min-h-[40px] text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5">
                         📊 Mode Tabel
                     </button>
                 </div>
@@ -188,15 +188,15 @@
                     @endphp
                     <div class="space-y-3">
                         <!-- Date Header Strip -->
-                        <div class="flex items-center gap-2.5">
-                            <div class="px-3 py-1 border-2 border-black font-heading font-black text-xs uppercase tracking-wider {{ $isToday ? 'bg-[#FF6B6B] text-white' : 'bg-black text-white' }} shadow-[2px_2px_0px_0px_#000] rounded">
-                                {{ $tglCarbon ? $tglCarbon->locale('id')->translatedFormat('l, d F Y') : 'Tanggal Belum Ditetapkan' }}
+                        <div class="flex items-center gap-2">
+                            <div class="px-2.5 sm:px-3 py-1 border-2 border-black font-heading font-black text-[11px] sm:text-xs uppercase tracking-wider {{ $isToday ? 'bg-[#FF6B6B] text-white' : 'bg-black text-white' }} shadow-[2px_2px_0px_0px_#000] rounded flex items-center gap-1.5 flex-wrap">
+                                <span>{{ $tglCarbon ? $tglCarbon->locale('id')->translatedFormat('l, d F Y') : 'Tanggal Belum Ditetapkan' }}</span>
                                 @if($isToday)
-                                    <span class="ml-1 text-yellow-300 font-mono">⚡ (HARI INI)</span>
+                                    <span class="text-yellow-300 font-mono text-[10px] sm:text-[11px]">⚡ (HARI INI)</span>
                                 @endif
                             </div>
                             <div class="h-0.5 flex-1 bg-black"></div>
-                            <span class="text-[11px] font-bold text-slate-500 font-mono">{{ $dayDuties->count() }} Sesi</span>
+                            <span class="text-[11px] font-bold text-slate-500 font-mono shrink-0">{{ $dayDuties->count() }} Sesi</span>
                         </div>
 
                         <!-- Card Grid per Tanggal -->
@@ -274,7 +274,7 @@
                                                 @if($duty->partner_wa_url)
                                                     <a href="{{ $duty->partner_wa_url }}" 
                                                        target="_blank"
-                                                       class="px-2 py-1 bg-[#20C997] hover:bg-emerald-500 text-black border border-black rounded text-[11px] font-black flex items-center gap-1 shrink-0 shadow-[1px_1px_0px_0px_#000]">
+                                                       class="px-2.5 py-1.5 min-h-[36px] bg-[#20C997] hover:bg-emerald-500 text-black border border-black rounded text-xs font-black flex items-center justify-center gap-1 shrink-0 shadow-[1px_1px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5">
                                                         <span>💬</span> WA
                                                     </a>
                                                 @endif
@@ -286,12 +286,75 @@
                                         @endif
                                     </div>
 
-                                    <!-- Tombol Aksi Modal Peserta Ruangan -->
-                                    <div class="pt-1">
+                                    <!-- Status Presensi & Berita Acara Strip -->
+                                    @php
+                                        $myStatus = $duty->is_pengawas_1 ? $duty->status_p1 : $duty->status_p2;
+                                        $myCheckInAt = $duty->is_pengawas_1 ? $duty->check_in_p1_at : $duty->check_in_p2_at;
+                                        $ba = $duty->beritaAcara;
+                                        $allowEarly = (bool) ($activePeriode?->izinkan_pengisian_awal ?? false);
+                                        $canCheckIn = ($isToday || $allowEarly) && $myStatus !== 'Hadir';
+                                    @endphp
+                                    <div class="bg-slate-50 border border-slate-300 p-2.5 rounded space-y-2">
+                                        <div class="flex items-center justify-between text-[11px]">
+                                            <span class="font-bold text-slate-600">Presensi Guru:</span>
+                                            @if($myStatus === 'Hadir')
+                                                <span class="bg-[#D3F9D8] text-emerald-950 font-black px-2 py-0.5 rounded border border-emerald-500">
+                                                    ✓ Hadir {{ $myCheckInAt ? '('.$myCheckInAt->format('H:i').')' : '' }}
+                                                </span>
+                                            @elseif(in_array($myStatus, ['Izin', 'Sakit', 'Alpa', 'Digantikan'], true))
+                                                <span class="bg-[#FFE3E3] text-rose-950 font-black px-2 py-0.5 rounded border border-rose-300">
+                                                    {{ $myStatus }}
+                                                </span>
+                                            @else
+                                                <span class="bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">
+                                                    Belum Hadir
+                                                </span>
+                                            @endif
+                                        </div>
+
+                                        <div class="flex items-center justify-between text-[11px]">
+                                            <span class="font-bold text-slate-600">Berita Acara:</span>
+                                            @if($ba)
+                                                @if($ba->isVerified())
+                                                    <span class="bg-[#5294FF] text-white font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                                                        ✓ Diverifikasi
+                                                    </span>
+                                                @else
+                                                    <span class="bg-[#20C997] text-black font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                                                        ⏳ Terkirim
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded border border-amber-300">
+                                                    Belum Diisi
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <!-- Tombol Aksi: Check-In, Berita Acara, & Modal Peserta Ruangan -->
+                                    <div class="pt-1 space-y-2">
+                                        <div class="grid {{ $canCheckIn ? 'grid-cols-2' : 'grid-cols-1' }} gap-2">
+                                            @if($canCheckIn)
+                                                <form action="{{ route('guru.pengawas.check-in', $duty->id) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" 
+                                                            class="w-full py-2.5 px-3 min-h-[44px] bg-[#20C997] hover:bg-emerald-400 text-black border-2 border-black rounded font-heading font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer">
+                                                        <span>📍</span> Check-In
+                                                    </button>
+                                                </form>
+                                            @endif
+
+                                            <a href="{{ route('guru.pengawas.berita-acara', $duty->id) }}" 
+                                               class="py-2.5 px-3 min-h-[44px] bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded font-heading font-black text-xs uppercase flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer text-center">
+                                                <span>📋</span> {{ $ba ? ($ba->isVerified() ? 'Lihat BA' : 'Edit BA') : 'Isi Berita Acara' }}
+                                            </a>
+                                        </div>
+
                                         @if($ruang)
                                             <button type="button" 
                                                     onclick="loadPesertaRuang({{ $ruang->id }}, '{{ addslashes($namaRuang) }}', {{ $activePeriode->id }})"
-                                                    class="w-full py-2 px-3 bg-white hover:bg-yellow-50 text-black border-2 border-black rounded font-heading font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer">
+                                                    class="w-full py-2.5 px-3 min-h-[44px] bg-white hover:bg-yellow-50 text-black border-2 border-black rounded font-heading font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer">
                                                 <span>👥</span> Lihat Siswa di Ruangan
                                             </button>
                                         @endif
@@ -303,9 +366,9 @@
                 @endforeach
             </div>
 
-            <!-- VIEW 2: TABEL RINGKAS RESPOCIVE -->
+            <!-- VIEW 2: TABEL RINGKAS RESPONSIVE -->
             <div id="viewModeTable" class="hidden">
-                <div class="bg-white neo-box border-3 border-black overflow-x-auto">
+                <div class="bg-white neo-box border-3 border-black overflow-x-auto rounded-lg" tabindex="0" role="region" aria-label="Tabel ringkas jadwal pengawas ujian">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
                             <tr class="bg-black text-[#FFD43B] font-heading font-black uppercase text-[11px] border-b-2 border-black">
@@ -352,7 +415,7 @@
                                         @if($d->partner)
                                             <div class="font-bold text-black">{{ $d->partner_name }}</div>
                                             @if($d->partner_wa_url)
-                                                <a href="{{ $d->partner_wa_url }}" target="_blank" class="text-[10px] font-bold text-emerald-700 hover:underline flex items-center gap-1 mt-0.5">
+                                                <a href="{{ $duty->partner_wa_url }}" target="_blank" class="text-[11px] font-bold text-emerald-700 hover:underline inline-flex items-center gap-1 mt-1 py-1">
                                                     <span>💬 Hubungi WA</span>
                                                 </a>
                                             @endif
@@ -361,18 +424,40 @@
                                         @endif
                                     </td>
                                     <td class="p-3 text-center border-r border-slate-300 whitespace-nowrap">
-                                        <span class="text-[10px] font-black px-2 py-0.5 rounded border shadow-[1px_1px_0px_0px_#000] uppercase {{ $d->status_badge }}">
-                                            {{ $d->status_label }}
-                                        </span>
+                                        @php
+                                            $tMyStatus = $d->is_pengawas_1 ? $d->status_p1 : $d->status_p2;
+                                            $tBa = $d->beritaAcara;
+                                        @endphp
+                                        <div class="space-y-1">
+                                            <div>
+                                                <span class="text-[10px] font-black px-2 py-0.5 rounded border shadow-[1px_1px_0px_0px_#000] uppercase {{ $d->status_badge }}">
+                                                    {{ $d->status_label }}
+                                                </span>
+                                            </div>
+                                            @if($tMyStatus === 'Hadir')
+                                                <div class="text-[10px] font-bold text-emerald-700">✓ Hadir</div>
+                                            @endif
+                                            @if($tBa)
+                                                <div class="text-[10px] font-black {{ $tBa->isVerified() ? 'text-blue-700' : 'text-emerald-700' }}">
+                                                    {{ $tBa->isVerified() ? '✓ BA Verified' : '⏳ BA Terkirim' }}
+                                                </div>
+                                            @endif
+                                        </div>
                                     </td>
                                     <td class="p-3 text-center">
-                                        @if($ruang)
-                                            <button type="button" 
-                                                    onclick="loadPesertaRuang({{ $ruang->id }}, '{{ addslashes($namaRuang) }}', {{ $activePeriode->id }})"
-                                                    class="px-2.5 py-1 bg-[#FFF3BF] hover:bg-yellow-300 text-black border border-black rounded text-[11px] font-black shadow-[1px_1px_0px_0px_#000] cursor-pointer">
-                                                👥 Siswa
-                                            </button>
-                                        @endif
+                                        <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                            <a href="{{ route('guru.pengawas.berita-acara', $d->id) }}" 
+                                               class="px-2.5 py-1.5 min-h-[36px] bg-[#FFD43B] hover:bg-yellow-400 text-black border border-black rounded text-[11px] font-black shadow-[1px_1px_0px_0px_#000] flex items-center justify-center">
+                                                📋 BA
+                                            </a>
+                                            @if($ruang)
+                                                <button type="button" 
+                                                        onclick="loadPesertaRuang({{ $ruang->id }}, '{{ addslashes($namaRuang) }}', {{ $activePeriode->id }})"
+                                                        class="px-2.5 py-1.5 min-h-[36px] bg-[#FFF3BF] hover:bg-yellow-300 text-black border border-black rounded text-[11px] font-black shadow-[1px_1px_0px_0px_#000] cursor-pointer flex items-center justify-center">
+                                                    👥 Siswa
+                                                </button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -385,10 +470,10 @@
 </div>
 
 <!-- MODAL DAFTAR PESERTA SISWA DI RUANGAN -->
-<div id="modalPeserta" class="fixed inset-0 z-50 hidden bg-black/70 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
-    <div class="bg-white border-4 border-black w-full max-w-2xl shadow-[6px_6px_0px_0px_#000] flex flex-col max-h-[90vh]">
+<dialog id="modalPeserta" aria-labelledby="modalRuangTitle" class="bg-transparent p-0 m-auto w-[calc(100%-1.5rem)] sm:w-full max-w-2xl border-0 shadow-none backdrop:bg-black/75">
+    <div class="bg-white border-4 border-black w-full max-w-2xl shadow-[6px_6px_0px_0px_#000] flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden">
         <!-- Modal Header -->
-        <div class="bg-[#FFD43B] border-b-3 border-black p-4 flex items-center justify-between shrink-0">
+        <div class="bg-[#FFD43B] border-b-3 border-black p-3.5 sm:p-4 flex items-center justify-between shrink-0">
             <div>
                 <span class="text-[10px] font-black uppercase tracking-wider bg-black text-white px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
                     DAFTAR PESERTA UJIAN
@@ -397,7 +482,7 @@
                     Ruang Ujian
                 </h3>
             </div>
-            <button type="button" onclick="closePesertaModal()" class="w-8 h-8 bg-white hover:bg-slate-100 text-black border-2 border-black font-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+            <button type="button" onclick="closePesertaModal()" aria-label="Tutup dialog peserta" class="w-9 h-9 min-h-[36px] bg-white hover:bg-slate-100 text-black border-2 border-black font-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000] cursor-pointer">
                 ✕
             </button>
         </div>
@@ -408,13 +493,13 @@
                 Memuat data peserta...
             </div>
             <div class="relative w-full sm:w-64">
-                <input type="text" id="modalSearchInput" onkeyup="filterPesertaTable()" placeholder="Cari nama atau nomor..." 
-                       class="w-full bg-white text-xs border-2 border-black py-1.5 px-3 rounded shadow-[1px_1px_0px_0px_#000] focus:ring-0 focus:border-black">
+                <input type="text" id="modalSearchInput" onkeyup="filterPesertaTable()" placeholder="Cari nama, kelas, atau nomor..." 
+                       class="w-full bg-white text-xs border-2 border-black py-2 px-3 min-h-[40px] rounded shadow-[1px_1px_0px_0px_#000] focus:ring-0 focus:border-black">
             </div>
         </div>
 
         <!-- Modal Body: Table Peserta -->
-        <div class="p-4 overflow-y-auto flex-1">
+        <div class="p-3 sm:p-4 overflow-y-auto flex-1">
             <!-- Loading State -->
             <div id="modalLoading" class="py-12 text-center space-y-2">
                 <div class="inline-block w-8 h-8 border-4 border-black border-t-[#FFD43B] rounded-full animate-spin"></div>
@@ -428,18 +513,18 @@
             </div>
 
             <!-- Table Content -->
-            <div id="modalTableWrapper" class="hidden border-2 border-black overflow-x-auto">
+            <div id="modalTableWrapper" class="hidden border-2 border-black rounded overflow-hidden" tabindex="0" role="region" aria-label="Daftar peserta ruangan">
                 <table class="w-full text-left border-collapse text-xs" id="tablePesertaModal">
-                    <thead>
+                    <thead class="hidden md:table-header-group">
                         <tr class="bg-black text-[#FFD43B] font-heading font-black uppercase text-[10px] border-b-2 border-black">
-                            <th class="p-2.5 text-center w-12 border-r border-slate-700">Meja</th>
-                            <th class="p-2.5 border-r border-slate-700">No. Peserta</th>
+                            <th class="p-2.5 text-center w-14 border-r border-slate-700">Meja</th>
+                            <th class="p-2.5 border-r border-slate-700 w-36">No. Peserta</th>
                             <th class="p-2.5 border-r border-slate-700">Nama Siswa</th>
-                            <th class="p-2.5 border-r border-slate-700">Rombel/Kelas</th>
-                            <th class="p-2.5 text-center">NISN</th>
+                            <th class="p-2.5 border-r border-slate-700 w-24">Rombel/Kelas</th>
+                            <th class="p-2.5 text-center w-28">NISN</th>
                         </tr>
                     </thead>
-                    <tbody id="pesertaTableBody" class="divide-y border-black font-semibold">
+                    <tbody id="pesertaTableBody" class="divide-y-2 divide-black md:divide-y md:divide-slate-200 block md:table-row-group">
                         <!-- Populated by JavaScript -->
                     </tbody>
                 </table>
@@ -449,15 +534,26 @@
         <!-- Modal Footer -->
         <div class="bg-slate-100 border-t-2 border-black p-3 flex justify-end shrink-0">
             <button type="button" onclick="closePesertaModal()" 
-                    class="px-4 py-1.5 bg-black hover:bg-slate-800 text-white border-2 border-black text-xs font-heading font-black uppercase shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    class="w-full sm:w-auto px-5 py-2.5 min-h-[40px] bg-black hover:bg-slate-800 text-white border-2 border-black text-xs font-heading font-black uppercase shadow-[2px_2px_0px_0px_#000] cursor-pointer text-center">
                 Tutup
             </button>
         </div>
     </div>
-</div>
+</dialog>
 @endsection
 
 @push('scripts')
+<style>
+    dialog#modalPeserta:modal {
+        overscroll-behavior: contain;
+    }
+    dialog#modalPeserta::backdrop {
+        background-color: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(2px);
+        overflow: hidden;
+        overscroll-behavior: contain;
+    }
+</style>
 <script>
     function switchView(mode) {
         const viewCards = document.getElementById('viewModeCard');
@@ -468,13 +564,13 @@
         if (mode === 'card') {
             viewCards.classList.remove('hidden');
             viewTable.classList.add('hidden');
-            btnCards.className = "flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-[#FFD43B] text-black shadow-[2px_2px_0px_0px_#000]";
-            btnTable.className = "flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000]";
+            btnCards.className = "flex-1 sm:flex-none px-3.5 py-2 min-h-[40px] text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-[#FFD43B] text-black shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5";
+            btnTable.className = "flex-1 sm:flex-none px-3.5 py-2 min-h-[40px] text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5";
         } else {
             viewCards.classList.add('hidden');
             viewTable.classList.remove('hidden');
-            btnTable.className = "flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-[#FFD43B] text-black shadow-[2px_2px_0px_0px_#000]";
-            btnCards.className = "flex-1 sm:flex-none px-3 py-1.5 text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000]";
+            btnTable.className = "flex-1 sm:flex-none px-3.5 py-2 min-h-[40px] text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-[#FFD43B] text-black shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5";
+            btnCards.className = "flex-1 sm:flex-none px-3.5 py-2 min-h-[40px] text-xs font-heading font-black border-2 border-black rounded transition-all cursor-pointer bg-white text-slate-700 hover:bg-slate-100 shadow-[2px_2px_0px_0px_#000] flex items-center justify-center gap-1.5";
         }
     }
 
@@ -498,7 +594,12 @@
         modalLoading.classList.remove('hidden');
         modalError.classList.add('hidden');
         modalWrapper.classList.add('hidden');
-        modal.classList.remove('hidden');
+        
+        if (typeof modal.showModal === 'function') {
+            modal.showModal();
+        } else {
+            modal.classList.remove('hidden');
+        }
 
         const url = "{{ url('/guru/jadwal-pengawas/ruang') }}/" + ruangId + "/peserta?periode_id=" + periodeId;
 
@@ -536,29 +637,50 @@
         tbody.innerHTML = '';
 
         if (pesertas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Tidak ada data peserta di ruangan ini.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 italic block md:table-cell">Tidak ada data peserta di ruangan ini.</td></tr>';
             return;
         }
 
         pesertas.forEach(p => {
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-50 transition-colors border-b border-slate-200';
+            tr.className = 'hover:bg-yellow-50/50 transition-colors block md:table-row p-3 md:p-0 border-b-2 md:border-b-0 border-black';
             tr.innerHTML = `
-                <td class="p-2.5 text-center font-mono font-bold bg-slate-50 border-r border-slate-300">
+                <!-- Mobile card header bar -->
+                <td class="block md:hidden pb-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="inline-flex items-center font-mono font-black text-xs bg-black text-[#FFD43B] px-2 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">
+                            ${p.nomor_kursi ? ('Meja ' + String(p.nomor_kursi).padStart(2, '0')) : '-'}
+                        </span>
+                        <span class="bg-yellow-100 text-yellow-900 px-2 py-0.5 rounded text-[11px] font-bold border border-yellow-400">
+                            ${p.nama_kelas || '-'}
+                        </span>
+                    </div>
+                </td>
+                <!-- Desktop Meja -->
+                <td class="p-2.5 text-center font-mono font-bold bg-slate-50 border-r border-slate-300 hidden md:table-cell">
                     ${p.nomor_kursi ? ('Meja ' + String(p.nomor_kursi).padStart(2, '0')) : '-'}
                 </td>
-                <td class="p-2.5 font-mono text-slate-700 border-r border-slate-300">
+                <!-- Desktop No Peserta -->
+                <td class="p-2.5 font-mono text-slate-700 border-r border-slate-300 hidden md:table-cell">
                     ${p.nomor_peserta || '-'}
                 </td>
-                <td class="p-2.5 font-bold text-black border-r border-slate-300">
-                    ${p.nama_peserta || '-'}
+                <!-- Nama Siswa (Desktop & Mobile) -->
+                <td class="p-0 md:p-2.5 font-bold text-black border-r-0 md:border-r border-slate-300 block md:table-cell">
+                    <div class="font-heading font-black text-sm text-black">${p.nama_peserta || '-'}</div>
+                    <div class="text-[11px] font-mono text-slate-500 md:hidden flex items-center gap-2 mt-0.5">
+                        <span>No: ${p.nomor_peserta || '-'}</span>
+                        <span>•</span>
+                        <span>NISN: ${p.nisn || '-'}</span>
+                    </div>
                 </td>
-                <td class="p-2.5 border-r border-slate-300">
+                <!-- Desktop Kelas -->
+                <td class="p-2.5 border-r border-slate-300 hidden md:table-cell">
                     <span class="bg-yellow-100 text-yellow-900 px-1.5 py-0.5 rounded text-[11px] font-bold border border-yellow-400">
                         ${p.nama_kelas || '-'}
                     </span>
                 </td>
-                <td class="p-2.5 text-center font-mono text-slate-600">
+                <!-- Desktop NISN -->
+                <td class="p-2.5 text-center font-mono text-slate-600 hidden md:table-cell">
                     ${p.nisn || '-'}
                 </td>
             `;
@@ -578,16 +700,26 @@
     }
 
     function closePesertaModal() {
-        document.getElementById('modalPeserta').classList.add('hidden');
+        const modal = document.getElementById('modalPeserta');
+        if (typeof modal.close === 'function') {
+            modal.close();
+        } else {
+            modal.classList.add('hidden');
+        }
     }
 
-    // Tutup modal jika tombol Escape ditekan atau backdrop diklik
+    // Native backdrop click handling & fallback
+    const modalElement = document.getElementById('modalPeserta');
+    if (modalElement) {
+        modalElement.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePesertaModal();
+            }
+        });
+    }
+
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closePesertaModal();
-    });
-
-    document.getElementById('modalPeserta').addEventListener('click', function(e) {
-        if (e.target === this) closePesertaModal();
     });
 </script>
 @endpush

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ujian;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
 use App\Models\Teacher;
+use App\Models\Ujian\UjianBeritaAcara;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
 use App\Models\Ujian\UjianPanitia;
@@ -224,8 +225,14 @@ class AdministrasiUjianController extends Controller
                 }
 
                 $pengawas = null;
+                $beritaAcara = null;
                 if ($jadwal) {
                     $pengawas = UjianJadwalPengawas::with(['pengawas1.user', 'pengawas2.user'])
+                        ->where('ujian_jadwal_id', $jadwal->id)
+                        ->where('ujian_ruang_id', $r->id)
+                        ->first();
+
+                    $beritaAcara = UjianBeritaAcara::with(['pengawasPengisi.user', 'verifier'])
                         ->where('ujian_jadwal_id', $jadwal->id)
                         ->where('ujian_ruang_id', $r->id)
                         ->first();
@@ -236,6 +243,7 @@ class AdministrasiUjianController extends Controller
                     'jadwal' => $jadwal,
                     'peserta_count' => $pesertaCount,
                     'pengawas' => $pengawas,
+                    'berita_acara' => $beritaAcara,
                     'rombel' => $rombelDisplay,
                 ]);
             }
@@ -317,8 +325,14 @@ class AdministrasiUjianController extends Controller
                 }
 
                 $pengawas = null;
+                $beritaAcara = null;
                 if ($jadwal) {
                     $pengawas = UjianJadwalPengawas::with(['pengawas1.user', 'pengawas2.user'])
+                        ->where('ujian_jadwal_id', $jadwal->id)
+                        ->where('ujian_ruang_id', $r->id)
+                        ->first();
+
+                    $beritaAcara = UjianBeritaAcara::with(['pengawasPengisi.user', 'verifier'])
                         ->where('ujian_jadwal_id', $jadwal->id)
                         ->where('ujian_ruang_id', $r->id)
                         ->first();
@@ -329,6 +343,7 @@ class AdministrasiUjianController extends Controller
                     'jadwal' => $jadwal,
                     'peserta_count' => $pesertaCount,
                     'pengawas' => $pengawas,
+                    'berita_acara' => $beritaAcara,
                     'rombel' => $rombelDisplay,
                 ]);
             }
@@ -483,5 +498,18 @@ class AdministrasiUjianController extends Controller
         }
 
         return back()->with('success', 'Isi SK Panitia berhasil dikembalikan ke standar bawaan.');
+    }
+
+    /**
+     * Verifikasi Laporan Berita Acara Pelaksanaan Ujian Ruang oleh Panitia/Admin.
+     */
+    public function verifikasiBeritaAcara(UjianBeritaAcara $beritaAcara, Request $request): RedirectResponse
+    {
+        $beritaAcara->status = 'verified';
+        $beritaAcara->verified_at = now();
+        $beritaAcara->verified_by = $request->user()->id;
+        $beritaAcara->save();
+
+        return back()->with('success', 'Laporan Berita Acara Ruangan berhasil diverifikasi.');
     }
 }

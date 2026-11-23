@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
+use App\Models\Ujian\UjianBeritaAcara;
 use App\Models\Ujian\UjianJadwalPengawas;
 use App\Models\Ujian\UjianPengaturanTtd;
 use App\Models\Ujian\UjianPeriode;
@@ -55,6 +56,7 @@ class JadwalPengawasController extends Controller
                 'ruang.schoolClass',
                 'pengawas1.user',
                 'pengawas2.user',
+                'beritaAcara',
             ])
                 ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $activePeriode->id))
                 ->where(fn ($q) => $q->where('pengawas_1_id', $teacher->id)->orWhere('pengawas_2_id', $teacher->id))
@@ -233,6 +235,191 @@ class JadwalPengawasController extends Controller
         $ttdSetting = $activePeriode ? UjianPengaturanTtd::where('ujian_periode_id', $activePeriode->id)->first() : null;
 
         return view('ujian.pengawas.print-jadwal-guru', compact('teacherSchedules', 'activePeriode', 'setting', 'ttdSetting'));
+    }
+
+    /**
+     * Tampilkan form pengisian Berita Acara Pelaksanaan Ujian Ruang.
+     */
+    public function beritaAcara(UjianJadwalPengawas $jadwalPengawas, Request $request): View
+    {
+        $teacher = $request->user()->teacher;
+        if (! $teacher || ((int) $jadwalPengawas->pengawas_1_id !== (int) $teacher->id && (int) $jadwalPengawas->pengawas_2_id !== (int) $teacher->id)) {
+            abort(403, 'Anda tidak memiliki hak otorisasi untuk mengisi Berita Acara ruangan ini.');
+        }
+
+        $jadwalPengawas->load(['jadwal.subject', 'jadwal.schoolClass', 'jadwal.periode', 'ruang.schoolClass', 'pengawas1.user', 'pengawas2.user']);
+
+        $beritaAcara = UjianBeritaAcara::where('ujian_jadwal_id', $jadwalPengawas->ujian_jadwal_id)
+            ->where('ujian_ruang_id', $jadwalPengawas->ujian_ruang_id)
+            ->first();
+
+        // Ambil daftar peserta siswa di ruangan ini
+        $pesertaQuery = UjianPeserta::with('schoolClass')
+            ->where('ujian_periode_id', $jadwalPengawas->jadwal->ujian_periode_id)
+            ->where('ujian_ruang_id', $jadwalPengawas->ujian_ruang_id);
+
+        if ($jadwalPengawas->jadwal->school_class_id) {
+            $pesertaQuery->where('school_class_id', $jadwalPengawas->jadwal->school_class_id);
+        } elseif ($jadwalPengawas->jadwal->tingkat && $jadwalPengawas->jadwal->tingkat !== 'Semua Tingkat') {
+            $tingkats = array_values(array_filter(array_map('trim', explode(',', $jadwalPengawas->jadwal->tingkat))));
+            if (count($tingkats) < 6) {
+                $pesertaQuery->where(function ($q) use ($tingkats) {
+                    foreach ($tingkats as $t) {
+                        $q->orWhere('nama_kelas', 'like', "Kelas {$t}%")
+                            ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "Kelas {$t}%"));
+                    }
+                });
+            }
+        }
+
+        $pesertas = $pesertaQuery->orderByRaw('CASE WHEN nomor_kursi IS NULL THEN 1 ELSE 0 END, nomor_kursi ASC, nama_peserta ASC')->get();
+
+        return view('guru.pengawas.berita-acara', compact('jadwalPengawas', 'beritaAcara', 'pesertas', 'teacher'));
+    }
+
+    /**
+     * Simpan / update Laporan Berita Acara Pelaksanaan Ujian Ruang.
+     */
+    public function storeBeritaAcara(UjianJadwalPengawas $jadwalPengawas, Request $request): RedirectResponse
+    {
+        $teacher = $request->user()->teacher;
+        if (! $teacher || ((int) $jadwalPengawas->pengawas_1_id !== (int) $teacher->id && (int) $jadwalPengawas->pengawas_2_id !== (int) $teacher->id)) {
+            abort(403, 'Anda tidak memiliki hak otorisasi untuk mengirim Berita Acara ruangan ini.');
+        }
+
+        $jadwal = $jadwalPengawas->jadwal;
+        $periode = $jadwal?->periode;
+        $allowEarly = (bool) ($periode?->izinkan_pengisian_awal ?? false);
+
+        if (! $allowEarly && $jadwal?->tanggal_ujian?->isFuture()) {
+            return back()->with('error', 'Berita Acara hanya dapat diisi pada hari pelaksanaan ujian atau setelahnya.');
+        }
+
+        $beritaAcara = UjianBeritaAcara::where('ujian_jadwal_id', $jadwalPengawas->ujian_jadwal_id)
+            ->where('ujian_ruang_id', $jadwalPengawas->ujian_ruang_id)
+            ->first();
+
+        // Kunci pasca-verifikasi: tolak edit jika sudah verified
+        if ($beritaAcara && $beritaAcara->isVerified()) {
+            abort(403, 'Laporan Berita Acara ini telah diverifikasi oleh Panitia dan terkunci.');
+        }
+
+        $validated = $request->validate([
+            'naskah_soal_diterima' => 'required|integer|min:0',
+            'naskah_soal_digunakan' => 'required|integer|min:0',
+            'naskah_soal_sisa' => 'required|integer|min:0',
+            'naskah_soal_rusak' => 'nullable|integer|min:0',
+            'catatan_kejadian' => 'nullable|string|max:2000',
+            'absen_siswa' => 'nullable|array',
+            'absen_siswa.*.student_id' => 'required|integer',
+            'absen_siswa.*.nomor_peserta' => 'nullable|string',
+            'absen_siswa.*.nama_peserta' => 'required|string',
+            'absen_siswa.*.nama_kelas' => 'nullable|string',
+            'absen_siswa.*.alasan' => 'required|in:S,I,A',
+            'absen_siswa.*.catatan' => 'nullable|string|max:255',
+        ]);
+
+        $diterima = (int) $validated['naskah_soal_diterima'];
+        $digunakan = (int) $validated['naskah_soal_digunakan'];
+        $sisa = (int) $validated['naskah_soal_sisa'];
+        $rusak = (int) ($validated['naskah_soal_rusak'] ?? 0);
+
+        if ($digunakan + $sisa + $rusak > $diterima) {
+            return back()->withInput()->with('error', 'Jumlah naskah digunakan + sisa + rusak tidak boleh melebihi naskah yang diterima.');
+        }
+
+        // Hitung total peserta seharusnya langsung di server
+        $pesertaQuery = UjianPeserta::where('ujian_periode_id', $jadwal->ujian_periode_id)
+            ->where('ujian_ruang_id', $jadwalPengawas->ujian_ruang_id);
+
+        if ($jadwal->school_class_id) {
+            $pesertaQuery->where('school_class_id', $jadwal->school_class_id);
+        } elseif ($jadwal->tingkat && $jadwal->tingkat !== 'Semua Tingkat') {
+            $tingkats = array_values(array_filter(array_map('trim', explode(',', $jadwal->tingkat))));
+            if (count($tingkats) < 6) {
+                $pesertaQuery->where(function ($q) use ($tingkats) {
+                    foreach ($tingkats as $t) {
+                        $q->orWhere('nama_kelas', 'like', "Kelas {$t}%")
+                            ->orWhereHas('schoolClass', fn ($sq) => $sq->where('name', 'like', "Kelas {$t}%"));
+                    }
+                });
+            }
+        }
+        $pesertaSeharusnya = $pesertaQuery->count();
+
+        // Hitung peserta tidak hadir dari daftar absen unik
+        $daftarAbsen = array_values($validated['absen_siswa'] ?? []);
+        $pesertaTidakHadir = count($daftarAbsen);
+        $pesertaHadir = max(0, $pesertaSeharusnya - $pesertaTidakHadir);
+
+        UjianBeritaAcara::updateOrCreate(
+            [
+                'ujian_jadwal_id' => $jadwalPengawas->ujian_jadwal_id,
+                'ujian_ruang_id' => $jadwalPengawas->ujian_ruang_id,
+            ],
+            [
+                'ujian_periode_id' => $jadwal->ujian_periode_id,
+                'pengawas_pengisi_id' => $teacher->id,
+                'peserta_seharusnya' => $pesertaSeharusnya,
+                'peserta_hadir' => $pesertaHadir,
+                'peserta_tidak_hadir' => $pesertaTidakHadir,
+                'naskah_soal_diterima' => $diterima,
+                'naskah_soal_digunakan' => $digunakan,
+                'naskah_soal_sisa' => $sisa,
+                'naskah_soal_rusak' => $rusak,
+                'catatan_kejadian' => $validated['catatan_kejadian'] ?? null,
+                'daftar_absen_siswa' => $daftarAbsen,
+                'status' => 'submitted',
+                'submitted_at' => now(),
+            ]
+        );
+
+        // Otomatis tandai guru pengawas yang men-submit sebagai Hadir
+        if ((int) $jadwalPengawas->pengawas_1_id === (int) $teacher->id) {
+            $jadwalPengawas->status_p1 = 'Hadir';
+            $jadwalPengawas->check_in_p1_at = $jadwalPengawas->check_in_p1_at ?: now();
+        }
+        if ((int) $jadwalPengawas->pengawas_2_id === (int) $teacher->id) {
+            $jadwalPengawas->status_p2 = 'Hadir';
+            $jadwalPengawas->check_in_p2_at = $jadwalPengawas->check_in_p2_at ?: now();
+        }
+        $jadwalPengawas->syncLegacyStatusKehadiran();
+        $jadwalPengawas->save();
+
+        return redirect()->route('guru.pengawas.index', ['periode_id' => $jadwal->ujian_periode_id])
+            ->with('success', 'Laporan Berita Acara Ruangan berhasil disimpan dan dikirim ke Panitia Ujian.');
+    }
+
+    /**
+     * Presensi Check-In mandiri pengawas ujian.
+     */
+    public function checkIn(UjianJadwalPengawas $jadwalPengawas, Request $request): RedirectResponse
+    {
+        $teacher = $request->user()->teacher;
+        if (! $teacher || ((int) $jadwalPengawas->pengawas_1_id !== (int) $teacher->id && (int) $jadwalPengawas->pengawas_2_id !== (int) $teacher->id)) {
+            abort(403, 'Anda tidak memiliki hak otorisasi untuk presensi pada jadwal ini.');
+        }
+
+        $jadwal = $jadwalPengawas->jadwal;
+        $periode = $jadwal?->periode;
+        $allowEarly = (bool) ($periode?->izinkan_pengisian_awal ?? false);
+
+        if (! $allowEarly && $jadwal?->tanggal_ujian?->isFuture()) {
+            return back()->with('error', 'Presensi kehadiran pengawas hanya dapat dilakukan pada hari pelaksanaan ujian.');
+        }
+
+        if ((int) $jadwalPengawas->pengawas_1_id === (int) $teacher->id) {
+            $jadwalPengawas->status_p1 = 'Hadir';
+            $jadwalPengawas->check_in_p1_at = now();
+        }
+        if ((int) $jadwalPengawas->pengawas_2_id === (int) $teacher->id) {
+            $jadwalPengawas->status_p2 = 'Hadir';
+            $jadwalPengawas->check_in_p2_at = now();
+        }
+        $jadwalPengawas->syncLegacyStatusKehadiran();
+        $jadwalPengawas->save();
+
+        return back()->with('success', 'Presensi kehadiran mengawas berhasil dicatat.');
     }
 
     /**
