@@ -171,12 +171,12 @@
         const form = button.closest('form');
         if (typeof Swal !== 'undefined') {
             Swal.fire({
-                title: 'Hapus Data Siswa?',
+                title: 'Nonaktifkan Siswa?',
                 html: `
                     <div class="text-left text-sm space-y-2 mt-1">
-                        <p class="text-slate-700">Apakah Anda yakin ingin menghapus data siswa <strong class="text-black font-bold">${studentName}</strong>?</p>
-                        <p class="text-xs text-rose-700 font-bold bg-[#FFE3E3] border border-rose-300 p-2.5">
-                            ⚠ Perhatian: Tindakan ini akan menghapus akun login dan seluruh histori presensi siswa ini secara permanen.
+                        <p class="text-slate-700">Apakah Anda yakin ingin menonaktifkan data siswa <strong class="text-black font-bold">${studentName}</strong>?</p>
+                        <p class="text-xs text-amber-800 font-bold bg-[#FFF9DB] border border-amber-300 p-2.5">
+                            ℹ Info: Siswa akan dipindahkan ke tab <strong>Siswa Tidak Aktif</strong> dan tidak akan muncul di presensi maupun kartu ujian. Data profil dan histori presensi tetap aman dan dapat diaktifkan kembali sewaktu-waktu.
                         </p>
                     </div>
                 `,
@@ -184,7 +184,7 @@
                 showCancelButton: true,
                 confirmButtonColor: '#FF6B6B',
                 cancelButtonColor: '#475569',
-                confirmButtonText: '🗑️ Ya, Hapus',
+                confirmButtonText: '🛑 Ya, Nonaktifkan',
                 cancelButtonText: 'Batal',
                 reverseButtons: true,
             }).then((result) => {
@@ -193,7 +193,7 @@
                 }
             });
         } else {
-            if (confirm(`Apakah Anda yakin ingin menghapus data siswa ${studentName}?`)) {
+            if (confirm(`Apakah Anda yakin ingin menonaktifkan siswa ${studentName}? Siswa akan dipindahkan ke tab Siswa Tidak Aktif.`)) {
                 form.submit();
             }
         }

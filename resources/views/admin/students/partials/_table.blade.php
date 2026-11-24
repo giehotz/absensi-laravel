@@ -90,6 +90,9 @@
                             <th class="p-3.5 border-r border-black">Penginput & Waktu</th>
                             <th class="p-3.5 border-r border-black">Status Sinkron API</th>
                             <th class="p-3.5 border-r border-black">Status Audit</th>
+                        @elseif($currentTab === 'inactive')
+                            <th class="p-3.5 border-r border-black">Waktu Dinonaktifkan</th>
+                            <th class="p-3.5 border-r border-black">Status Akun</th>
                         @endif
                         <th class="p-3.5 text-center w-48">Aksi</th>
                     </tr>
@@ -214,9 +217,49 @@
                                     </button>
                                 </div>
                             </td>
+                        @elseif($currentTab === 'inactive')
+                            <td class="p-3.5 border-r border-black text-xs font-mono">
+                                <span class="font-bold text-rose-900 block">🛑 Dinonaktifkan</span>
+                                <span class="text-slate-500 text-[10px]">{{ $student->deleted_at?->format('d/m/Y H:i') ?? '-' }}</span>
+                            </td>
+                            <td class="p-3.5 border-r border-black text-xs">
+                                <span class="px-2 py-0.5 rounded border border-black bg-slate-200 text-slate-800 font-bold text-[10px] inline-flex items-center gap-1">
+                                    <span>🔒</span> Akun Nonaktif
+                                </span>
+                            </td>
                         @endif
                         <td class="p-3.5 text-center">
-                            <div class="flex items-center justify-center gap-1.5">
+                            @if($currentTab === 'inactive')
+                                <div class="flex items-center justify-center gap-2">
+                                    <!-- 1. Aktifkan Kembali -->
+                                    <form action="{{ route('admin.students.restore', $student->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" 
+                                                onclick="return confirm('Aktifkan kembali siswa ' + {{ json_encode($student->user->name ?? 'Siswa') }} + '? Siswa akan kembali aktif di rombel dan presensi.')"
+                                                class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-2.5 py-1.5 text-xs font-bold cursor-pointer shadow-[1.5px_1.5px_0px_#000] inline-flex items-center gap-1"
+                                                title="Aktifkan Kembali">
+                                            <span>🔄</span>
+                                            <span>Aktifkan</span>
+                                        </button>
+                                    </form>
+
+                                    <!-- 2. Hapus Permanen -->
+                                    <form action="{{ route('admin.students.force-delete', $student->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                onclick="return confirm('PERINGATAN: Apakah Anda yakin ingin menghapus PERMANEN siswa ' + {{ json_encode($student->user->name ?? 'Siswa') }} + '? Data dan foto akan dihapus selamanya dari sistem!')"
+                                                class="neo-btn bg-[#FF6B6B] hover:bg-red-600 text-white px-2 py-1.5 text-xs font-bold cursor-pointer shadow-[1.5px_1.5px_0px_#000] inline-flex items-center gap-1"
+                                                title="Hapus Permanen">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                            <span>Hapus</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            @else
+                                <div class="flex items-center justify-center gap-1.5">
                                 <!-- 1. Kartu & QR (🪪) -->
                                 <button type="button" 
                                         onclick="previewQr({{ json_encode([
@@ -316,11 +359,12 @@
                                     </button>
                                 </form>
                             </div>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ $currentTab === 'manual' ? 10 : 7 }}" class="p-8 text-center text-slate-500 font-semibold">
+                        <td colspan="{{ $currentTab === 'manual' ? 10 : ($currentTab === 'inactive' ? 9 : 7) }}" class="p-8 text-center text-slate-500 font-semibold">
                             @if(!empty($search))
                                 <div class="flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
                                     <span class="text-3xl">🔍</span>

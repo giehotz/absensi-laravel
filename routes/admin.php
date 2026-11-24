@@ -85,6 +85,8 @@ Route::post('students/sync-sis', [StudentController::class, 'syncFromSis'])->nam
 Route::get('students/sync-sis-stream', [StudentController::class, 'syncFromSisStream'])->name('students.sync-sis-stream');
 Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->whereNumber('student')->name('students.reset-password');
 Route::patch('students/{student}/audit', [StudentController::class, 'updateAuditStatus'])->whereNumber('student')->name('students.audit');
+Route::post('students/{id}/restore', [StudentController::class, 'restore'])->whereNumber('id')->name('students.restore');
+Route::delete('students/{id}/force-delete', [StudentController::class, 'forceDelete'])->whereNumber('id')->name('students.force-delete');
 Route::resource('students', StudentController::class)->except(['create', 'edit', 'show'])->whereNumber('student');
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);

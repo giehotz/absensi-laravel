@@ -80,10 +80,19 @@ class StudentController extends Controller
             COUNT(CASE WHEN data_source = 'import_excel' THEN 1 END) as count_import
         ")->first();
 
+        $countInactive = Student::onlyTrashed()
+            ->when(! empty($selectedClassId), fn ($q) => $q->where('school_class_id', $selectedClassId))
+            ->when(empty($selectedClassId) && ! empty($selectedAcademicYear), fn ($q) => $q->forAcademicYearName($selectedAcademicYear))
+            ->count();
+
         $currentTab = (string) $request->query('tab', 'semua');
         $auditFilter = (string) $request->query('audit_filter', 'all');
 
-        $query = Student::with(['user', 'schoolClass', 'createdBy', 'auditedBy'])->latest();
+        if ($currentTab === 'inactive') {
+            $query = Student::onlyTrashed()->with(['user', 'schoolClass', 'createdBy', 'auditedBy'])->latest('deleted_at');
+        } else {
+            $query = Student::with(['user', 'schoolClass', 'createdBy', 'auditedBy'])->latest();
+        }
 
         if (! empty($selectedClassId)) {
             $query->where('school_class_id', $selectedClassId);
@@ -150,7 +159,8 @@ class StudentController extends Controller
             'setting',
             'currentTab',
             'auditFilter',
-            'tabCounts'
+            'tabCounts',
+            'countInactive'
         ));
     }
 
@@ -839,17 +849,40 @@ class StudentController extends Controller
 
     public function destroy(Student $student): RedirectResponse
     {
+        $studentName = $student->user?->name ?? 'Siswa';
+        $student->delete();
+        $student->user?->update(['is_active' => false]);
+
+        return redirect()->route('admin.students.index')->with('success', "Siswa {$studentName} berhasil dinonaktifkan dan dipindahkan ke tab Siswa Tidak Aktif.");
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $student = Student::onlyTrashed()->findOrFail($id);
+        $studentName = $student->user?->name ?? 'Siswa';
+
+        $student->restore();
+        $student->user?->update(['is_active' => true]);
+
+        return back()->with('success', "Siswa {$studentName} berhasil diaktifkan kembali.");
+    }
+
+    public function forceDelete(int $id): RedirectResponse
+    {
+        $student = Student::onlyTrashed()->findOrFail($id);
+        $studentName = $student->user?->name ?? 'Siswa';
+
         if ($student->photo && Storage::disk('public')->exists($student->photo)) {
             Storage::disk('public')->delete($student->photo);
         }
 
         $user = $student->user;
-        $student->delete();
+        $student->forceDelete();
         if ($user) {
             $user->delete();
         }
 
-        return redirect()->route('admin.students.index')->with('success', 'Data siswa berhasil dihapus.');
+        return back()->with('success', "Data siswa {$studentName} berhasil dihapus permanen dari sistem.");
     }
 
     public function resetPassword(Request $request, Student $student): RedirectResponse

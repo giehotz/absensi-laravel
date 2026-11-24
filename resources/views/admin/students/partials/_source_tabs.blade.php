@@ -59,7 +59,30 @@
                 {{ $tabCounts->count_import ?? 0 }}
             </span>
         </a>
+
+        <!-- 5. Siswa Tidak Aktif -->
+        <a href="{{ route('admin.students.index', array_merge($baseParams, ['tab' => 'inactive'])) }}"
+           class="px-4 py-2 text-xs font-heading font-black uppercase tracking-wider flex items-center gap-2 border-2 border-black transition-all cursor-pointer sm:ml-auto
+           {{ $currentTab === 'inactive' ? 'bg-[#FF6B6B] text-white shadow-[3px_3px_0px_#000]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
+            <span>🛑</span>
+            <span>Siswa Tidak Aktif</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full border border-black {{ $currentTab === 'inactive' ? 'bg-black text-white' : 'bg-white text-black' }}">
+                {{ $countInactive ?? 0 }}
+            </span>
+        </a>
     </div>
+
+    <!-- Informasi Khusus Tab Siswa Tidak Aktif -->
+    @if($currentTab === 'inactive')
+        <div class="bg-[#FFF5F5] border-2 border-black p-3.5 neo-box flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-black uppercase tracking-wider font-heading text-rose-900 flex items-center gap-1.5">
+                    <span>🛑</span> Arsip Siswa Tidak Aktif:
+                </span>
+                <span class="text-[11px] text-slate-600 font-medium">Siswa di tab ini dinonaktifkan dari seluruh daftar presensi, kartu ujian, dan rombel. Anda dapat mengaktifkan kembali (*Restore*) atau menghapus permanen data di sini.</span>
+            </div>
+        </div>
+    @endif
 
     <!-- Sub-Filter Bar Khusus Tab Input Manual (Audit) -->
     @if($currentTab === 'manual')

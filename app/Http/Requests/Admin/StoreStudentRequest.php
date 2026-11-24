@@ -75,7 +75,7 @@ class StoreStudentRequest extends FormRequest
         return [
             'name.required' => 'Nama siswa wajib diisi.',
             'nis.required' => 'NIS wajib diisi.',
-            'nis.unique' => 'NIS sudah digunakan oleh siswa lain.',
+            'nis.unique' => 'NIS sudah digunakan oleh siswa (aktif atau di tab Tidak Aktif). Silakan pulihkan siswa atau hapus permanen terlebih dahulu.',
             'nisn.unique' => 'NISN sudah digunakan oleh siswa lain.',
             'nik.unique' => 'NIK sudah digunakan oleh siswa lain.',
             'school_class_id.required' => 'Pilih kelas siswa.',
