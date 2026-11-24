@@ -3,7 +3,7 @@
 @section('title', 'Manajemen Peserta & Cetak Kartu Ujian - ' . ($activePeriode->nama_periode ?? ''))
 
 @section('content')
-<div class="space-y-6">
+<div class="space-y-6 transition-all duration-200" id="kartuUjianContainer">
     {{-- Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 bg-white border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000]">
         <div>
@@ -114,11 +114,18 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2">
+                    {{-- Tombol Buka Modal Siswa Terpilih (Badge Counter) --}}
+                    <button type="button" onclick="bukaModalSiswaTerpilih()" 
+                            class="px-3.5 py-1.5 bg-[#5294FF] hover:bg-blue-600 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
+                        <span>📋</span>
+                        <span>Daftar Terpilih (<span class="jumlahTerpilihBadge">0</span>)</span>
+                    </button>
+
                     {{-- Tombol Cetak Terpilih (Checkbox) --}}
                     <button type="button" onclick="cetakKartuTerpilih()" 
                             class="px-3.5 py-1.5 bg-[#FF6B6B] hover:bg-red-400 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
                         <span>🖨️</span>
-                        <span>Cetak Terpilih (<span id="jumlahTerpilih">0</span>)</span>
+                        <span>Cetak Terpilih (<span class="jumlahTerpilihBadge">0</span>)</span>
                     </button>
 
                     {{-- Tombol Cetak Label Meja Grid A4 --}}
@@ -174,9 +181,18 @@
                 </thead>
                 <tbody class="divide-y divide-black font-medium">
                     @forelse($pesertas as $idx => $p)
-                        <tr class="hover:bg-amber-50/50">
+                        <tr class="hover:bg-amber-50/50" id="row_peserta_{{ $p->id }}">
                             <td class="p-2.5 border-r border-black text-center">
-                                <input type="checkbox" class="peserta-checkbox rounded border-black" value="{{ $p->id }}" onchange="updateSelectedCount()">
+                                <input type="checkbox" 
+                                       class="peserta-checkbox rounded border-black cursor-pointer" 
+                                       value="{{ $p->id }}"
+                                       data-id="{{ $p->id }}"
+                                       data-nama="{{ $p->nama_peserta }}"
+                                       data-nomor="{{ $p->nomor_peserta }}"
+                                       data-kelas="{{ $p->nama_kelas }}"
+                                       data-ruang="{{ $p->ruang?->nama_ruang ?? '-' }}"
+                                       data-kursi="{{ $p->nomor_kursi ?: '-' }}"
+                                       onchange="handleCheckboxChange(this)">
                             </td>
                             <td class="p-2.5 border-r border-black text-center font-bold">
                                 {{ $pesertas->firstItem() + $idx }}
@@ -471,50 +487,515 @@
     </div>
 </div>
 
+{{-- Bilah Mengambang Siswa Terpilih (Floating Selection Bar) --}}
+<div id="floatingSelectionBar" class="hidden fixed bottom-4 inset-x-4 max-w-4xl mx-auto z-40 bg-[#FFD43B] border-3 border-black p-3 sm:p-4 rounded-xl shadow-[4px_4px_0px_0px_#000] flex flex-col sm:flex-row items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-4 duration-200">
+    <div class="flex items-center gap-2.5 w-full sm:w-auto">
+        <span class="w-8 h-8 rounded-lg bg-black text-[#FFD43B] font-black text-sm flex items-center justify-center shrink-0">
+            📌
+        </span>
+        <div class="min-w-0">
+            <div class="font-heading font-black text-xs sm:text-sm text-black uppercase tracking-tight">
+                <span id="floatingCount">0</span> Siswa Terpilih (Lintas Kelas)
+            </div>
+            <p class="text-[11px] font-semibold text-slate-800 truncate">
+                Pilihan tetap tersimpan saat berganti filter rombel atau melakukan pencarian.
+            </p>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap justify-end">
+        <button type="button" onclick="bukaModalSiswaTerpilih()" 
+                class="px-3 py-1.5 bg-white hover:bg-slate-100 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1 cursor-pointer">
+            <span>👁️</span> Lihat Daftar (<span class="jumlahTerpilihBadge">0</span>)
+        </button>
+        <button type="button" onclick="cetakKartuTerpilih()" 
+                class="px-3 py-1.5 bg-[#20C997] hover:bg-emerald-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1 cursor-pointer">
+            <span>🖨️</span> Cetak Kartu
+        </button>
+        <button type="button" onclick="cetakLabelMejaTerpilih()" 
+                class="px-3 py-1.5 bg-[#5294FF] hover:bg-blue-400 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1 cursor-pointer">
+            <span>🏷️</span> Cetak Label
+        </button>
+        <button type="button" onclick="konfirmasiKosongkanPilihan()" 
+                class="px-2.5 py-1.5 bg-[#FF6B6B] hover:bg-red-500 text-white border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] cursor-pointer" title="Kosongkan Semua Pilihan">
+            ✕
+        </button>
+    </div>
+</div>
+
+{{-- Modal Dialog: Daftar Siswa Terpilih (Native Dialog) --}}
+<dialog id="modalSiswaTerpilih" aria-labelledby="modalSiswaTerpilihTitle" class="bg-transparent p-0 m-auto w-[calc(100%-1.5rem)] sm:w-full max-w-3xl border-0 shadow-none backdrop:bg-black/75">
+    <div class="bg-white border-4 border-black w-full max-w-3xl shadow-[6px_6px_0px_0px_#000] flex flex-col max-h-[85vh] sm:max-h-[90vh] overflow-hidden rounded-xl">
+        <!-- Header Modal -->
+        <div class="bg-[#FFD43B] border-b-3 border-black p-4 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-lg bg-black text-[#FFD43B] font-black text-sm flex items-center justify-center shrink-0">
+                    📋
+                </span>
+                <div>
+                    <h3 id="modalSiswaTerpilihTitle" class="font-heading font-black text-base sm:text-lg text-black uppercase">
+                        Daftar Siswa Terpilih Untuk Dicetak
+                    </h3>
+                    <p class="text-[11px] font-semibold text-slate-800">
+                        Total <span id="modalSelectedCountText">0</span> siswa terpilih lintas rombel/pencarian
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="tutupModalSiswaTerpilih()" aria-label="Tutup modal" class="w-9 h-9 bg-white hover:bg-slate-100 text-black border-2 border-black font-black flex items-center justify-center shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                ✕
+            </button>
+        </div>
+
+        <!-- Toolbar di Modal & Tombol Kosongkan -->
+        <div class="p-3 border-b-2 border-black bg-slate-50 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+            <div class="text-xs font-bold text-slate-700">
+                Siswa di bawah ini adalah siswa yang akan dicetak Kartu Ujian atau Label Meja.
+            </div>
+            <button type="button" onclick="konfirmasiKosongkanPilihan()" class="px-3 py-1 bg-[#FFE3E3] hover:bg-red-200 text-rose-950 border-2 border-black rounded text-xs font-black shadow-[1px_1px_0px_0px_#000] flex items-center justify-center gap-1 cursor-pointer">
+                <span>🗑️</span> Kosongkan Semua Pilihan
+            </button>
+        </div>
+
+        <!-- Body Modal: Tabel Siswa Terpilih -->
+        <div class="p-4 overflow-y-auto flex-1 space-y-3" id="modalSiswaTerpilihBody">
+            <div class="border-2 border-black rounded-lg overflow-x-auto" tabindex="0" role="region" aria-label="Tabel rincian siswa terpilih">
+                <table class="w-full text-xs text-left border-collapse">
+                    <thead>
+                        <tr class="bg-black text-[#FFD43B] font-heading font-black uppercase text-[10px] border-b-2 border-black">
+                            <th class="p-2.5 text-center w-12 border-r border-slate-700">No</th>
+                            <th class="p-2.5 border-r border-slate-700 w-28">No. Peserta</th>
+                            <th class="p-2.5 border-r border-slate-700">Nama Lengkap Siswa</th>
+                            <th class="p-2.5 text-center border-r border-slate-700 w-24">Kelas</th>
+                            <th class="p-2.5 border-r border-slate-700">Ruang & Kursi</th>
+                            <th class="p-2.5 text-center w-20">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableSiswaTerpilihBody" class="divide-y divide-black font-semibold">
+                        <!-- Dynamic rows built via safe textContent DOM methods -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer Modal: Aksi Cetak & Tutup -->
+        <div class="bg-slate-100 border-t-2 border-black p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
+            <div class="text-xs font-bold text-slate-600 text-center sm:text-left">
+                Pencetakan akan membuka halaman cetak A4 di tab baru.
+            </div>
+            <div class="flex items-center gap-2 justify-end flex-wrap">
+                <button type="button" onclick="tutupModalSiswaTerpilih()" 
+                        class="px-4 py-2 bg-white hover:bg-slate-200 text-black border-2 border-black rounded-lg text-xs font-heading font-black uppercase shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    Tutup
+                </button>
+                <button type="button" onclick="cetakKartuTerpilih()" 
+                        class="px-4 py-2 bg-[#20C997] hover:bg-emerald-400 text-black border-2 border-black rounded-lg text-xs font-heading font-black uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
+                    <span>🖨️</span> Cetak Kartu (<span class="jumlahTerpilihBadge">0</span>)
+                </button>
+                <button type="button" onclick="cetakLabelMejaTerpilih()" 
+                        class="px-4 py-2 bg-[#5294FF] hover:bg-blue-500 text-white border-2 border-black rounded-lg text-xs font-heading font-black uppercase shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
+                    <span>🏷️</span> Cetak Label Meja (<span class="jumlahTerpilihBadge">0</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
 @push('scripts')
+<style>
+    dialog#modalSiswaTerpilih:modal {
+        overscroll-behavior: contain;
+    }
+    dialog#modalSiswaTerpilih::backdrop {
+        background-color: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(2px);
+        overflow: hidden;
+        overscroll-behavior: contain;
+    }
+</style>
 <script>
-    function onClassFilterChange(selectElem) {
-        const classId = selectElem.value;
-        const ruangSelect = document.getElementById('selectRuangId');
-        if (ruangSelect) {
-            if (classId === 'SEMUA' || !classId) {
-                ruangSelect.value = '';
-            } else {
-                // Temukan ruangan yang terikat langsung dengan rombel terpilih
-                const matchingOption = ruangSelect.querySelector(`option[data-class-id="${classId}"]`);
-                if (matchingOption) {
-                    ruangSelect.value = matchingOption.value;
-                } else {
-                    ruangSelect.value = '';
-                }
-            }
+    const activePeriodeId = '{{ $activePeriode->id ?? "" }}';
+    const storageKey = 'ujian_kartu_selected_periode_' + activePeriodeId;
+
+    function getSelectedMap() {
+        if (!activePeriodeId) return {};
+        try {
+            const raw = sessionStorage.getItem(storageKey);
+            return raw ? JSON.parse(raw) : {};
+        } catch (e) {
+            console.error('Gagal membaca data siswa terpilih dari sessionStorage:', e);
+            return {};
         }
-        selectElem.form.submit();
     }
 
-    function onRuangFilterChange(selectElem) {
-        const selectedOption = selectElem.options[selectElem.selectedIndex];
-        const classId = selectedOption ? selectedOption.getAttribute('data-class-id') : null;
-        const classSelect = document.getElementById('selectClassId');
-        if (classSelect && classId) {
-            // Otomatis sinkronkan filter rombel ke rombel milik ruang ini
-            classSelect.value = classId;
+    function saveSelectedMap(map) {
+        if (!activePeriodeId) return;
+        try {
+            sessionStorage.setItem(storageKey, JSON.stringify(map));
+        } catch (e) {
+            console.error('Gagal menyimpan data siswa terpilih ke sessionStorage:', e);
         }
-        selectElem.form.submit();
+    }
+
+    function initSelectionState() {
+        const map = getSelectedMap();
+        let mapUpdated = false;
+        const checkboxes = document.querySelectorAll('.peserta-checkbox');
+        let visibleCheckedCount = 0;
+
+        checkboxes.forEach(cb => {
+            const id = cb.value;
+            if (map[id]) {
+                cb.checked = true;
+                visibleCheckedCount++;
+
+                // Sinkronkan / refresh metadata DOM terbaru (jika ada pembaruan nomor/kursi/ruang)
+                map[id] = {
+                    id: id,
+                    nama: cb.getAttribute('data-nama') || map[id].nama || '',
+                    nomor: cb.getAttribute('data-nomor') || map[id].nomor || '',
+                    kelas: cb.getAttribute('data-kelas') || map[id].kelas || '',
+                    ruang: cb.getAttribute('data-ruang') || map[id].ruang || '-',
+                    kursi: cb.getAttribute('data-kursi') || map[id].kursi || '-'
+                };
+                mapUpdated = true;
+            } else {
+                cb.checked = false;
+            }
+        });
+
+        if (mapUpdated) {
+            saveSelectedMap(map);
+        }
+
+        // Sinkronkan status checkAll (checked vs indeterminate)
+        const checkAll = document.getElementById('checkAll');
+        if (checkAll && checkboxes.length > 0) {
+            if (visibleCheckedCount === checkboxes.length) {
+                checkAll.checked = true;
+                checkAll.indeterminate = false;
+            } else if (visibleCheckedCount > 0) {
+                checkAll.checked = false;
+                checkAll.indeterminate = true;
+            } else {
+                checkAll.checked = false;
+                checkAll.indeterminate = false;
+            }
+        }
+
+        updateUIState();
+    }
+
+    function handleCheckboxChange(cb) {
+        const map = getSelectedMap();
+        const id = cb.value;
+
+        if (cb.checked) {
+            map[id] = {
+                id: id,
+                nama: cb.getAttribute('data-nama') || '',
+                nomor: cb.getAttribute('data-nomor') || '',
+                kelas: cb.getAttribute('data-kelas') || '',
+                ruang: cb.getAttribute('data-ruang') || '-',
+                kursi: cb.getAttribute('data-kursi') || '-'
+            };
+        } else {
+            delete map[id];
+        }
+
+        saveSelectedMap(map);
+
+        // Update checkAll status
+        const checkboxes = document.querySelectorAll('.peserta-checkbox');
+        const checkedCount = document.querySelectorAll('.peserta-checkbox:checked').length;
+        const checkAll = document.getElementById('checkAll');
+        if (checkAll && checkboxes.length > 0) {
+            if (checkedCount === checkboxes.length) {
+                checkAll.checked = true;
+                checkAll.indeterminate = false;
+            } else if (checkedCount > 0) {
+                checkAll.checked = false;
+                checkAll.indeterminate = true;
+            } else {
+                checkAll.checked = false;
+                checkAll.indeterminate = false;
+            }
+        }
+
+        updateUIState();
+
+        // Jika modal sedang terbuka, render ulang tabelnya
+        const modal = document.getElementById('modalSiswaTerpilih');
+        if (modal && modal.open) {
+            renderModalSiswaTerpilih();
+        }
     }
 
     function toggleCheckAll(source) {
         const checkboxes = document.querySelectorAll('.peserta-checkbox');
-        checkboxes.forEach(cb => cb.checked = source.checked);
-        updateSelectedCount();
+        const map = getSelectedMap();
+
+        checkboxes.forEach(cb => {
+            cb.checked = source.checked;
+            const id = cb.value;
+            if (source.checked) {
+                map[id] = {
+                    id: id,
+                    nama: cb.getAttribute('data-nama') || '',
+                    nomor: cb.getAttribute('data-nomor') || '',
+                    kelas: cb.getAttribute('data-kelas') || '',
+                    ruang: cb.getAttribute('data-ruang') || '-',
+                    kursi: cb.getAttribute('data-kursi') || '-'
+                };
+            } else {
+                delete map[id];
+            }
+        });
+
+        source.indeterminate = false;
+        saveSelectedMap(map);
+        updateUIState();
+
+        const modal = document.getElementById('modalSiswaTerpilih');
+        if (modal && modal.open) {
+            renderModalSiswaTerpilih();
+        }
     }
 
-    function updateSelectedCount() {
-        const selected = document.querySelectorAll('.peserta-checkbox:checked');
-        const countSpan = document.getElementById('jumlahTerpilih');
-        if (countSpan) {
-            countSpan.innerText = selected.length;
+    function updateUIState() {
+        const map = getSelectedMap();
+        const items = Object.values(map);
+        const count = items.length;
+
+        // Update semua elemen badge
+        document.querySelectorAll('.jumlahTerpilihBadge').forEach(el => {
+            el.textContent = count;
+        });
+
+        const floatingCount = document.getElementById('floatingCount');
+        if (floatingCount) floatingCount.textContent = count;
+
+        const modalCount = document.getElementById('modalSelectedCountText');
+        if (modalCount) modalCount.textContent = count;
+
+        // Toggle Floating Bar & Container Bottom Padding (pb-24)
+        const floatingBar = document.getElementById('floatingSelectionBar');
+        const container = document.getElementById('kartuUjianContainer');
+
+        if (count > 0) {
+            if (floatingBar) floatingBar.classList.remove('hidden');
+            if (container) container.classList.add('pb-24');
+        } else {
+            if (floatingBar) floatingBar.classList.add('hidden');
+            if (container) container.classList.remove('pb-24');
         }
+    }
+
+    function bukaModalSiswaTerpilih() {
+        renderModalSiswaTerpilih();
+        const modal = document.getElementById('modalSiswaTerpilih');
+        if (modal) {
+            if (typeof modal.showModal === 'function') {
+                modal.showModal();
+            } else {
+                modal.classList.remove('hidden');
+            }
+        }
+    }
+
+    function tutupModalSiswaTerpilih() {
+        const modal = document.getElementById('modalSiswaTerpilih');
+        if (modal) {
+            if (typeof modal.close === 'function') {
+                modal.close();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+    }
+
+    function renderModalSiswaTerpilih() {
+        const tbody = document.getElementById('tableSiswaTerpilihBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        const items = Object.values(getSelectedMap());
+
+        if (items.length === 0) {
+            const emptyTr = document.createElement('tr');
+            const emptyTd = document.createElement('td');
+            emptyTd.colSpan = 6;
+            emptyTd.className = 'p-6 text-center text-slate-500 italic';
+            emptyTd.textContent = 'Belum ada siswa yang dicentang. Silakan centang siswa pada tabel di halaman.';
+            emptyTr.appendChild(emptyTd);
+            tbody.appendChild(emptyTr);
+            return;
+        }
+
+        items.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-amber-50/50 transition-colors';
+
+            // Col 1: No
+            const tdNo = document.createElement('td');
+            tdNo.className = 'p-2.5 text-center font-bold border-r border-slate-300';
+            tdNo.textContent = index + 1;
+            tr.appendChild(tdNo);
+
+            // Col 2: No Peserta
+            const tdNomor = document.createElement('td');
+            tdNomor.className = 'p-2.5 border-r border-slate-300 font-mono font-bold text-black';
+            const badgeNomor = document.createElement('span');
+            badgeNomor.className = 'px-1.5 py-0.5 rounded bg-amber-100 border border-black';
+            badgeNomor.textContent = item.nomor || '-';
+            tdNomor.appendChild(badgeNomor);
+            tr.appendChild(tdNomor);
+
+            // Col 3: Nama Lengkap Siswa (Aman dari nama bertanda petik seperti Syafi'i)
+            const tdNama = document.createElement('td');
+            tdNama.className = 'p-2.5 border-r border-slate-300 font-bold text-black';
+            tdNama.textContent = item.nama || '-';
+            tr.appendChild(tdNama);
+
+            // Col 4: Kelas
+            const tdKelas = document.createElement('td');
+            tdKelas.className = 'p-2.5 border-r border-slate-300 text-center font-black';
+            const badgeKelas = document.createElement('span');
+            badgeKelas.className = 'px-2 py-0.5 rounded bg-blue-50 text-blue-950 border border-black text-[11px]';
+            badgeKelas.textContent = item.kelas || '-';
+            tdKelas.appendChild(badgeKelas);
+            tr.appendChild(tdKelas);
+
+            // Col 5: Ruang & Kursi
+            const tdRuang = document.createElement('td');
+            tdRuang.className = 'p-2.5 border-r border-slate-300 text-slate-700';
+            tdRuang.textContent = `${item.ruang || '-'} (Kursi: ${item.kursi || '-'})`;
+            tr.appendChild(tdRuang);
+
+            // Col 6: Tombol Hapus Satuan
+            const tdAksi = document.createElement('td');
+            tdAksi.className = 'p-2.5 text-center';
+            const btnHapus = document.createElement('button');
+            btnHapus.type = 'button';
+            btnHapus.className = 'px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-800 border border-black rounded text-[10px] font-black cursor-pointer shadow-[1px_1px_0px_0px_#000]';
+            btnHapus.textContent = '✕ Hapus';
+            btnHapus.onclick = () => removeSingleSelected(item.id);
+            tdAksi.appendChild(btnHapus);
+            tr.appendChild(tdAksi);
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function removeSingleSelected(id) {
+        const map = getSelectedMap();
+        delete map[id];
+        saveSelectedMap(map);
+
+        // Uncheck di DOM jika siswa sedang terlihat
+        const cb = document.querySelector(`.peserta-checkbox[value="${id}"]`);
+        if (cb) {
+            cb.checked = false;
+        }
+
+        // Update checkAll
+        const checkboxes = document.querySelectorAll('.peserta-checkbox');
+        const checkedCount = document.querySelectorAll('.peserta-checkbox:checked').length;
+        const checkAll = document.getElementById('checkAll');
+        if (checkAll && checkboxes.length > 0) {
+            if (checkedCount === checkboxes.length) {
+                checkAll.checked = true;
+                checkAll.indeterminate = false;
+            } else if (checkedCount > 0) {
+                checkAll.checked = false;
+                checkAll.indeterminate = true;
+            } else {
+                checkAll.checked = false;
+                checkAll.indeterminate = false;
+            }
+        }
+
+        updateUIState();
+        renderModalSiswaTerpilih();
+    }
+
+    function konfirmasiKosongkanPilihan() {
+        const count = Object.keys(getSelectedMap()).length;
+        if (count === 0) return;
+
+        if (confirm(`Apakah Anda yakin ingin mengosongkan seluruh ${count} siswa yang telah dicentang?`)) {
+            sessionStorage.removeItem(storageKey);
+
+            document.querySelectorAll('.peserta-checkbox').forEach(cb => cb.checked = false);
+            const checkAll = document.getElementById('checkAll');
+            if (checkAll) {
+                checkAll.checked = false;
+                checkAll.indeterminate = false;
+            }
+
+            updateUIState();
+            renderModalSiswaTerpilih();
+            tutupModalSiswaTerpilih();
+        }
+    }
+
+    function submitPrintForm(actionUrl, ids) {
+        if (!ids || ids.length === 0) return;
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = actionUrl;
+        form.target = '_blank';
+
+        // CSRF Token
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        form.appendChild(csrfInput);
+
+        // Periode ID (terkunci sesuai periode aktif)
+        const periodeInput = document.createElement('input');
+        periodeInput.type = 'hidden';
+        periodeInput.name = 'periode_id';
+        periodeInput.value = activePeriodeId;
+        form.appendChild(periodeInput);
+
+        // Selected IDs dikirim sebagai array input
+        ids.forEach(id => {
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'selected_ids[]';
+            idInput.value = id;
+            form.appendChild(idInput);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        setTimeout(() => form.remove(), 1000);
+    }
+
+    function cetakKartuTerpilih() {
+        const map = getSelectedMap();
+        const ids = Object.keys(map);
+
+        if (ids.length === 0) {
+            alert('Silakan centang minimal satu peserta yang ingin dicetak.');
+            return;
+        }
+
+        submitPrintForm("{{ route('ujian.kartu.print') }}", ids);
+    }
+
+    function cetakLabelMejaTerpilih() {
+        const map = getSelectedMap();
+        const ids = Object.keys(map);
+
+        if (ids.length === 0) {
+            alert('Silakan centang minimal satu peserta yang ingin dicetak label mejanya.');
+            return;
+        }
+
+        submitPrintForm("{{ route('ujian.kartu.print-label-meja') }}", ids);
     }
 
     function cetakKartuFilter() {
@@ -551,37 +1032,32 @@
         window.open(printUrl, '_blank');
     }
 
-    function cetakKartuTerpilih() {
-        const selected = document.querySelectorAll('.peserta-checkbox:checked');
-        if (selected.length === 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: 'Perhatian',
-                    text: 'Silakan centang minimal satu peserta yang ingin dicetak.',
-                    icon: 'warning'
-                });
+    function onClassFilterChange(selectElem) {
+        const classId = selectElem.value;
+        const ruangSelect = document.getElementById('selectRuangId');
+        if (ruangSelect) {
+            if (classId === 'SEMUA' || !classId) {
+                ruangSelect.value = '';
             } else {
-                alert('Silakan centang minimal satu peserta yang ingin dicetak.');
-            }
-            return;
-        }
-
-        const ids = Array.from(selected).map(cb => cb.value).join(',');
-        
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Menyiapkan Kartu...',
-                text: `Mencetak ${selected.length} kartu peserta terpilih`,
-                allowOutsideClick: false,
-                timer: 1500,
-                didOpen: () => {
-                    Swal.showLoading();
+                const matchingOption = ruangSelect.querySelector(`option[data-class-id="${classId}"]`);
+                if (matchingOption) {
+                    ruangSelect.value = matchingOption.value;
+                } else {
+                    ruangSelect.value = '';
                 }
-            });
+            }
         }
+        selectElem.form.submit();
+    }
 
-        const printUrl = "{{ route('ujian.kartu.print') }}?periode_id={{ $activePeriode->id }}&selected_ids=" + ids;
-        window.open(printUrl, '_blank');
+    function onRuangFilterChange(selectElem) {
+        const selectedOption = selectElem.options[selectElem.selectedIndex];
+        const classId = selectedOption ? selectedOption.getAttribute('data-class-id') : null;
+        const classSelect = document.getElementById('selectClassId');
+        if (classSelect && classId) {
+            classSelect.value = classId;
+        }
+        selectElem.form.submit();
     }
 
     function openModalGenerateNomor() {
@@ -647,6 +1123,21 @@
         const descEl = document.getElementById('liveNomorDesc');
         if (descEl) descEl.innerText = `Contoh untuk ${sampleClassDesc} (Siswa urutan absen ke-1)`;
     }
+
+    // Modal backdrop click listener
+    const modalSiswaTerpilih = document.getElementById('modalSiswaTerpilih');
+    if (modalSiswaTerpilih) {
+        modalSiswaTerpilih.addEventListener('click', function(e) {
+            if (e.target === this) {
+                tutupModalSiswaTerpilih();
+            }
+        });
+    }
+
+    // Inisialisasi status seleksi saat halaman selesai dimuat
+    document.addEventListener('DOMContentLoaded', function() {
+        initSelectionState();
+    });
 </script>
 @endpush
 @endif

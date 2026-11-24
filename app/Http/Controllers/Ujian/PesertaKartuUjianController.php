@@ -182,7 +182,7 @@ class PesertaKartuUjianController extends Controller
 
     public function printCards(Request $request): View
     {
-        $periodeId = $request->query('periode_id');
+        $periodeId = $request->input('periode_id');
         if (! $periodeId) {
             $periode = UjianPeriode::where('is_active', true)->first()
                 ?? UjianPeriode::latest('id')->firstOrFail();
@@ -190,9 +190,16 @@ class PesertaKartuUjianController extends Controller
             $periode = UjianPeriode::with(['jenis', 'pengaturanTtd'])->findOrFail($periodeId);
         }
 
-        $classId = $request->query('class_id');
-        $ruangId = $request->query('ruang_id');
-        $selectedIds = $request->query('selected_ids'); // koma atau array
+        $classId = $request->input('class_id');
+        $ruangId = $request->input('ruang_id');
+
+        $rawIds = $request->input('selected_ids');
+        $ids = collect(is_array($rawIds) ? $rawIds : explode(',', (string) $rawIds))
+            ->map(fn ($id) => (int) trim((string) $id))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         // Sinkronisasi filter rombel & ruang pada proses cetak
         if ($classId && $classId !== 'SEMUA' && $ruangId) {
@@ -207,8 +214,7 @@ class PesertaKartuUjianController extends Controller
             ->where('ujian_periode_id', $periode->id)
             ->where('is_eligible', true);
 
-        if (! empty($selectedIds)) {
-            $ids = is_array($selectedIds) ? $selectedIds : explode(',', $selectedIds);
+        if (! empty($ids)) {
             $query->whereIn('id', $ids);
         } else {
             if ($classId && $classId !== 'SEMUA') {
@@ -253,7 +259,7 @@ class PesertaKartuUjianController extends Controller
             }
         }
 
-        $pengaturan = $periode->pengaturanTtd ?? UjianPengaturanTtd::where('ujian_periode_id', $periode->id)->first();
+        $pengaturan = $periode->pengaturanTtd ?? UjianPengaturanTtd::where('ujian_periode_id', $periode->id)->first() ?? new UjianPengaturanTtd;
 
         return view('ujian.kartu.print-a4', compact('periode', 'pesertaList', 'pengaturan', 'isPreview'));
     }
@@ -263,7 +269,7 @@ class PesertaKartuUjianController extends Controller
      */
     public function printLabelMeja(Request $request): View|RedirectResponse
     {
-        $periodeId = $request->query('periode_id');
+        $periodeId = $request->input('periode_id');
         $periode = $periodeId ? UjianPeriode::find($periodeId) : UjianPeriode::firstWhere('is_active', true);
         if (! $periode) {
             $periode = UjianPeriode::first();
@@ -273,18 +279,30 @@ class PesertaKartuUjianController extends Controller
             return back()->with('error', 'Tidak ada periode ujian aktif.');
         }
 
-        $classId = $request->query('class_id');
-        $ruangId = $request->query('ruang_id');
+        $classId = $request->input('class_id');
+        $ruangId = $request->input('ruang_id');
+
+        $rawIds = $request->input('selected_ids');
+        $ids = collect(is_array($rawIds) ? $rawIds : explode(',', (string) $rawIds))
+            ->map(fn ($id) => (int) trim((string) $id))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
 
         $query = UjianPeserta::with(['student', 'schoolClass', 'ruang'])
             ->where('ujian_periode_id', $periode->id)
             ->where('is_eligible', true);
 
-        if ($classId && $classId !== 'SEMUA') {
-            $query->where('school_class_id', $classId);
-        }
-        if ($ruangId && $ruangId !== 'all') {
-            $query->where('ujian_ruang_id', $ruangId);
+        if (! empty($ids)) {
+            $query->whereIn('id', $ids);
+        } else {
+            if ($classId && $classId !== 'SEMUA') {
+                $query->where('school_class_id', $classId);
+            }
+            if ($ruangId && $ruangId !== 'all') {
+                $query->where('ujian_ruang_id', $ruangId);
+            }
         }
 
         $pesertaList = $query->orderBy('ujian_ruang_id')
@@ -292,7 +310,7 @@ class PesertaKartuUjianController extends Controller
             ->orderBy('nomor_peserta')
             ->get();
 
-        $pengaturan = $periode->pengaturanTtd ?? UjianPengaturanTtd::where('ujian_periode_id', $periode->id)->first();
+        $pengaturan = $periode->pengaturanTtd ?? UjianPengaturanTtd::where('ujian_periode_id', $periode->id)->first() ?? new UjianPengaturanTtd;
         $setting = AttendanceSetting::first();
 
         return view('ujian.kartu.print-label-meja', compact('periode', 'pesertaList', 'pengaturan', 'setting'));

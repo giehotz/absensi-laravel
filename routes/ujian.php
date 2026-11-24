@@ -105,8 +105,8 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/peserta', [PesertaKartuUjianController::class, 'store'])->name('store');
             Route::put('/peserta/{peserta}', [PesertaKartuUjianController::class, 'update'])->name('update');
             Route::delete('/peserta/{peserta}', [PesertaKartuUjianController::class, 'destroy'])->name('destroy');
-            Route::get('/cetak', [PesertaKartuUjianController::class, 'printCards'])->name('print');
-            Route::get('/cetak-label-meja', [PesertaKartuUjianController::class, 'printLabelMeja'])->name('print-label-meja');
+            Route::match(['GET', 'POST'], '/cetak', [PesertaKartuUjianController::class, 'printCards'])->name('print');
+            Route::match(['GET', 'POST'], '/cetak-label-meja', [PesertaKartuUjianController::class, 'printLabelMeja'])->name('print-label-meja');
         });
 
         // 6. Sub-Menu 5: Administrasi & Berkas Ruang Ujian (Fase 1)
