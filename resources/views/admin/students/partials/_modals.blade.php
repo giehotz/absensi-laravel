@@ -88,11 +88,24 @@
             <button onclick="closeModal('createStudentModal')" class="text-black font-black text-xl hover:opacity-75">✕</button>
         </div>
 
+        @if($errors->create_student->any())
+            <div class="p-3 bg-[#FFC9C9] border-2 border-black text-rose-900 text-xs font-bold space-y-1 shadow-[2px_2px_0px_#000]">
+                <div class="font-black flex items-center gap-1">
+                    <span>⚠️</span> Terdapat kesalahan input:
+                </div>
+                <ul class="list-disc pl-5 space-y-0.5">
+                    @foreach($errors->create_student->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form action="{{ route('admin.students.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
             @csrf
             <div>
                 <label class="block font-heading font-bold text-xs text-black mb-1">Nama Lengkap Siswa *</label>
-                <input type="text" name="name" required placeholder="Contoh: Muhammad Rizky" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                <input type="text" name="name" required value="{{ old('name') }}" placeholder="Contoh: Muhammad Rizky" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
             </div>
 
             <div>
@@ -112,15 +125,15 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">NIS (Nomor Induk Siswa) *</label>
-                    <input type="text" name="nis" required placeholder="1234..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                    <input type="text" name="nis" required value="{{ old('nis') }}" placeholder="1234..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">NISN (Opsional)</label>
-                    <input type="text" name="nisn" placeholder="0081..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                    <input type="text" name="nisn" value="{{ old('nisn') }}" placeholder="0081..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">NIK Siswa (Opsional)</label>
-                    <input type="text" name="nik" placeholder="1806..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                    <input type="text" name="nik" value="{{ old('nik') }}" placeholder="1806..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
             </div>
 
@@ -130,35 +143,46 @@
                     <select name="school_class_id" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
                         <option value="">-- Pilih Kelas --</option>
                         @foreach($classes as $cls)
-                            <option value="{{ $cls->id }}">{{ $cls->name }} ({{ $cls->level }})</option>
+                            <option value="{{ $cls->id }}" {{ old('school_class_id') == $cls->id ? 'selected' : '' }}>{{ $cls->name }} ({{ $cls->level }})</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">Jenis Kelamin *</label>
                     <select name="gender" required class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
-                        <option value="L">Laki-laki (L)</option>
-                        <option value="P">Perempuan (P)</option>
+                        <option value="L" {{ old('gender', 'L') == 'L' ? 'selected' : '' }}>Laki-laki (L)</option>
+                        <option value="P" {{ old('gender') == 'P' ? 'selected' : '' }}>Perempuan (P)</option>
                     </select>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block font-heading font-bold text-xs text-black mb-1">Tanggal Lahir</label>
-                    <input type="date" name="birth_date" class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
+                    <label class="block font-heading font-bold text-xs text-black mb-1">Tempat Lahir</label>
+                    <input type="text" name="birth_place" value="{{ old('birth_place') }}" placeholder="Contoh: Tanggamus" class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
                 </div>
                 <div>
+                    <label class="block font-heading font-bold text-xs text-black mb-1">Tanggal Lahir</label>
+                    <input type="date" name="birth_date" value="{{ old('birth_date') }}" class="w-full px-3 py-2 neo-input text-sm bg-slate-50 font-medium">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
                     <label class="block font-heading font-bold text-xs text-black mb-1">No. Kontak Siswa</label>
-                    <input type="text" name="phone" placeholder="08..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                    <input type="text" name="phone" value="{{ old('phone') }}" placeholder="08..." class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                </div>
+                <div>
+                    <label class="block font-heading font-bold text-xs text-black mb-1">Catatan Input Manual (Opsional)</label>
+                    <input type="text" name="audit_note" value="{{ old('audit_note') }}" placeholder="Mis. Siswa mutasi masuk / belum ada di EMIS" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 </div>
             </div>
 
             <div>
                 <label class="block font-heading font-bold text-xs text-black mb-1">Alamat Email Login (Opsional)</label>
-                <input type="email" name="email" placeholder="Kosongkan untuk otomatis dibuat dari NIS" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
+                <input type="email" name="email" value="{{ old('email') }}" placeholder="Kosongkan untuk otomatis dibuat dari NIS" class="w-full px-3 py-2 neo-input text-sm bg-slate-50">
                 <span class="text-[11px] text-slate-500 font-semibold mt-0.5 block">
-                    Password akun otomatis diset: <code>password</code>
+                    Password awal otomatis: <strong>NISN</strong> (jika diisi), atau <strong>NIS / NIK</strong>.
                 </span>
             </div>
 
@@ -460,4 +484,82 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Verifikasi Audit Siswa Manual -->
+<div id="auditStudentModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white neo-box-lg max-w-md w-full p-6 space-y-4 relative">
+        <div class="flex items-center justify-between border-b-2 border-black pb-3">
+            <h3 class="font-heading font-black text-base text-black flex items-center gap-2">
+                <span>📝</span> Verifikasi Audit Siswa
+            </h3>
+            <button onclick="closeModal('auditStudentModal')" class="text-black font-black text-xl hover:opacity-75">✕</button>
+        </div>
+
+        <form id="auditStudentForm" method="POST" action="" class="space-y-4">
+            @csrf
+            @method('PATCH')
+
+            <div class="bg-slate-50 border-2 border-black p-3 space-y-1">
+                <div class="text-[11px] font-bold text-slate-500 uppercase">Siswa Terpilih</div>
+                <div class="font-heading font-black text-sm text-black" id="audit_modal_student_name">-</div>
+                <div class="text-xs font-mono text-slate-600">NIS: <span id="audit_modal_student_nis">-</span></div>
+                <div id="audit_modal_previous_info" class="text-[11px] text-slate-500 pt-1 border-t border-slate-200 hidden">
+                    Diaudit terakhir oleh: <strong id="audit_modal_auditor">-</strong> (<span id="audit_modal_audited_at">-</span>)
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Status Audit *</label>
+                <select name="audit_status" id="audit_modal_status" required class="w-full px-3 py-2 neo-input text-xs bg-white font-bold">
+                    <option value="pending">⏳ Menunggu Verifikasi</option>
+                    <option value="verified">✅ Terverifikasi Valid (Siswa Resmi)</option>
+                    <option value="flagged">🔴 Bermasalah / Flagged (Perlu Cek EMIS/VervalPD)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-heading font-bold text-xs text-black mb-1">Catatan Audit (Opsional)</label>
+                <textarea name="audit_note" id="audit_modal_note" rows="3" placeholder="Contoh: Dokumen mutasi lengkap, NISN sudah dicek di VervalPD." class="w-full px-3 py-2 neo-input text-xs bg-slate-50"></textarea>
+            </div>
+
+            <div class="pt-3 border-t-2 border-black flex items-center justify-end gap-2">
+                <button type="button" onclick="closeModal('auditStudentModal')" class="neo-btn bg-slate-200 text-black px-3.5 py-1.5 text-xs font-bold">
+                    Batal
+                </button>
+                <button type="submit" class="neo-btn bg-[#20C997] hover:bg-[#12b886] text-black px-4 py-1.5 text-xs font-black shadow-[2px_2px_0px_#000]">
+                    Simpan Status
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAuditModal(data) {
+    const form = document.getElementById('auditStudentForm');
+    form.action = `/admin/students/${data.id}/audit`;
+
+    document.getElementById('audit_modal_student_name').textContent = data.name || '-';
+    document.getElementById('audit_modal_student_nis').textContent = data.nis || '-';
+    document.getElementById('audit_modal_status').value = data.audit_status || 'pending';
+    document.getElementById('audit_modal_note').value = data.audit_note || '';
+
+    const prevBox = document.getElementById('audit_modal_previous_info');
+    if (data.audited_by) {
+        prevBox.classList.remove('hidden');
+        document.getElementById('audit_modal_auditor').textContent = data.audited_by;
+        document.getElementById('audit_modal_audited_at').textContent = data.audited_at || '-';
+    } else {
+        prevBox.classList.add('hidden');
+    }
+
+    openModal('auditStudentModal');
+}
+
+@if($errors->create_student->any())
+document.addEventListener('DOMContentLoaded', function () {
+    openModal('createStudentModal');
+});
+@endif
+</script>
 

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\StudentDataSource;
 use App\Models\AcademicYear;
 use App\Models\SchoolClass;
 use App\Models\Student;
@@ -235,6 +236,7 @@ class SisEmisSyncService
                     $genderRaw = strtoupper(trim((string) ($row['gender'] ?? 'L')));
                     $gender = in_array($genderRaw, ['L', 'P']) ? $genderRaw : 'L';
                     $birthDate = ! empty($row['birth_date']) ? date('Y-m-d', strtotime($row['birth_date'])) : null;
+                    $apiExternalId = isset($row['id']) ? (string) $row['id'] : (isset($row['student_id']) ? (string) $row['student_id'] : null);
 
                     // Cari apakah siswa sudah ada berdasarkan urutan prioritas yang aman:
                     // 1. Cek kecocokan pasti berdasarkan NISN (karena NISN unik nasional)
@@ -284,12 +286,14 @@ class SisEmisSyncService
                             'guardian_name' => ! empty($row['guardian_name']) ? $row['guardian_name'] : $existingStudent->guardian_name,
                         ];
 
+                        $hasNisConflict = false;
                         // Jika memiliki NIS resmi dari API dan berbeda dari NIS lokal saat ini
                         if ($rawNis !== null && $existingStudent->nis !== $rawNis) {
                             $otherWithNis = Student::where('nis', $rawNis)->where('id', '!=', $existingStudent->id)->first();
                             if (! $otherWithNis) {
                                 $studentUpdateData['nis'] = $rawNis;
                             } else {
+                                $hasNisConflict = true;
                                 // Kolisi terdeteksi: catat ke log konflik agar admin dapat memverifikasi
                                 StudentDuplicateConflict::updateOrCreate(
                                     [
@@ -315,6 +319,19 @@ class SisEmisSyncService
 
                         if ($rawNik !== null) {
                             $studentUpdateData['nik'] = $rawNik;
+                        }
+
+                        $studentUpdateData['api_external_id'] = $apiExternalId;
+                        $studentUpdateData['last_synced_at'] = now();
+
+                        if ($hasNisConflict) {
+                            $studentUpdateData['audit_status'] = 'flagged';
+                        } elseif ($existingStudent->audit_status !== 'flagged') {
+                            $studentUpdateData['audit_status'] = 'verified';
+                        }
+
+                        if ($existingStudent->data_source === StudentDataSource::Legacy && $existingStudent->created_by === null) {
+                            $studentUpdateData['data_source'] = StudentDataSource::Api;
                         }
 
                         $existingStudent->update($studentUpdateData);
@@ -372,6 +389,10 @@ class SisEmisSyncService
                             'father_name' => ! empty($row['father_name']) ? $row['father_name'] : null,
                             'mother_name' => ! empty($row['mother_name']) ? $row['mother_name'] : null,
                             'guardian_name' => ! empty($row['guardian_name']) ? $row['guardian_name'] : null,
+                            'data_source' => StudentDataSource::Api,
+                            'api_external_id' => $apiExternalId,
+                            'last_synced_at' => now(),
+                            'audit_status' => $isDuplicateNis ? 'flagged' : 'verified',
                         ]);
 
                         if ($isDuplicateNis && $collidingStudent) {

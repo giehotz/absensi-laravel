@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\StudentDataSource;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreStudentRequest;
 use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
@@ -60,12 +62,50 @@ class StudentController extends Controller
             }
         }
 
-        $query = Student::with(['user', 'schoolClass'])->latest();
+        $baseQuery = Student::query();
+        if (! empty($selectedClassId)) {
+            $baseQuery->where('school_class_id', $selectedClassId);
+        } elseif (! empty($selectedAcademicYear)) {
+            $baseQuery->forAcademicYearName($selectedAcademicYear);
+        }
+
+        $tabCounts = (clone $baseQuery)->selectRaw("
+            COUNT(*) as count_semua,
+            COUNT(CASE WHEN data_source = 'api' THEN 1 END) as count_api,
+            COUNT(CASE WHEN data_source = 'manual' THEN 1 END) as count_manual,
+            COUNT(CASE WHEN data_source = 'manual' AND last_synced_at IS NULL THEN 1 END) as count_manual_unsynced,
+            COUNT(CASE WHEN data_source = 'manual' AND last_synced_at IS NOT NULL THEN 1 END) as count_manual_synced,
+            COUNT(CASE WHEN data_source = 'manual' AND audit_status = 'flagged' THEN 1 END) as count_manual_flagged,
+            COUNT(CASE WHEN data_source = 'manual' AND audit_status = 'verified' THEN 1 END) as count_manual_verified,
+            COUNT(CASE WHEN data_source = 'import_excel' THEN 1 END) as count_import
+        ")->first();
+
+        $currentTab = (string) $request->query('tab', 'semua');
+        $auditFilter = (string) $request->query('audit_filter', 'all');
+
+        $query = Student::with(['user', 'schoolClass', 'createdBy', 'auditedBy'])->latest();
 
         if (! empty($selectedClassId)) {
             $query->where('school_class_id', $selectedClassId);
         } elseif (! empty($selectedAcademicYear)) {
             $query->forAcademicYearName($selectedAcademicYear);
+        }
+
+        if ($currentTab === 'api') {
+            $query->where('data_source', StudentDataSource::Api->value);
+        } elseif ($currentTab === 'manual') {
+            $query->where('data_source', StudentDataSource::Manual->value);
+            if ($auditFilter === 'unsynced') {
+                $query->whereNull('last_synced_at');
+            } elseif ($auditFilter === 'synced') {
+                $query->whereNotNull('last_synced_at');
+            } elseif ($auditFilter === 'flagged') {
+                $query->where('audit_status', 'flagged');
+            } elseif ($auditFilter === 'verified') {
+                $query->where('audit_status', 'verified');
+            }
+        } elseif ($currentTab === 'import_excel') {
+            $query->where('data_source', StudentDataSource::ImportExcel->value);
         }
 
         if ($search !== '') {
@@ -107,7 +147,10 @@ class StudentController extends Controller
             'availableAcademicYears',
             'selectedAcademicYear',
             'activeYearName',
-            'setting'
+            'setting',
+            'currentTab',
+            'auditFilter',
+            'tabCounts'
         ));
     }
 
@@ -486,14 +529,15 @@ class StudentController extends Controller
                 // New student: build unique email
                 $email = Student::generateDefaultEmail($nis);
 
-                $qrCodeIdentifier = 'QR-'.$nis.'-'.strtoupper(bin2hex(random_bytes(3)));
+                $qrCodeIdentifier = Student::generateUniqueQrIdentifier($nis);
 
                 DB::transaction(function () use (
                     $name, $email, $plainPassword, $targetClassId, $nis, $nisn,
                     $qrCodeIdentifier, $gender, $birthPlace, $birthDate, $phone,
                     $address, $religion, $familyStatus, $childNumber, $previousSchool,
                     $admissionDate, $entryGrade, $fatherName, $motherName, $fatherJob,
-                    $motherJob, $parentAddress, $guardianName, $guardianJob, $guardianAddress
+                    $motherJob, $parentAddress, $guardianName, $guardianJob, $guardianAddress,
+                    $request
                 ) {
                     $user = User::create([
                         'name' => $name,
@@ -528,6 +572,9 @@ class StudentController extends Controller
                         'guardian_name' => ! empty($guardianName) ? $guardianName : null,
                         'guardian_job' => ! empty($guardianJob) ? $guardianJob : null,
                         'guardian_address' => ! empty($guardianAddress) ? $guardianAddress : null,
+                        'data_source' => StudentDataSource::ImportExcel,
+                        'created_by' => $request->user()?->id,
+                        'audit_status' => 'pending',
                     ]);
                 });
 
@@ -593,51 +640,16 @@ class StudentController extends Controller
         return null;
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreStudentRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'nis' => ['required', 'string', 'max:50', 'unique:students,nis'],
-            'nisn' => ['nullable', 'string', 'max:50', 'unique:students,nisn'],
-            'nik' => ['nullable', 'string', 'max:30'],
-            'school_class_id' => ['required', 'exists:school_classes,id'],
-            'gender' => ['required', 'in:L,P'],
-            'birth_place' => ['nullable', 'string', 'max:100'],
-            'birth_date' => ['nullable', 'date'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-            'address' => ['nullable', 'string'],
-            'religion' => ['nullable', 'string', 'max:50'],
-            'family_status' => ['nullable', 'string', 'max:50'],
-            'child_number' => ['nullable', 'string', 'max:10'],
-            'previous_school' => ['nullable', 'string', 'max:150'],
-            'admission_date' => ['nullable', 'date'],
-            'entry_grade' => ['nullable', 'string', 'max:20'],
-            'father_name' => ['nullable', 'string', 'max:150'],
-            'mother_name' => ['nullable', 'string', 'max:150'],
-            'father_job' => ['nullable', 'string', 'max:100'],
-            'mother_job' => ['nullable', 'string', 'max:100'],
-            'parent_address' => ['nullable', 'string'],
-            'guardian_name' => ['nullable', 'string', 'max:150'],
-            'guardian_job' => ['nullable', 'string', 'max:100'],
-            'guardian_address' => ['nullable', 'string'],
-        ], [
-            'name.required' => 'Nama siswa wajib diisi.',
-            'nis.required' => 'NIS wajib diisi.',
-            'nis.unique' => 'NIS sudah digunakan oleh siswa lain.',
-            'school_class_id.required' => 'Pilih kelas siswa.',
-            'gender.required' => 'Pilih jenis kelamin.',
-            'photo.image' => 'File foto harus berupa gambar.',
-            'photo.max' => 'Ukuran file foto maksimal 2MB.',
-        ]);
+        $validated = $request->validated();
 
         // Email default otomatis dari NIS jika tidak diinput
         $email = ! empty($validated['email']) ? $validated['email'] : Student::generateDefaultEmail($validated['nis']);
-        $plainPassword = Student::getDefaultPassword($validated['nisn'] ?? null, $validated['nis']);
+        $plainPassword = Student::getDefaultPassword($validated['nisn'] ?? null, $validated['nis'], $validated['nik'] ?? null);
 
         // Generate QR code identifier permanen
-        $qrCodeIdentifier = 'QR-'.$validated['nis'].'-'.strtoupper(bin2hex(random_bytes(3)));
+        $qrCodeIdentifier = Student::generateUniqueQrIdentifier($validated['nis']);
 
         // Handle upload foto jika ada (otomatis dikonversi ke WebP)
         $photoPath = null;
@@ -651,50 +663,82 @@ class StudentController extends Controller
             );
         }
 
-        DB::transaction(function () use ($validated, $email, $plainPassword, $qrCodeIdentifier, $photoPath) {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $email,
-                'password' => Hash::make($plainPassword),
-                'role' => 'siswa',
-                'is_active' => true,
-            ]);
+        try {
+            DB::transaction(function () use ($validated, $email, $plainPassword, $qrCodeIdentifier, $photoPath, $request) {
+                $user = User::create([
+                    'name' => $validated['name'],
+                    'email' => $email,
+                    'password' => Hash::make($plainPassword),
+                    'role' => 'siswa',
+                    'is_active' => true,
+                ]);
 
-            Student::create([
-                'user_id' => $user->id,
-                'school_class_id' => $validated['school_class_id'],
-                'nis' => $validated['nis'],
-                'nisn' => $validated['nisn'] ?? null,
-                'nik' => $validated['nik'] ?? null,
-                'qr_code_identifier' => $qrCodeIdentifier,
-                'gender' => $validated['gender'],
-                'birth_place' => $validated['birth_place'] ?? null,
-                'birth_date' => $validated['birth_date'] ?? null,
-                'photo' => $photoPath,
-                'phone' => $validated['phone'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'religion' => $validated['religion'] ?? null,
-                'family_status' => $validated['family_status'] ?? null,
-                'child_number' => $validated['child_number'] ?? null,
-                'previous_school' => $validated['previous_school'] ?? null,
-                'admission_date' => $validated['admission_date'] ?? null,
-                'entry_grade' => $validated['entry_grade'] ?? null,
-                'father_name' => $validated['father_name'] ?? null,
-                'mother_name' => $validated['mother_name'] ?? null,
-                'father_job' => $validated['father_job'] ?? null,
-                'mother_job' => $validated['mother_job'] ?? null,
-                'parent_address' => $validated['parent_address'] ?? null,
-                'guardian_name' => $validated['guardian_name'] ?? null,
-                'guardian_job' => $validated['guardian_job'] ?? null,
-                'guardian_address' => $validated['guardian_address'] ?? null,
-            ]);
-        });
+                Student::create([
+                    'user_id' => $user->id,
+                    'school_class_id' => $validated['school_class_id'],
+                    'nis' => $validated['nis'],
+                    'nisn' => $validated['nisn'] ?? null,
+                    'nik' => $validated['nik'] ?? null,
+                    'qr_code_identifier' => $qrCodeIdentifier,
+                    'gender' => $validated['gender'],
+                    'birth_place' => $validated['birth_place'] ?? null,
+                    'birth_date' => $validated['birth_date'] ?? null,
+                    'photo' => $photoPath,
+                    'phone' => $validated['phone'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                    'religion' => $validated['religion'] ?? null,
+                    'family_status' => $validated['family_status'] ?? null,
+                    'child_number' => $validated['child_number'] ?? null,
+                    'previous_school' => $validated['previous_school'] ?? null,
+                    'admission_date' => $validated['admission_date'] ?? null,
+                    'entry_grade' => $validated['entry_grade'] ?? null,
+                    'father_name' => $validated['father_name'] ?? null,
+                    'mother_name' => $validated['mother_name'] ?? null,
+                    'father_job' => $validated['father_job'] ?? null,
+                    'mother_job' => $validated['mother_job'] ?? null,
+                    'parent_address' => $validated['parent_address'] ?? null,
+                    'guardian_name' => $validated['guardian_name'] ?? null,
+                    'guardian_job' => $validated['guardian_job'] ?? null,
+                    'guardian_address' => $validated['guardian_address'] ?? null,
+                    'data_source' => StudentDataSource::Manual,
+                    'created_by' => $request->user()?->id,
+                    'audit_status' => 'pending',
+                    'audit_note' => $validated['audit_note'] ?? null,
+                ]);
+            });
+        } catch (\Throwable $e) {
+            if ($photoPath && Storage::disk('public')->exists($photoPath)) {
+                Storage::disk('public')->delete($photoPath);
+            }
 
-        if ($request->filled('redirect_to')) {
-            return redirect($request->input('redirect_to'))->with('success', 'Data siswa berhasil ditambahkan ke kelas.');
+            throw $e;
         }
 
-        return redirect()->route('admin.students.index')->with('success', 'Data siswa dan kartu QR Code berhasil dibuat.');
+        $successMessage = "Data siswa {$validated['name']} berhasil ditambahkan. Akun login: {$email} (Password: {$plainPassword})";
+
+        $redirectTo = $request->input('redirect_to');
+        if (filled($redirectTo) && str_starts_with($redirectTo, '/') && ! str_starts_with($redirectTo, '//')) {
+            return redirect($redirectTo)->with('success', $successMessage);
+        }
+
+        return redirect()->route('admin.students.index')->with('success', $successMessage);
+    }
+
+    public function updateAuditStatus(Request $request, Student $student): RedirectResponse
+    {
+        $validated = $request->validate([
+            'audit_status' => ['required', 'string', 'in:pending,verified,flagged'],
+            'audit_note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $student->update([
+            'audit_status' => $validated['audit_status'],
+            'audit_note' => $validated['audit_note'] ?? null,
+            'audited_by' => $request->user()?->id,
+            'audited_at' => now(),
+        ]);
+
+        return back()->with('success', 'Status audit untuk siswa '.($student->user?->name ?? 'Siswa').' berhasil diperbarui.');
     }
 
     public function update(Request $request, Student $student): RedirectResponse

@@ -9,6 +9,8 @@
 
     @include('admin.students.partials._header')
 
+    @include('admin.students.partials._source_tabs')
+
     @include('admin.students.partials._table')
 </div>
 

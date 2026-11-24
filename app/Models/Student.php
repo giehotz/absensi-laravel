@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StudentDataSource;
 use App\Services\QrCodeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -42,6 +43,14 @@ class Student extends Model
         'guardian_name',
         'guardian_job',
         'guardian_address',
+        'data_source',
+        'api_external_id',
+        'last_synced_at',
+        'created_by',
+        'audit_status',
+        'audit_note',
+        'audited_by',
+        'audited_at',
     ];
 
     protected function casts(): array
@@ -49,6 +58,9 @@ class Student extends Model
         return [
             'birth_date' => 'date',
             'admission_date' => 'date',
+            'data_source' => StudentDataSource::class,
+            'last_synced_at' => 'datetime',
+            'audited_at' => 'datetime',
         ];
     }
 
@@ -112,6 +124,35 @@ class Student extends Model
         return $this->hasMany(StudentDuplicateConflict::class);
     }
 
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function auditedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'audited_by');
+    }
+
+    /**
+     * Scope query siswa berdasarkan sumber data.
+     */
+    public function scopeFromSource(Builder $query, string|StudentDataSource $source): Builder
+    {
+        $val = $source instanceof StudentDataSource ? $source->value : $source;
+
+        return $query->where('data_source', $val);
+    }
+
+    /**
+     * Scope query siswa input manual yang belum pernah sinkron dengan API.
+     */
+    public function scopeManualUnsynced(Builder $query): Builder
+    {
+        return $query->where('data_source', StudentDataSource::Manual->value)
+            ->whereNull('last_synced_at');
+    }
+
     /**
      * Scope query siswa berdasarkan nama tahun ajaran induk rombelnya (contoh: '2026/2027').
      */
@@ -146,15 +187,11 @@ class Student extends Model
             return trim((string) $configured, '@ ');
         }
 
-        $host = '';
-        if (app()->runningInConsole()) {
-            $parsedHost = parse_url((string) config('app.url'), PHP_URL_HOST);
-            $host = $parsedHost ?: '127.0.0.1';
-        } else {
-            $host = request()->getHost();
-        }
+        $host = app()->runningInConsole()
+            ? (parse_url((string) config('app.url'), PHP_URL_HOST) ?: '127.0.0.1')
+            : request()->getHost();
 
-        $host = strtolower(trim($host));
+        $host = strtolower(trim((string) $host));
 
         if (str_contains($host, 'min2tanggamus.sch.id')) {
             return 'min2tanggamus.sch.id';
@@ -164,7 +201,7 @@ class Student extends Model
             return 'siswa.sekolah.sch.id';
         }
 
-        return $host ? "{$host}.sch.id" : 'siswa.sekolah.sch.id';
+        return $host;
     }
 
     /**
@@ -173,14 +210,28 @@ class Student extends Model
     public static function generateDefaultEmail(string $nis): string
     {
         $domain = static::getEmailDomain();
-        $cleanNis = trim($nis);
-        $baseEmail = "{$cleanNis}@{$domain}";
+        $cleanNis = strtolower(preg_replace('/[^a-zA-Z0-9._-]/', '', trim($nis)) ?: 'siswa');
+        $candidate = "{$cleanNis}@{$domain}";
 
-        if (! User::where('email', $baseEmail)->exists()) {
-            return $baseEmail;
+        while (User::where('email', $candidate)->exists()) {
+            $candidate = "{$cleanNis}.".random_int(100, 9999)."@{$domain}";
         }
 
-        return "{$cleanNis}.".rand(100, 999)."@{$domain}";
+        return $candidate;
+    }
+
+    /**
+     * Generate identifier unik untuk QR Code siswa.
+     */
+    public static function generateUniqueQrIdentifier(string $nis): string
+    {
+        $cleanNis = strtoupper(preg_replace('/[^a-zA-Z0-9-]/', '', trim($nis)) ?: 'SISWA');
+
+        do {
+            $identifier = 'QR-'.$cleanNis.'-'.strtoupper(bin2hex(random_bytes(3)));
+        } while (static::where('qr_code_identifier', $identifier)->exists());
+
+        return $identifier;
     }
 
     /**

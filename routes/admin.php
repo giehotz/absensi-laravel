@@ -84,6 +84,7 @@ Route::post('students/import', [StudentController::class, 'importExcel'])->name(
 Route::post('students/sync-sis', [StudentController::class, 'syncFromSis'])->name('students.sync-sis');
 Route::get('students/sync-sis-stream', [StudentController::class, 'syncFromSisStream'])->name('students.sync-sis-stream');
 Route::post('students/{student}/reset-password', [StudentController::class, 'resetPassword'])->whereNumber('student')->name('students.reset-password');
+Route::patch('students/{student}/audit', [StudentController::class, 'updateAuditStatus'])->whereNumber('student')->name('students.audit');
 Route::resource('students', StudentController::class)->except(['create', 'edit', 'show'])->whereNumber('student');
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);

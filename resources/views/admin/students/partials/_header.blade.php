@@ -17,6 +17,12 @@
                 @if(!empty($search))
                     <input type="hidden" name="search" value="{{ $search }}">
                 @endif
+                @if(!empty($currentTab) && $currentTab != 'semua')
+                    <input type="hidden" name="tab" value="{{ $currentTab }}">
+                @endif
+                @if(!empty($auditFilter) && $auditFilter != 'all')
+                    <input type="hidden" name="audit_filter" value="{{ $auditFilter }}">
+                @endif
 
                 <!-- Filter Tahun Pelajaran -->
                 @if(!empty($availableAcademicYears) && count($availableAcademicYears) > 0)

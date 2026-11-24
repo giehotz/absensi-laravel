@@ -25,6 +25,12 @@
                 @if(!empty($selectedClassId))
                     <input type="hidden" name="class_id" value="{{ $selectedClassId }}">
                 @endif
+                @if(!empty($currentTab) && $currentTab != 'semua')
+                    <input type="hidden" name="tab" value="{{ $currentTab }}">
+                @endif
+                @if(!empty($auditFilter) && $auditFilter != 'all')
+                    <input type="hidden" name="audit_filter" value="{{ $auditFilter }}">
+                @endif
 
                 <!-- Input Pencarian Siswa -->
                 <div class="relative flex-1 sm:w-64">
@@ -80,6 +86,11 @@
                         <th class="p-3.5 border-r border-black">Kelas</th>
                         <th class="p-3.5 border-r border-black">L/P</th>
                         <th class="p-3.5 border-r border-black">QR Identifier</th>
+                        @if($currentTab === 'manual')
+                            <th class="p-3.5 border-r border-black">Penginput & Waktu</th>
+                            <th class="p-3.5 border-r border-black">Status Sinkron API</th>
+                            <th class="p-3.5 border-r border-black">Status Audit</th>
+                        @endif
                         <th class="p-3.5 text-center w-48">Aksi</th>
                     </tr>
                 </thead>
@@ -148,6 +159,62 @@
                                 </div>
                             </div>
                         </td>
+                        @if($currentTab === 'manual')
+                            <td class="p-3.5 border-r border-black text-xs">
+                                <span class="font-bold text-black block">{{ $student->createdBy?->name ?? 'Admin / Sistem' }}</span>
+                                <span class="text-slate-500 text-[10px]">{{ $student->created_at?->format('d/m/Y H:i') ?? '-' }}</span>
+                            </td>
+                            <td class="p-3.5 border-r border-black text-xs">
+                                @if($student->last_synced_at)
+                                    <span class="px-2 py-0.5 rounded border border-black bg-[#D3F9D8] text-emerald-900 font-bold text-[10px] inline-flex items-center gap-1">
+                                        <span>🟢</span> Cocok API
+                                    </span>
+                                    <span class="text-slate-500 block text-[10px] mt-0.5">
+                                        {{ $student->last_synced_at->format('d/m/Y H:i') }}
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded border border-black bg-[#FFF3BF] text-amber-900 font-bold text-[10px] inline-flex items-center gap-1">
+                                        <span>🟡</span> Belum Cocok API
+                                    </span>
+                                    <span class="text-slate-400 block text-[10px] mt-0.5">Data lokal</span>
+                                @endif
+                            </td>
+                            <td class="p-3.5 border-r border-black text-xs">
+                                <div class="flex flex-col gap-1">
+                                    @if($student->audit_status === 'verified')
+                                        <span class="px-2 py-0.5 rounded border border-black bg-[#D0EBFF] text-blue-900 font-black text-[10px] inline-flex items-center gap-1 w-fit">
+                                            <span>✅</span> Terverifikasi
+                                        </span>
+                                    @elseif($student->audit_status === 'flagged')
+                                        <span class="px-2 py-0.5 rounded border border-black bg-[#FFC9C9] text-rose-900 font-black text-[10px] inline-flex items-center gap-1 w-fit">
+                                            <span>🔴</span> Flagged / Perlu Dicek
+                                        </span>
+                                    @else
+                                        <span class="px-2 py-0.5 rounded border border-black bg-slate-100 text-slate-800 font-bold text-[10px] inline-flex items-center gap-1 w-fit">
+                                            <span>⏳</span> Menunggu Audit
+                                        </span>
+                                    @endif
+
+                                    @if($student->audit_note)
+                                        <span class="text-[10px] text-slate-600 italic">"{{ Str::limit($student->audit_note, 30) }}"</span>
+                                    @endif
+
+                                    <button type="button"
+                                            onclick="openAuditModal({{ json_encode([
+                                                'id' => $student->id,
+                                                'name' => $student->user?->name ?? 'Siswa',
+                                                'nis' => $student->nis,
+                                                'audit_status' => $student->audit_status ?? 'pending',
+                                                'audit_note' => $student->audit_note ?? '',
+                                                'audited_by' => $student->auditedBy?->name ?? null,
+                                                'audited_at' => $student->audited_at?->format('d/m/Y H:i') ?? null,
+                                            ]) }})"
+                                            class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black px-2 py-0.5 text-[10px] font-bold w-fit shadow-[1px_1px_0px_#000] cursor-pointer mt-0.5">
+                                        ✏️ Verifikasi Audit
+                                    </button>
+                                </div>
+                            </td>
+                        @endif
                         <td class="p-3.5 text-center">
                             <div class="flex items-center justify-center gap-1.5">
                                 <!-- 1. Kartu & QR (🪪) -->
@@ -253,7 +320,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="p-8 text-center text-slate-500 font-semibold">
+                        <td colspan="{{ $currentTab === 'manual' ? 10 : 7 }}" class="p-8 text-center text-slate-500 font-semibold">
                             @if(!empty($search))
                                 <div class="flex flex-col items-center justify-center gap-2 max-w-md mx-auto">
                                     <span class="text-3xl">🔍</span>
