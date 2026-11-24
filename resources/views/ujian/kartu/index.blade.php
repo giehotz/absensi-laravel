@@ -169,14 +169,14 @@
                         <th class="p-2.5 border-r border-black w-8 text-center">
                             <input type="checkbox" id="checkAll" onchange="toggleCheckAll(this)" class="rounded border-black">
                         </th>
-                        <th class="p-2.5 border-r border-black w-12 text-center">No</th>
-                        <th class="p-2.5 border-r border-black w-28">No. Peserta</th>
-                        <th class="p-2.5 border-r border-black">Nama Siswa</th>
-                        <th class="p-2.5 border-r border-black w-24">NIS / NISN</th>
-                        <th class="p-2.5 border-r border-black text-center">Kelas</th>
-                        <th class="p-2.5 border-r border-black">Tempat, Tanggal Lahir</th>
-                        <th class="p-2.5 border-r border-black text-center">Ruang / Sesi</th>
-                        <th class="p-2.5 text-center w-28">Aksi</th>
+                        <th class="p-2.5 border-r border-black w-12 text-center whitespace-nowrap">No</th>
+                        <th class="p-2.5 border-r border-black whitespace-nowrap min-w-[140px]">No. Peserta</th>
+                        <th class="p-2.5 border-r border-black min-w-[180px]">Nama Siswa</th>
+                        <th class="p-2.5 border-r border-black whitespace-nowrap min-w-[110px]">NIS / NISN</th>
+                        <th class="p-2.5 border-r border-black text-center whitespace-nowrap min-w-[90px]">Kelas</th>
+                        <th class="p-2.5 border-r border-black min-w-[160px]">Tempat, Tanggal Lahir</th>
+                        <th class="p-2.5 border-r border-black text-center whitespace-nowrap min-w-[120px]">Ruang / Sesi</th>
+                        <th class="p-2.5 text-center whitespace-nowrap w-28">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-black font-medium">
@@ -194,11 +194,11 @@
                                        data-kursi="{{ $p->nomor_kursi ?: '-' }}"
                                        onchange="handleCheckboxChange(this)">
                             </td>
-                            <td class="p-2.5 border-r border-black text-center font-bold">
+                            <td class="p-2.5 border-r border-black text-center font-bold whitespace-nowrap">
                                 {{ $pesertas->firstItem() + $idx }}
                             </td>
-                            <td class="p-2.5 border-r border-black font-mono font-black text-black">
-                                <span class="px-1.5 py-0.5 rounded bg-amber-100 border border-black">
+                            <td class="p-2.5 border-r border-black font-mono font-black text-black whitespace-nowrap">
+                                <span class="inline-block px-2 py-0.5 rounded bg-amber-100 border border-black whitespace-nowrap">
                                     {{ $p->nomor_peserta }}
                                 </span>
                             </td>
@@ -210,19 +210,19 @@
                                 @endif
                                 <span>{{ $p->nama_peserta }}</span>
                             </td>
-                            <td class="p-2.5 border-r border-black font-mono text-[11px] text-slate-700">
+                            <td class="p-2.5 border-r border-black font-mono text-[11px] text-slate-700 whitespace-nowrap">
                                 <div>{{ $p->nisn ?: '-' }}</div>
                                 <div class="text-[10px] text-slate-500">NIS: {{ $p->nis_lokal ?: '-' }}</div>
                             </td>
-                            <td class="p-2.5 border-r border-black text-center font-black">
-                                <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-950 border border-black">
+                            <td class="p-2.5 border-r border-black text-center font-black whitespace-nowrap">
+                                <span class="inline-block px-2.5 py-0.5 rounded bg-blue-50 text-blue-950 border border-black whitespace-nowrap">
                                     {{ $p->nama_kelas }}
                                 </span>
                             </td>
                             <td class="p-2.5 border-r border-black text-slate-700">
                                 {{ $p->tempat_tanggal_lahir }}
                             </td>
-                            <td class="p-2.5 border-r border-black text-center">
+                            <td class="p-2.5 border-r border-black text-center whitespace-nowrap">
                                 @if($p->ruang)
                                     <div class="font-bold text-black">{{ $p->ruang->nama_ruang }}</div>
                                     <div class="text-[10px] text-slate-500">Kursi: {{ $p->nomor_kursi ?: '-' }}</div>
@@ -230,7 +230,7 @@
                                     <span class="text-slate-400 italic">Belum diatur</span>
                                 @endif
                             </td>
-                            <td class="p-2.5 text-center flex items-center justify-center gap-1">
+                            <td class="p-2.5 text-center whitespace-nowrap flex items-center justify-center gap-1">
                                 <a href="{{ route('ujian.kartu.print', ['periode_id' => $activePeriode->id, 'selected_ids' => $p->id]) }}" target="_blank"
                                    class="px-2 py-1 bg-[#20C997] hover:bg-emerald-400 text-black rounded text-[10px] font-black border border-black shadow-[1px_1px_0px_0px_#000]" title="Cetak Satuan">
                                     Cetak
@@ -562,12 +562,12 @@
                 <table class="w-full text-xs text-left border-collapse">
                     <thead>
                         <tr class="bg-black text-[#FFD43B] font-heading font-black uppercase text-[10px] border-b-2 border-black">
-                            <th class="p-2.5 text-center w-12 border-r border-slate-700">No</th>
-                            <th class="p-2.5 border-r border-slate-700 w-28">No. Peserta</th>
-                            <th class="p-2.5 border-r border-slate-700">Nama Lengkap Siswa</th>
-                            <th class="p-2.5 text-center border-r border-slate-700 w-24">Kelas</th>
-                            <th class="p-2.5 border-r border-slate-700">Ruang & Kursi</th>
-                            <th class="p-2.5 text-center w-20">Aksi</th>
+                            <th class="p-2.5 text-center w-12 border-r border-slate-700 whitespace-nowrap">No</th>
+                            <th class="p-2.5 border-r border-slate-700 whitespace-nowrap min-w-[130px]">No. Peserta</th>
+                            <th class="p-2.5 border-r border-slate-700 min-w-[170px]">Nama Lengkap Siswa</th>
+                            <th class="p-2.5 text-center border-r border-slate-700 whitespace-nowrap min-w-[85px]">Kelas</th>
+                            <th class="p-2.5 border-r border-slate-700 whitespace-nowrap min-w-[120px]">Ruang & Kursi</th>
+                            <th class="p-2.5 text-center whitespace-nowrap w-20">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="tableSiswaTerpilihBody" class="divide-y divide-black font-semibold">
@@ -843,9 +843,9 @@
 
             // Col 2: No Peserta
             const tdNomor = document.createElement('td');
-            tdNomor.className = 'p-2.5 border-r border-slate-300 font-mono font-bold text-black';
+            tdNomor.className = 'p-2.5 border-r border-slate-300 font-mono font-bold text-black whitespace-nowrap';
             const badgeNomor = document.createElement('span');
-            badgeNomor.className = 'px-1.5 py-0.5 rounded bg-amber-100 border border-black';
+            badgeNomor.className = 'inline-block px-2 py-0.5 rounded bg-amber-100 border border-black whitespace-nowrap';
             badgeNomor.textContent = item.nomor || '-';
             tdNomor.appendChild(badgeNomor);
             tr.appendChild(tdNomor);
@@ -858,16 +858,16 @@
 
             // Col 4: Kelas
             const tdKelas = document.createElement('td');
-            tdKelas.className = 'p-2.5 border-r border-slate-300 text-center font-black';
+            tdKelas.className = 'p-2.5 border-r border-slate-300 text-center font-black whitespace-nowrap';
             const badgeKelas = document.createElement('span');
-            badgeKelas.className = 'px-2 py-0.5 rounded bg-blue-50 text-blue-950 border border-black text-[11px]';
+            badgeKelas.className = 'inline-block px-2.5 py-0.5 rounded bg-blue-50 text-blue-950 border border-black text-[11px] whitespace-nowrap';
             badgeKelas.textContent = item.kelas || '-';
             tdKelas.appendChild(badgeKelas);
             tr.appendChild(tdKelas);
 
             // Col 5: Ruang & Kursi
             const tdRuang = document.createElement('td');
-            tdRuang.className = 'p-2.5 border-r border-slate-300 text-slate-700';
+            tdRuang.className = 'p-2.5 border-r border-slate-300 text-slate-700 whitespace-nowrap';
             tdRuang.textContent = `${item.ruang || '-'} (Kursi: ${item.kursi || '-'})`;
             tr.appendChild(tdRuang);
 
