@@ -50,7 +50,7 @@
                 </form>
 
                 {{-- Tombol Tambah Peserta Manual --}}
-                <button type="button" onclick="document.getElementById('modalTambahPeserta').classList.remove('hidden')" 
+                <button type="button" onclick="openModalTambahPeserta()" 
                         class="px-3.5 py-2 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
                     <span>➕</span>
                     <span>Tambah Siswa</span>
@@ -266,71 +266,91 @@
 
 {{-- Modal Tambah Peserta Manual --}}
 @if($activePeriode)
-<div id="modalTambahPeserta" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
-    <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150">
-        <div class="flex items-center justify-between pb-3 border-b-2 border-black mb-4">
-            <h3 class="text-sm font-black font-heading text-black flex items-center gap-2">
-                <span>➕</span>
-                <span>Tambah Peserta Ujian Manual</span>
-            </h3>
-            <button type="button" onclick="document.getElementById('modalTambahPeserta').classList.add('hidden')" class="text-sm font-black text-slate-500 hover:text-black">✕</button>
+<div id="modalTambahPeserta" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white border-4 border-black rounded-xl max-w-lg w-full p-5 shadow-[6px_6px_0px_0px_#000] relative animate-in fade-in zoom-in-95 duration-150 space-y-3.5">
+        <div class="flex items-center justify-between pb-3 border-b-2 border-black">
+            <div>
+                <h3 class="text-sm font-black font-heading text-black flex items-center gap-1.5">
+                    <span>➕</span>
+                    <span>Tambah Peserta Ujian Manual</span>
+                </h3>
+                <p class="text-[11px] text-slate-600 font-medium mt-0.5">Pilih siswa aktif dari Master Data Siswa untuk dimasukkan ke ujian.</p>
+            </div>
+            <button type="button" onclick="closeModalTambahPeserta()" class="text-black font-black text-lg p-1 hover:bg-slate-100 rounded border border-black cursor-pointer leading-none">✕</button>
         </div>
 
-        <form action="{{ route('ujian.kartu.store') }}" method="POST" class="space-y-3 text-xs font-semibold">
+        {{-- Banner Peringatan & Tautan ke Master Siswa --}}
+        <div class="p-3 bg-amber-50 border-2 border-black rounded-lg flex items-center justify-between gap-3">
+            <div class="text-[11px] text-slate-800 leading-snug">
+                <span class="font-bold text-amber-950">ℹ️ Info:</span> Siswa yang dapat ditambahkan harus sudah terdaftar aktif di menu Master Data Siswa.
+            </div>
+            <a href="{{ route('admin.students.index') }}" target="_blank" 
+               class="px-2.5 py-1.5 bg-[#20C997] hover:bg-emerald-400 text-black border border-black rounded text-[11px] font-black shrink-0 flex items-center gap-1 shadow-[1px_1px_0px_#000]" title="Buka menu data siswa di tab baru">
+                <span>➕</span> Data Siswa ↗
+            </a>
+        </div>
+
+        <form action="{{ route('ujian.kartu.store') }}" method="POST" id="formTambahPeserta" class="space-y-3 text-xs font-semibold">
             @csrf
             <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
 
+            {{-- 1. Pilihan Kelas --}}
             <div>
-                <label class="block text-slate-700 font-bold mb-1">Nama Lengkap Peserta</label>
-                <input type="text" name="nama_peserta" required placeholder="Contoh: AHMAD FAUZI" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs uppercase">
+                <label class="block text-slate-800 font-bold mb-1">1. Pilih Rombel / Kelas Target *</label>
+                <select id="modal_tambah_class_id" onchange="onClassChangeTambahPeserta(this.value)" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 font-bold text-xs" required>
+                    <option value="">-- Pilih Kelas Terlebih Dahulu --</option>
+                    @foreach($classes as $c)
+                        <option value="{{ $c->id }}">Kelas {{ $c->name }} (Tingkat {{ $c->level }})</option>
+                    @endforeach
+                </select>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Nama Kelas / Rombel</label>
-                    <input type="text" name="nama_kelas" required placeholder="Contoh: I.A, VI.B" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
+            {{-- 2. Pilihan Siswa --}}
+            <div>
+                <label class="block text-slate-800 font-bold mb-1">2. Pilih Siswa (Belum Terdaftar Ujian) *</label>
+                <select name="student_id" id="modal_tambah_student_id" onchange="onStudentSelectChange(this)" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 font-bold text-xs" required disabled>
+                    <option value="">-- Pilih Kelas di atas terlebih dahulu --</option>
+                </select>
+                <p id="modal_tambah_student_loading" class="text-[11px] text-blue-600 font-semibold mt-1 hidden">⏳ Sedang memuat daftar siswa kelas...</p>
+                <p id="modal_tambah_student_empty" class="text-[11px] text-amber-700 font-bold mt-1 hidden">Semua siswa di kelas ini sudah terdaftar sebagai peserta ujian.</p>
+            </div>
+
+            {{-- Preview Biodata Terverifikasi --}}
+            <div id="modal_tambah_preview_card" class="p-3 bg-blue-50/70 border-2 border-dashed border-blue-900 rounded-lg hidden space-y-1.5 text-[11px]">
+                <div class="flex items-center justify-between border-b border-blue-200 pb-1">
+                    <span id="prev_siswa_nama" class="font-heading font-black text-xs text-blue-950">Nama Siswa</span>
+                    <span id="prev_siswa_gender" class="px-1.5 py-0.2 bg-white border border-blue-900 rounded font-mono font-bold text-[10px] text-black">L</span>
                 </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Nomor Peserta Ujian</label>
-                    <input type="text" name="nomor_peserta" required placeholder="Contoh: 26-01-01-001" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-mono">
+                <div class="grid grid-cols-2 gap-2 text-slate-700">
+                    <div>NISN: <span id="prev_siswa_nisn" class="font-mono font-bold text-black">-</span></div>
+                    <div>NIS Lokal: <span id="prev_siswa_nis" class="font-mono font-bold text-black">-</span></div>
+                    <div class="col-span-2">TTL: <span id="prev_siswa_ttl" class="font-bold text-black">-</span></div>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            {{-- Detail Ujian Tambahan (Opsional) --}}
+            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">NISN</label>
-                    <input type="text" name="nisn" placeholder="Nomor NISN" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-mono">
+                    <label class="block text-slate-700 font-bold mb-1">Nomor Peserta Ujian (Opsional)</label>
+                    <input type="text" name="nomor_peserta" placeholder="Kosongkan jika auto-generate" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-mono">
                 </div>
                 <div>
-                    <label class="block text-slate-700 font-bold mb-1">NIS Lokal</label>
-                    <input type="text" name="nis_lokal" placeholder="Nomor Induk Siswa" class="w-full px-3 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-mono">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-2">
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Jenis Kelamin</label>
-                    <select name="jenis_kelamin" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                        <option value="L">Laki-laki (L)</option>
-                        <option value="P">Perempuan (P)</option>
+                    <label class="block text-slate-700 font-bold mb-1">Ruang Ujian (Opsional)</label>
+                    <select name="ujian_ruang_id" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs font-semibold">
+                        <option value="">-- Otomatis Ruang Kelas --</option>
+                        @foreach($ruangs as $r)
+                            <option value="{{ $r->id }}">{{ $r->nama_ruang }}</option>
+                        @endforeach
                     </select>
                 </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Tempat Lahir</label>
-                    <input type="text" name="tempat_lahir" placeholder="Kota Lahir" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                </div>
-                <div>
-                    <label class="block text-slate-700 font-bold mb-1">Tanggal Lahir</label>
-                    <input type="date" name="tanggal_lahir" class="w-full px-2.5 py-2 border-2 border-black rounded-lg bg-slate-50 text-xs">
-                </div>
             </div>
 
-            <div class="pt-3 flex items-center justify-end gap-2 border-t border-black">
-                <button type="button" onclick="document.getElementById('modalTambahPeserta').classList.add('hidden')" class="px-3 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs">
+            <div class="pt-3 flex items-center justify-end gap-2 border-t-2 border-black">
+                <button type="button" onclick="closeModalTambahPeserta()" class="px-3.5 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs cursor-pointer">
                     Batal
                 </button>
-                <button type="submit" class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000]">
-                    Simpan Peserta
+                <button type="submit" id="btnSubmitTambahPeserta" disabled class="px-4 py-2 border-2 border-black rounded-lg text-black bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#000] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                    Simpan Peserta Ujian
                 </button>
             </div>
         </form>
@@ -1122,6 +1142,121 @@
 
         const descEl = document.getElementById('liveNomorDesc');
         if (descEl) descEl.innerText = `Contoh untuk ${sampleClassDesc} (Siswa urutan absen ke-1)`;
+    }
+
+    // Modal Tambah Peserta Manual Terikat Master Siswa
+    let cachedAvailableStudents = {};
+
+    function openModalTambahPeserta() {
+        const modal = document.getElementById('modalTambahPeserta');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeModalTambahPeserta() {
+        const modal = document.getElementById('modalTambahPeserta');
+        if (modal) {
+            modal.classList.add('hidden');
+            const classSelect = document.getElementById('modal_tambah_class_id');
+            if (classSelect) classSelect.value = '';
+            const studentSelect = document.getElementById('modal_tambah_student_id');
+            if (studentSelect) {
+                studentSelect.innerHTML = '<option value="">-- Pilih Kelas di atas terlebih dahulu --</option>';
+                studentSelect.disabled = true;
+            }
+            const previewCard = document.getElementById('modal_tambah_preview_card');
+            if (previewCard) previewCard.classList.add('hidden');
+            const btnSubmit = document.getElementById('btnSubmitTambahPeserta');
+            if (btnSubmit) btnSubmit.disabled = true;
+            const emptyNotice = document.getElementById('modal_tambah_student_empty');
+            if (emptyNotice) emptyNotice.classList.add('hidden');
+            const loadingNotice = document.getElementById('modal_tambah_student_loading');
+            if (loadingNotice) loadingNotice.classList.add('hidden');
+        }
+    }
+
+    function onClassChangeTambahPeserta(classId) {
+        const studentSelect = document.getElementById('modal_tambah_student_id');
+        const previewCard = document.getElementById('modal_tambah_preview_card');
+        const btnSubmit = document.getElementById('btnSubmitTambahPeserta');
+        const emptyNotice = document.getElementById('modal_tambah_student_empty');
+        const loadingNotice = document.getElementById('modal_tambah_student_loading');
+
+        if (previewCard) previewCard.classList.add('hidden');
+        if (btnSubmit) btnSubmit.disabled = true;
+        if (emptyNotice) emptyNotice.classList.add('hidden');
+
+        if (!classId) {
+            studentSelect.innerHTML = '<option value="">-- Pilih Kelas di atas terlebih dahulu --</option>';
+            studentSelect.disabled = true;
+            return;
+        }
+
+        studentSelect.disabled = true;
+        if (loadingNotice) loadingNotice.classList.remove('hidden');
+
+        const url = "{{ route('ujian.kartu.available-students') }}?school_class_id=" + encodeURIComponent(classId) + "&ujian_periode_id={{ $activePeriode->id }}";
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (loadingNotice) loadingNotice.classList.add('hidden');
+                cachedAvailableStudents = {};
+                studentSelect.innerHTML = '';
+
+                const students = data.students || [];
+                if (students.length === 0) {
+                    studentSelect.innerHTML = '<option value="">-- Tidak ada siswa yang tersedia --</option>';
+                    studentSelect.disabled = true;
+                    if (emptyNotice) emptyNotice.classList.remove('hidden');
+                } else {
+                    const defaultOpt = document.createElement('option');
+                    defaultOpt.value = '';
+                    defaultOpt.textContent = `-- Pilih Siswa (${students.length} Siswa Tersedia) --`;
+                    studentSelect.appendChild(defaultOpt);
+
+                    students.forEach(s => {
+                        cachedAvailableStudents[s.id] = s;
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = `${s.name} (NISN: ${s.nisn || '-'})`;
+                        studentSelect.appendChild(opt);
+                    });
+
+                    studentSelect.disabled = false;
+                }
+            })
+            .catch(err => {
+                if (loadingNotice) loadingNotice.classList.add('hidden');
+                studentSelect.innerHTML = '<option value="">Gagal memuat siswa</option>';
+                console.error(err);
+            });
+    }
+
+    function onStudentSelectChange(selectElem) {
+        const studentId = selectElem.value;
+        const previewCard = document.getElementById('modal_tambah_preview_card');
+        const btnSubmit = document.getElementById('btnSubmitTambahPeserta');
+
+        if (!studentId || !cachedAvailableStudents[studentId]) {
+            if (previewCard) previewCard.classList.add('hidden');
+            if (btnSubmit) btnSubmit.disabled = true;
+            return;
+        }
+
+        const s = cachedAvailableStudents[studentId];
+        document.getElementById('prev_siswa_nama').textContent = s.name;
+        document.getElementById('prev_siswa_gender').textContent = s.gender === 'P' ? 'Perempuan (P)' : 'Laki-laki (L)';
+        document.getElementById('prev_siswa_nisn').textContent = s.nisn || '-';
+        document.getElementById('prev_siswa_nis').textContent = s.nis || '-';
+        
+        let ttl = '-';
+        if (s.birth_place !== '-' || s.birth_date_formatted !== '-') {
+            ttl = `${s.birth_place !== '-' ? s.birth_place : ''}${s.birth_place !== '-' && s.birth_date_formatted !== '-' ? ', ' : ''}${s.birth_date_formatted !== '-' ? s.birth_date_formatted : ''}`;
+        }
+        document.getElementById('prev_siswa_ttl').textContent = ttl;
+
+        if (previewCard) previewCard.classList.remove('hidden');
+        if (btnSubmit) btnSubmit.disabled = false;
     }
 
     // Modal backdrop click listener

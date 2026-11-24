@@ -102,6 +102,7 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/sync', [PesertaKartuUjianController::class, 'sync'])->name('sync');
             Route::post('/generate-nomor', [PesertaKartuUjianController::class, 'generateNomor'])->name('generate-nomor');
             Route::post('/allocate-rooms', [PesertaKartuUjianController::class, 'allocateRooms'])->name('allocate-rooms');
+            Route::get('/available-students', [PesertaKartuUjianController::class, 'getAvailableStudents'])->name('available-students');
             Route::post('/peserta', [PesertaKartuUjianController::class, 'store'])->name('store');
             Route::put('/peserta/{peserta}', [PesertaKartuUjianController::class, 'update'])->name('update');
             Route::delete('/peserta/{peserta}', [PesertaKartuUjianController::class, 'destroy'])->name('destroy');

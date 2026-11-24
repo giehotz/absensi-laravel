@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Ujian;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
+use App\Models\Student;
 use App\Models\Ujian\UjianPengaturanTtd;
 use App\Models\Ujian\UjianPeriode;
 use App\Models\Ujian\UjianPeserta;
 use App\Models\Ujian\UjianRuang;
 use App\Services\Ujian\NomorPesertaGeneratorService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -132,42 +134,101 @@ class PesertaKartuUjianController extends Controller
         return back()->with('success', "Berhasil mendistribusikan {$count} peserta ke ruang ujian.");
     }
 
+    /**
+     * Ambil daftar siswa aktif pada kelas tertentu yang belum terdaftar di periode ujian aktif.
+     */
+    public function getAvailableStudents(Request $request): JsonResponse
+    {
+        $classId = $request->query('school_class_id');
+        $periodeId = $request->query('ujian_periode_id');
+
+        if (! $classId || ! $periodeId) {
+            return response()->json(['students' => []]);
+        }
+
+        $registeredStudentIds = UjianPeserta::where('ujian_periode_id', $periodeId)
+            ->whereNotNull('student_id')
+            ->pluck('student_id');
+
+        $students = Student::with(['user', 'schoolClass'])
+            ->where('school_class_id', $classId)
+            ->whereHas('user', fn ($q) => $q->where('is_active', true))
+            ->whereNotIn('id', $registeredStudentIds)
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'id' => $s->id,
+                    'name' => $s->user?->name ?? 'Siswa',
+                    'nis' => $s->nis ?? '-',
+                    'nisn' => $s->nisn ?? '-',
+                    'gender' => $s->gender ?? 'L',
+                    'birth_place' => $s->birth_place ?? '-',
+                    'birth_date' => $s->birth_date ? $s->birth_date->format('Y-m-d') : null,
+                    'birth_date_formatted' => $s->birth_date ? $s->birth_date->locale('id')->translatedFormat('d F Y') : '-',
+                    'class_name' => $s->schoolClass?->name ?? '-',
+                ];
+            });
+
+        return response()->json(['students' => $students]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
-            'nama_peserta' => ['required', 'string', 'max:150'],
-            'nama_kelas' => ['required', 'string', 'max:50'],
-            'nis_lokal' => ['nullable', 'string', 'max:50'],
-            'nisn' => ['nullable', 'string', 'max:50'],
-            'nomor_peserta' => ['required', 'string', 'max:50'],
-            'jenis_kelamin' => ['nullable', 'in:L,P'],
-            'tempat_lahir' => ['nullable', 'string', 'max:100'],
-            'tanggal_lahir' => ['nullable', 'date'],
+            'student_id' => ['required', 'exists:students,id'],
+            'nomor_peserta' => ['nullable', 'string', 'max:50'],
             'ujian_ruang_id' => ['nullable', 'exists:ujian_ruang,id'],
             'nomor_kursi' => ['nullable', 'integer', 'min:1'],
+        ], [
+            'student_id.required' => 'Pilih siswa dari Master Data Siswa.',
+            'student_id.exists' => 'Data siswa tidak ditemukan di Master Data Siswa.',
         ]);
 
-        // Tautkan otomatis ke master data siswa jika NISN atau NIS lokal cocok
-        $matchingStudent = null;
-        if (! empty($validated['nisn'])) {
-            $matchingStudent = Student::where('nisn', $validated['nisn'])->first();
-        }
-        if (! $matchingStudent && ! empty($validated['nis_lokal'])) {
-            $matchingStudent = Student::where('nis', $validated['nis_lokal'])->first();
-        }
+        $periode = UjianPeriode::findOrFail($validated['ujian_periode_id']);
+        $student = Student::with(['user', 'schoolClass'])->findOrFail($validated['student_id']);
 
-        if ($matchingStudent) {
-            $validated['student_id'] = $matchingStudent->id;
-            $validated['school_class_id'] = $validated['school_class_id'] ?? $matchingStudent->school_class_id;
-            $validated['tempat_lahir'] = $validated['tempat_lahir'] ?? $matchingStudent->birth_place;
-            $validated['tanggal_lahir'] = $validated['tanggal_lahir'] ?? $matchingStudent->birth_date;
-            $validated['foto_peserta_path'] = $validated['foto_peserta_path'] ?? $matchingStudent->photo;
+        // Cegah duplikasi siswa pada periode ujian yang sama
+        $exists = UjianPeserta::where('ujian_periode_id', $periode->id)
+            ->where('student_id', $student->id)
+            ->exists();
+
+        if ($exists) {
+            $studentName = $student->user?->name ?? 'Siswa';
+
+            return back()->with('error', "Siswa {$studentName} sudah terdaftar pada periode ujian ini.");
         }
 
-        UjianPeserta::create($validated);
+        $namaKelas = $student->schoolClass?->name ?? 'Tanpa Rombel';
+        $namaSiswa = $student->user?->name ?? 'Siswa';
 
-        return back()->with('success', 'Peserta Ujian berhasil ditambahkan.');
+        $ruangId = $validated['ujian_ruang_id'] ?? null;
+        if (! $ruangId && $student->school_class_id) {
+            $matchingRuang = UjianRuang::where('school_class_id', $student->school_class_id)
+                ->where('tipe_ruang', 'kelas')
+                ->first();
+            $ruangId = $matchingRuang?->id;
+        }
+
+        UjianPeserta::create([
+            'ujian_periode_id' => $periode->id,
+            'student_id' => $student->id,
+            'school_class_id' => $student->school_class_id,
+            'nama_kelas' => $namaKelas,
+            'nama_peserta' => $namaSiswa,
+            'nis_lokal' => $student->nis,
+            'nisn' => $student->nisn,
+            'jenis_kelamin' => $student->gender,
+            'tempat_lahir' => $student->birth_place,
+            'tanggal_lahir' => $student->birth_date,
+            'foto_peserta_path' => $student->photo,
+            'is_eligible' => true,
+            'nomor_peserta' => $validated['nomor_peserta'] ?: null,
+            'ujian_ruang_id' => $ruangId,
+            'nomor_kursi' => $validated['nomor_kursi'] ?? null,
+        ]);
+
+        return back()->with('success', "Peserta ujian {$namaSiswa} berhasil ditambahkan dari Master Data Siswa.");
     }
 
     public function update(Request $request, UjianPeserta $peserta): RedirectResponse
