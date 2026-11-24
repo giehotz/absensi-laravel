@@ -148,6 +148,23 @@ class PesertaKartuUjianController extends Controller
             'nomor_kursi' => ['nullable', 'integer', 'min:1'],
         ]);
 
+        // Tautkan otomatis ke master data siswa jika NISN atau NIS lokal cocok
+        $matchingStudent = null;
+        if (! empty($validated['nisn'])) {
+            $matchingStudent = Student::where('nisn', $validated['nisn'])->first();
+        }
+        if (! $matchingStudent && ! empty($validated['nis_lokal'])) {
+            $matchingStudent = Student::where('nis', $validated['nis_lokal'])->first();
+        }
+
+        if ($matchingStudent) {
+            $validated['student_id'] = $matchingStudent->id;
+            $validated['school_class_id'] = $validated['school_class_id'] ?? $matchingStudent->school_class_id;
+            $validated['tempat_lahir'] = $validated['tempat_lahir'] ?? $matchingStudent->birth_place;
+            $validated['tanggal_lahir'] = $validated['tanggal_lahir'] ?? $matchingStudent->birth_date;
+            $validated['foto_peserta_path'] = $validated['foto_peserta_path'] ?? $matchingStudent->photo;
+        }
+
         UjianPeserta::create($validated);
 
         return back()->with('success', 'Peserta Ujian berhasil ditambahkan.');

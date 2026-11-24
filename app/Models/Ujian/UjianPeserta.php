@@ -77,20 +77,22 @@ class UjianPeserta extends Model
 
     public function getFormattedBirthDateAttribute(): string
     {
-        if (! $this->tanggal_lahir) {
+        $tgl = $this->tanggal_lahir ?? $this->student?->birth_date;
+
+        if (! $tgl) {
             return '-';
         }
 
         try {
-            return Carbon::parse($this->tanggal_lahir)->locale('id')->translatedFormat('d F Y');
+            return Carbon::parse($tgl)->locale('id')->translatedFormat('d F Y');
         } catch (\Throwable) {
-            return $this->tanggal_lahir->format('d/m/Y');
+            return $tgl instanceof \DateTimeInterface ? $tgl->format('d/m/Y') : Carbon::parse($tgl)->format('d/m/Y');
         }
     }
 
     public function getTempatTanggalLahirAttribute(): string
     {
-        $tempat = $this->tempat_lahir ?: '-';
+        $tempat = $this->tempat_lahir ?: ($this->student?->birth_place ?: '-');
         $tgl = $this->formatted_birth_date;
 
         if ($tempat === '-' && $tgl === '-') {
