@@ -8,6 +8,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
+use App\Services\ImageUploadService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class TeacherController extends Controller
 {
+    public function __construct(
+        protected ImageUploadService $imageUploadService
+    ) {}
+
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
@@ -105,6 +110,24 @@ class TeacherController extends Controller
         return redirect()->route('admin.teachers.index')->with('success', 'Data guru baru berhasil ditambahkan.');
     }
 
+    /**
+     * Tampilkan halaman penuh Edit Data Guru.
+     */
+    public function edit(Teacher $teacher): View
+    {
+        $teacher->load([
+            'user',
+            'homeroomClasses',
+            'assignments.subject',
+            'assignments.schoolClass',
+            'managedSavingsClasses',
+        ]);
+
+        $classes = SchoolClass::withCount('students')->ordered()->get();
+
+        return view('admin.teachers.edit', compact('teacher', 'classes'));
+    }
+
     public function update(Request $request, Teacher $teacher): RedirectResponse
     {
         $validated = $request->validate([
@@ -118,25 +141,58 @@ class TeacherController extends Controller
             'phone' => ['nullable', 'string', 'max:20'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$teacher->user_id],
             'password' => ['nullable', 'string', 'min:6'],
+            'is_active' => ['required', 'boolean'],
+            'is_petugas_mbg' => ['nullable', 'boolean'],
+            'is_savings_officer' => ['nullable', 'boolean'],
+            'savings_scope' => ['nullable', 'in:all,restricted'],
+            'savings_class_ids' => ['nullable', 'array'],
+            'savings_class_ids.*' => ['exists:school_classes,id'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+            'remove_photo' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'Nama lengkap wajib diisi.',
             'gender.required' => 'Jenis kelamin wajib dipilih.',
             'nuptk.unique' => 'NUPTK sudah digunakan oleh guru lain.',
             'nip.unique' => 'NIP sudah digunakan oleh guru lain.',
             'email.unique' => 'Email sudah digunakan.',
+            'photo.image' => 'File foto profil harus berupa gambar.',
+            'photo.mimes' => 'Format foto yang didukung: JPG, JPEG, PNG, dan WEBP.',
+            'photo.max' => 'Ukuran foto maksimal 5MB.',
         ]);
 
-        DB::transaction(function () use ($validated, $teacher) {
+        $isSavingsOfficer = $request->boolean('is_savings_officer');
+        $savingsScope = $isSavingsOfficer ? ($validated['savings_scope'] ?? 'all') : 'all';
+        $isPetugasMbg = $request->boolean('is_petugas_mbg');
+
+        DB::transaction(function () use ($request, $validated, $teacher, $isSavingsOfficer, $savingsScope, $isPetugasMbg) {
             $userUpdate = [
                 'name' => $validated['name'],
-                'email' => ! empty($validated['email']) ? $validated['email'] : $teacher->user?->email,
+                'email' => ! empty($validated['email']) ? $validated['email'] : null,
+                'is_active' => (bool) $validated['is_active'],
             ];
 
             if (! empty($validated['password'])) {
                 $userUpdate['password'] = Hash::make($validated['password']);
             }
 
-            $teacher->user()->update($userUpdate);
+            if ($teacher->user) {
+                $teacher->user->update($userUpdate);
+            }
+
+            $photoPath = $teacher->photo;
+            if ($request->boolean('remove_photo')) {
+                $this->imageUploadService->deleteOldFile($teacher->photo);
+                $photoPath = null;
+            } elseif ($request->hasFile('photo')) {
+                $this->imageUploadService->deleteOldFile($teacher->photo);
+                $photoPath = $this->imageUploadService->uploadAsWebp(
+                    $request->file('photo'),
+                    'teachers',
+                    82,
+                    800,
+                    1000
+                );
+            }
 
             $teacher->update([
                 'nuptk' => ! empty($validated['nuptk']) ? $validated['nuptk'] : null,
@@ -146,7 +202,17 @@ class TeacherController extends Controller
                 'birth_date' => ! empty($validated['birth_date']) ? $validated['birth_date'] : null,
                 'last_education' => ! empty($validated['last_education']) ? $validated['last_education'] : null,
                 'phone' => ! empty($validated['phone']) ? $validated['phone'] : null,
+                'photo' => $photoPath,
+                'is_petugas_mbg' => $isPetugasMbg,
+                'is_savings_officer' => $isSavingsOfficer,
+                'savings_scope' => $savingsScope,
             ]);
+
+            if ($isSavingsOfficer && $savingsScope === 'restricted') {
+                $teacher->managedSavingsClasses()->sync($validated['savings_class_ids'] ?? []);
+            } else {
+                $teacher->managedSavingsClasses()->sync([]);
+            }
         });
 
         return redirect()->route('admin.teachers.index')->with('success', 'Data guru berhasil diperbarui.');

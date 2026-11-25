@@ -453,26 +453,14 @@
                                         </button>
                                     </form>
 
-                                    <button type="button"
-                                            onclick="editTeacher({{ json_encode([
-                                                'id' => $teacher->id,
-                                                'name' => $teacher->user->name ?? '',
-                                                'nuptk' => $teacher->nuptk ?? '',
-                                                'nip' => $teacher->nip ?? '',
-                                                'gender' => $teacher->gender ?? 'L',
-                                                'birth_place' => $teacher->birth_place ?? '',
-                                                'birth_date' => $teacher->birth_date ? $teacher->birth_date->format('Y-m-d') : '',
-                                                'last_education' => $teacher->last_education ?? '',
-                                                'email' => $teacher->user->email ?? '',
-                                                'phone' => $teacher->phone ?? '',
-                                            ]) }})"
-                                            class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFF3BF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FFD43B] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                                            title="Edit Data Guru">
+                                    <a href="{{ route('admin.teachers.edit', $teacher) }}"
+                                       class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFF3BF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FFD43B] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                       title="Edit Data Guru">
                                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                         </svg>
                                         <span>Edit</span>
-                                    </button>
+                                    </a>
 
                                     <form action="{{ route('admin.teachers.destroy', $teacher) }}"
                                           method="POST"

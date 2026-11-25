@@ -40,7 +40,7 @@ Route::match(['post', 'patch'], 'teachers/{teacher}/assignments', [TeacherContro
 Route::match(['post', 'patch'], 'teachers/{teacher}/savings-assignment', [TeacherController::class, 'updateSavingsAssignment'])->name('teachers.savings-assignment');
 Route::patch('teachers/{teacher}/toggle-savings-officer', [TeacherController::class, 'toggleSavingsOfficer'])->name('teachers.toggle-savings-officer');
 Route::post('teachers/{teacher}/impersonate', [ImpersonationController::class, 'start'])->name('teachers.impersonate');
-Route::resource('teachers', TeacherController::class)->except(['create', 'edit', 'show']);
+Route::resource('teachers', TeacherController::class)->except(['create', 'show']);
 
 // Master Data Kelas
 Route::get('classes/transfer', [SchoolClassController::class, 'transferView'])->name('classes.transfer');
