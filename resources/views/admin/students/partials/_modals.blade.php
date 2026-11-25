@@ -198,9 +198,6 @@
     </div>
 </div>
 
-<!-- Modal Edit Siswa Bertab -->
-@include('partials._edit-student-modal', ['isHomeroom' => false, 'classes' => $classes])
-
 <!-- Modal Preview Kartu QR Siswa -->
 <div id="qrPreviewModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-white neo-box-lg max-w-md w-full p-6 space-y-4 relative max-h-[95vh] overflow-y-auto">

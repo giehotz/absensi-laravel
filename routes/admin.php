@@ -87,7 +87,7 @@ Route::post('students/{student}/reset-password', [StudentController::class, 'res
 Route::patch('students/{student}/audit', [StudentController::class, 'updateAuditStatus'])->whereNumber('student')->name('students.audit');
 Route::post('students/{id}/restore', [StudentController::class, 'restore'])->whereNumber('id')->name('students.restore');
 Route::delete('students/{id}/force-delete', [StudentController::class, 'forceDelete'])->whereNumber('id')->name('students.force-delete');
-Route::resource('students', StudentController::class)->except(['create', 'edit', 'show'])->whereNumber('student');
+Route::resource('students', StudentController::class)->except(['create', 'show'])->whereNumber('student');
 Route::post('subjects/sync', [SubjectController::class, 'sync'])->name('subjects.sync');
 Route::resource('subjects', SubjectController::class)->except(['create', 'edit', 'show']);
 

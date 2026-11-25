@@ -303,44 +303,16 @@
                                 </form>
 
                                 <!-- 3. Edit Siswa -->
-                                <button type="button" 
-                                        onclick="editStudent({{ json_encode([
-                                            'id' => $student->id,
-                                            'name' => $student->user->name ?? '',
-                                            'email' => $student->user->email ?? '',
-                                            'nis' => $student->nis,
-                                            'nisn' => $student->nisn ?? '',
-                                            'school_class_id' => $student->school_class_id,
-                                            'gender' => $student->gender,
-                                            'birth_place' => $student->birth_place ?? '',
-                                            'birth_date' => $student->birth_date ? $student->birth_date->format('Y-m-d') : '',
-                                            'religion' => $student->religion ?? '',
-                                            'phone' => $student->phone ?? '',
-                                            'address' => $student->address ?? '',
-                                            'family_status' => $student->family_status ?? '',
-                                            'child_number' => $student->child_number ?? '',
-                                            'previous_school' => $student->previous_school ?? '',
-                                            'admission_date' => $student->admission_date ? $student->admission_date->format('Y-m-d') : '',
-                                            'entry_grade' => $student->entry_grade ?? '',
-                                            'father_name' => $student->father_name ?? '',
-                                            'father_job' => $student->father_job ?? '',
-                                            'mother_name' => $student->mother_name ?? '',
-                                            'mother_job' => $student->mother_job ?? '',
-                                            'parent_address' => $student->parent_address ?? '',
-                                            'guardian_name' => $student->guardian_name ?? '',
-                                            'guardian_job' => $student->guardian_job ?? '',
-                                            'guardian_address' => $student->guardian_address ?? '',
-                                            'photo_url' => $student->photo ? $student->photo_url : null,
-                                        ]) }})" 
-                                        class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000]"
-                                        title="Edit Siswa" aria-label="Edit Siswa">
+                                <a href="{{ route('admin.students.edit', $student) }}"
+                                   class="neo-btn bg-[#FFD43B] hover:bg-yellow-400 text-black p-1.5 text-xs cursor-pointer group relative shadow-[1.5px_1.5px_0px_#000] inline-flex items-center justify-center"
+                                   title="Edit Siswa" aria-label="Edit Siswa">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                     <span class="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-black shadow-[2px_2px_0px_0px_#FFD43B] z-50">
                                         Edit
                                     </span>
-                                </button>
+                                </a>
 
                                 <!-- 4. Hapus Siswa -->
                                 <form action="{{ route('admin.students.destroy', $student) }}" method="POST">

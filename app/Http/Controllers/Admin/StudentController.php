@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\StudentDataSource;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreStudentRequest;
+use App\Http\Requests\Admin\UpdateStudentRequest;
 use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
@@ -751,98 +752,109 @@ class StudentController extends Controller
         return back()->with('success', 'Status audit untuk siswa '.($student->user?->name ?? 'Siswa').' berhasil diperbarui.');
     }
 
-    public function update(Request $request, Student $student): RedirectResponse
+    /**
+     * Tampilkan halaman penuh Edit Data Lengkap Siswa.
+     */
+    public function edit(Student $student): View
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'nis' => ['required', 'string', 'max:50', 'unique:students,nis,'.$student->id],
-            'nisn' => ['nullable', 'string', 'max:50', 'unique:students,nisn,'.$student->id],
-            'nik' => ['nullable', 'string', 'max:30'],
-            'school_class_id' => ['required', 'exists:school_classes,id'],
-            'gender' => ['required', 'in:L,P'],
-            'birth_place' => ['nullable', 'string', 'max:100'],
-            'birth_date' => ['nullable', 'date'],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email,'.$student->user_id],
-            'password' => ['nullable', 'string', 'min:6'],
-            'photo' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
-            'address' => ['nullable', 'string'],
-            'religion' => ['nullable', 'string', 'max:50'],
-            'family_status' => ['nullable', 'string', 'max:50'],
-            'child_number' => ['nullable', 'string', 'max:10'],
-            'previous_school' => ['nullable', 'string', 'max:150'],
-            'admission_date' => ['nullable', 'date'],
-            'entry_grade' => ['nullable', 'string', 'max:20'],
-            'father_name' => ['nullable', 'string', 'max:150'],
-            'mother_name' => ['nullable', 'string', 'max:150'],
-            'father_job' => ['nullable', 'string', 'max:100'],
-            'mother_job' => ['nullable', 'string', 'max:100'],
-            'parent_address' => ['nullable', 'string'],
-            'guardian_name' => ['nullable', 'string', 'max:150'],
-            'guardian_job' => ['nullable', 'string', 'max:100'],
-            'guardian_address' => ['nullable', 'string'],
-        ], [
-            'name.required' => 'Nama siswa wajib diisi.',
-            'nis.required' => 'NIS wajib diisi.',
-            'school_class_id.required' => 'Pilih kelas siswa.',
-            'gender.required' => 'Pilih jenis kelamin.',
-            'photo.image' => 'File foto harus berupa gambar.',
-            'photo.max' => 'Ukuran file foto maksimal 2MB.',
-        ]);
+        $student->load(['user', 'schoolClass.academicYear', 'createdBy', 'auditedBy']);
+        $classes = SchoolClass::with('academicYear')->ordered()->get();
 
-        $photoPath = $student->photo;
+        return view('admin.students.edit', compact('student', 'classes'));
+    }
+
+    public function update(UpdateStudentRequest $request, Student $student): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        $oldPhoto = $student->photo;
+        $newPhotoPath = null;
+        $photoPath = $oldPhoto;
+        $shouldDeleteOldPhoto = false;
 
         if ($request->hasFile('photo')) {
-            $this->imageUploadService->deleteOldFile($student->photo);
-            $photoPath = $this->imageUploadService->uploadAsWebp(
+            $newPhotoPath = $this->imageUploadService->uploadAsWebp(
                 $request->file('photo'),
                 'students/photos',
                 82,
                 800,
                 1000
             );
+            $photoPath = $newPhotoPath;
+            $shouldDeleteOldPhoto = true;
         } elseif ($request->boolean('remove_photo')) {
-            $this->imageUploadService->deleteOldFile($student->photo);
             $photoPath = null;
+            $shouldDeleteOldPhoto = true;
         }
 
-        DB::transaction(function () use ($validated, $student, $photoPath) {
-            $userUpdate = ['name' => $validated['name']];
-            if (! empty($validated['email'])) {
-                $userUpdate['email'] = $validated['email'];
-            }
-            if (! empty($validated['password'])) {
-                $userUpdate['password'] = Hash::make($validated['password']);
-            }
-            $student->user()->update($userUpdate);
+        try {
+            DB::transaction(function () use ($request, $validated, $student, $photoPath) {
+                $userUpdate = [
+                    'name' => $validated['name'],
+                    'is_active' => (bool) $validated['is_active'],
+                ];
+                if (! empty($validated['email'])) {
+                    $userUpdate['email'] = $validated['email'];
+                }
+                if (! empty($validated['password'])) {
+                    $userUpdate['password'] = Hash::make($validated['password']);
+                }
 
-            $student->update([
-                'school_class_id' => $validated['school_class_id'],
-                'nis' => $validated['nis'],
-                'nisn' => $validated['nisn'] ?? null,
-                'nik' => $validated['nik'] ?? null,
-                'gender' => $validated['gender'],
-                'birth_place' => $validated['birth_place'] ?? null,
-                'birth_date' => $validated['birth_date'] ?? null,
-                'photo' => $photoPath,
-                'phone' => $validated['phone'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'religion' => $validated['religion'] ?? null,
-                'family_status' => $validated['family_status'] ?? null,
-                'child_number' => $validated['child_number'] ?? null,
-                'previous_school' => $validated['previous_school'] ?? null,
-                'admission_date' => $validated['admission_date'] ?? null,
-                'entry_grade' => $validated['entry_grade'] ?? null,
-                'father_name' => $validated['father_name'] ?? null,
-                'mother_name' => $validated['mother_name'] ?? null,
-                'father_job' => $validated['father_job'] ?? null,
-                'mother_job' => $validated['mother_job'] ?? null,
-                'parent_address' => $validated['parent_address'] ?? null,
-                'guardian_name' => $validated['guardian_name'] ?? null,
-                'guardian_job' => $validated['guardian_job'] ?? null,
-                'guardian_address' => $validated['guardian_address'] ?? null,
-            ]);
-        });
+                if ($student->user) {
+                    $student->user->update($userUpdate);
+                }
+
+                $studentUpdate = [
+                    'school_class_id' => $validated['school_class_id'],
+                    'nis' => $validated['nis'],
+                    'nisn' => $validated['nisn'] ?? null,
+                    'nik' => $validated['nik'] ?? null,
+                    'gender' => $validated['gender'],
+                    'birth_place' => $validated['birth_place'] ?? null,
+                    'birth_date' => $validated['birth_date'] ?? null,
+                    'photo' => $photoPath,
+                    'phone' => $validated['phone'] ?? null,
+                    'address' => $validated['address'] ?? null,
+                    'religion' => $validated['religion'] ?? null,
+                    'family_status' => $validated['family_status'] ?? null,
+                    'child_number' => $validated['child_number'] ?? null,
+                    'previous_school' => $validated['previous_school'] ?? null,
+                    'admission_date' => $validated['admission_date'] ?? null,
+                    'entry_grade' => $validated['entry_grade'] ?? null,
+                    'father_name' => $validated['father_name'] ?? null,
+                    'mother_name' => $validated['mother_name'] ?? null,
+                    'father_job' => $validated['father_job'] ?? null,
+                    'mother_job' => $validated['mother_job'] ?? null,
+                    'parent_address' => $validated['parent_address'] ?? null,
+                    'guardian_name' => $validated['guardian_name'] ?? null,
+                    'guardian_job' => $validated['guardian_job'] ?? null,
+                    'guardian_address' => $validated['guardian_address'] ?? null,
+                ];
+
+                $newAuditStatus = $validated['audit_status'] ?? $student->audit_status ?? 'pending';
+                $newAuditNote = $validated['audit_note'] ?? null;
+                $auditChanged = $newAuditStatus !== $student->audit_status || $newAuditNote !== $student->audit_note;
+
+                $studentUpdate['audit_status'] = $newAuditStatus;
+                $studentUpdate['audit_note'] = $newAuditNote;
+                if ($auditChanged) {
+                    $studentUpdate['audited_by'] = $request->user()?->id;
+                    $studentUpdate['audited_at'] = now();
+                }
+
+                $student->update($studentUpdate);
+            });
+        } catch (\Throwable $e) {
+            if ($newPhotoPath) {
+                $this->imageUploadService->deleteOldFile($newPhotoPath);
+            }
+
+            throw $e;
+        }
+
+        if ($shouldDeleteOldPhoto && $oldPhoto) {
+            $this->imageUploadService->deleteOldFile($oldPhoto);
+        }
 
         return redirect()->route('admin.students.index')->with('success', 'Data siswa berhasil diperbarui.');
     }
