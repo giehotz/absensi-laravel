@@ -329,7 +329,7 @@
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({
-                    ujian_periode_id: "{{ $activePeriode->id }}",
+                    ujian_periode_id: "{{ $activePeriode?->id }}",
                     source_level: sourceLvl,
                     target_levels: targetBoxes
                 })

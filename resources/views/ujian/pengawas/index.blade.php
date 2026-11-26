@@ -173,63 +173,78 @@
         </div>
     @endif
 
-    {{-- Filter Kelompok Ujian (1-2 vs 3-6) --}}
-    <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border-2 border-slate-900 rounded-xl shadow-[3px_3px_0px_0px_#0f172a]">
-        <div class="flex items-center gap-2">
-            <span class="text-xs font-black uppercase text-slate-700">Pilih Kelompok Ujian:</span>
-            <div class="inline-flex rounded-lg border-2 border-slate-900 p-0.5 bg-slate-100">
-                <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => '3-6'])) }}"
-                   class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === '3-6' ? 'bg-[#FFD43B] text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
-                    🌟 Kelompok Kelas 3–6 (Utama)
-                </a>
-                <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => '1-2'])) }}"
-                   class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === '1-2' ? 'bg-[#74C0FC] text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
-                    👶 Kelompok Kelas 1–2 (Bawah)
-                </a>
-                <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => 'all'])) }}"
-                   class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === 'all' ? 'bg-slate-900 text-white shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
-                    Semua Kelompok
-                </a>
+    @if(!$activePeriode)
+        {{-- Warning Box jika belum ada periode aktif --}}
+        <div class="rounded-xl border-2 border-slate-900 bg-amber-100 p-5 shadow-[4px_4px_0px_0px_#0f172a] flex items-center gap-4">
+            <span class="text-3xl">⚠️</span>
+            <div>
+                <h3 class="text-sm font-black uppercase text-slate-900">Belum Ada Periode Ujian Aktif</h3>
+                <p class="text-xs font-semibold text-slate-700 mt-1">
+                    Silakan buat atau pilih periode ujian terlebih dahulu pada menu 
+                    <a href="{{ route('ujian.jenis.index') }}" class="underline font-black text-blue-700 hover:text-blue-900">Jenis &amp; Periode Ujian</a> 
+                    untuk mulai mengelola jadwal, pemetaan, dan penugasan pengawas ruang.
+                </p>
             </div>
         </div>
-        <div class="text-[11px] font-bold text-slate-600">
-            Terfilter: <strong class="text-slate-900">{{ $pengawasList->count() }}</strong> penugasan pengawas
+    @else
+        {{-- Filter Kelompok Ujian (1-2 vs 3-6) --}}
+        <div class="flex flex-wrap items-center justify-between gap-3 p-3 bg-white border-2 border-slate-900 rounded-xl shadow-[3px_3px_0px_0px_#0f172a]">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-black uppercase text-slate-700">Pilih Kelompok Ujian:</span>
+                <div class="inline-flex rounded-lg border-2 border-slate-900 p-0.5 bg-slate-100">
+                    <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => '3-6'])) }}"
+                       class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === '3-6' ? 'bg-[#FFD43B] text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
+                        🌟 Kelompok Kelas 3–6 (Utama)
+                    </a>
+                    <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => '1-2'])) }}"
+                       class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === '1-2' ? 'bg-[#74C0FC] text-slate-900 shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
+                        👶 Kelompok Kelas 1–2 (Bawah)
+                    </a>
+                    <a href="{{ route('ujian.pengawas.index', array_merge(request()->query(), ['kelompok' => 'all'])) }}"
+                       class="px-3 py-1 rounded-md text-xs font-black transition-all cursor-pointer {{ ($kelompok ?? '3-6') === 'all' ? 'bg-slate-900 text-white shadow-[1px_1px_0px_0px_#0f172a]' : 'text-slate-600 hover:text-black' }}">
+                        Semua Kelompok
+                    </a>
+                </div>
+            </div>
+            <div class="text-[11px] font-bold text-slate-600">
+                Terfilter: <strong class="text-slate-900">{{ $pengawasList->count() }}</strong> penugasan pengawas
+            </div>
         </div>
-    </div>
 
-    {{-- Navigasi Tab Neo-Brutalism --}}
-    <div class="flex flex-wrap items-center gap-2">
-        <button type="button" onclick="switchTab('penugasan')" id="tab-btn-penugasan" class="tab-btn is-active">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
-            </svg>
-            <span>Penugasan Jadwal Pengawas</span>
-            <span class="tab-count">{{ $pengawasList->count() }}</span>
-        </button>
-        <button type="button" onclick="switchTab('pemetaan')" id="tab-btn-pemetaan" class="tab-btn">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
-            </svg>
-            <span>Pemetaan Calon Pengawas (Kelas Rendah / Atas)</span>
-            <span class="tab-count">{{ $mappedCount }}/{{ $totalTeachersCount }}</span>
-        </button>
-        <button type="button" onclick="switchTab('riwayat')" id="tab-btn-riwayat" class="tab-btn">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
-            </svg>
-            <span>Riwayat Pertukaran Pengawas</span>
-            <span class="tab-count">{{ $swapHistories->count() }}</span>
-        </button>
-    </div>
+        {{-- Navigasi Tab Neo-Brutalism --}}
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="switchTab('penugasan')" id="tab-btn-penugasan" class="tab-btn is-active">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z"/>
+                </svg>
+                <span>Penugasan Jadwal Pengawas</span>
+                <span class="tab-count">{{ $pengawasList->count() }}</span>
+            </button>
+            <button type="button" onclick="switchTab('pemetaan')" id="tab-btn-pemetaan" class="tab-btn">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+                </svg>
+                <span>Pemetaan Calon Pengawas (Kelas Rendah / Atas)</span>
+                <span class="tab-count">{{ $mappedCount }}/{{ $totalTeachersCount }}</span>
+            </button>
+            <button type="button" onclick="switchTab('riwayat')" id="tab-btn-riwayat" class="tab-btn">
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+                </svg>
+                <span>Riwayat Pertukaran Pengawas</span>
+                <span class="tab-count">{{ $swapHistories->count() }}</span>
+            </button>
+        </div>
 
-    {{-- TAB 1: PENUGASAN JADWAL PENGAWAS --}}
-    @include('ujian.pengawas.partials._tab-penugasan')
+        {{-- TAB 1: PENUGASAN JADWAL PENGAWAS --}}
+        @include('ujian.pengawas.partials._tab-penugasan')
 
-    {{-- TAB 2: PEMETAAN CALON PENGAWAS (KELAS RENDAH / ATAS) --}}
-    @include('ujian.pengawas.partials._tab-pemetaan')
+        {{-- TAB 2: PEMETAAN CALON PENGAWAS (KELAS RENDAH / ATAS) --}}
+        @include('ujian.pengawas.partials._tab-pemetaan')
 
-    {{-- TAB 3: RIWAYAT PERTUKARAN PENGAWAS --}}
-    @include('ujian.pengawas.partials._tab-riwayat')
+        {{-- TAB 3: RIWAYAT PERTUKARAN PENGAWAS --}}
+        @include('ujian.pengawas.partials._tab-riwayat')
+    @endif
 </div>
 
 {{-- MODALS POPUP --}}

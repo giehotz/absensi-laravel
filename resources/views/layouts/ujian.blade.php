@@ -105,14 +105,14 @@
                             <span>Jenis & Periode Ujian</span>
                         </a>
 
-                        <!-- Jadwal Ujian -->
-                        <a href="{{ route('ujian.jadwal.index') }}" 
+                        <!-- Pengaturan Kop & TTD -->
+                        <a href="{{ route('ujian.pengaturan-ttd.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('ujian.jadwal.*') 
+                           {{ request()->routeIs('ujian.pengaturan-ttd.*') 
                                 ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
                                 : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <span class="text-sm">📅</span>
-                            <span>Jadwal Ujian</span>
+                            <span class="text-sm">✍️</span>
+                            <span>Pengaturan Kop & TTD</span>
                         </a>
 
                         <!-- Master Ruang Ujian -->
@@ -125,26 +125,6 @@
                             <span>Master Ruang & Sesi</span>
                         </a>
 
-                        <!-- Jadwal Pengawas Ruang -->
-                        <a href="{{ route('ujian.pengawas.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*')
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <span class="text-sm">👮</span>
-                            <span>Jadwal Pengawas Ruang</span>
-                        </a>
-
-                        <!-- Presensi Pengawas -->
-                        <a href="{{ route('ujian.pengawas.presensi.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('ujian.pengawas.presensi.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <span class="text-sm">📋</span>
-                            <span>Presensi Pengawas</span>
-                        </a>
-
                         <!-- Peserta & Cetak Kartu Ujian -->
                         <a href="{{ route('ujian.kartu.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
@@ -153,6 +133,26 @@
                                 : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                             <span class="text-sm">🪪</span>
                             <span>Peserta & Cetak Kartu</span>
+                        </a>
+
+                        <!-- Jadwal Ujian -->
+                        <a href="{{ route('ujian.jadwal.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('ujian.jadwal.*') 
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <span class="text-sm">📅</span>
+                            <span>Jadwal Ujian</span>
+                        </a>
+
+                        <!-- Jadwal Pengawas Ruang -->
+                        <a href="{{ route('ujian.pengawas.index') }}" 
+                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*')
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <span class="text-sm">👮</span>
+                            <span>Jadwal Pengawas Ruang</span>
                         </a>
 
                         <!-- Administrasi & Berkas Ruang -->
@@ -165,14 +165,14 @@
                             <span>Administrasi Ujian</span>
                         </a>
 
-                        <!-- Pengaturan Kop & TTD -->
-                        <a href="{{ route('ujian.pengaturan-ttd.index') }}" 
+                        <!-- Presensi Pengawas -->
+                        <a href="{{ route('ujian.pengawas.presensi.index') }}" 
                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('ujian.pengaturan-ttd.*') 
+                           {{ request()->routeIs('ujian.pengawas.presensi.*') 
                                 ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
                                 : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <span class="text-sm">✍️</span>
-                            <span>Pengaturan Kop & TTD</span>
+                            <span class="text-sm">📋</span>
+                            <span>Presensi Pengawas</span>
                         </a>
                     </div>
                 </div>

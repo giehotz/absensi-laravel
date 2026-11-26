@@ -24,10 +24,10 @@
         <div class="flex flex-wrap items-center gap-2 shrink-0">
             @if($activePeriode)
                 {{-- Tombol Sinkronkan Data Siswa --}}
-                <form action="{{ route('ujian.kartu.sync') }}" method="POST" onsubmit="return confirm('Tarik seluruh data siswa aktif dari sistem absensi ke periode ujian ini?')">
+                <form id="formSyncStudents" action="{{ route('ujian.kartu.sync') }}" method="POST" onsubmit="return handleSyncStudentsSubmit(event, this)">
                     @csrf
                     <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
-                    <button type="submit" class="px-3.5 py-2 bg-[#20C997] hover:bg-emerald-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
+                    <button type="submit" id="btnSyncStudents" class="px-3.5 py-2 bg-[#20C997] hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer">
                         <span>🔄</span>
                         <span>Sinkronkan Siswa</span>
                     </button>
@@ -371,7 +371,7 @@
             <button type="button" onclick="closeModalGenerateNomor()" class="text-black font-black text-lg p-1 hover:bg-slate-100 rounded border border-black cursor-pointer">✕</button>
         </div>
 
-        <form action="{{ route('ujian.kartu.generate-nomor') }}" method="POST" id="formGenerateNomor" class="space-y-3.5 text-xs">
+        <form action="{{ route('ujian.kartu.generate-nomor') }}" method="POST" id="formGenerateNomor" onsubmit="return handleGenerateNomorSubmit(event)" class="space-y-3.5 text-xs">
             @csrf
             <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
 
@@ -499,7 +499,7 @@
                 <button type="button" onclick="closeModalGenerateNomor()" class="px-3.5 py-2 border-2 border-black rounded-lg text-black bg-slate-100 hover:bg-slate-200 font-bold text-xs cursor-pointer">
                     Batal
                 </button>
-                <button type="submit" class="px-5 py-2 border-2 border-black rounded-lg text-white bg-[#5294FF] hover:bg-blue-600 font-black text-xs shadow-[3px_3px_0px_0px_#000] cursor-pointer">
+                <button type="submit" id="btnSubmitGenerateNomor" class="px-5 py-2 border-2 border-black rounded-lg text-white bg-[#5294FF] hover:bg-blue-600 disabled:opacity-60 disabled:cursor-not-allowed font-black text-xs shadow-[3px_3px_0px_0px_#000] cursor-pointer">
                     ⚡ Generate Sekarang
                 </button>
             </div>
@@ -620,16 +620,55 @@
     </div>
 </dialog>
 
+{{-- Loading Screen Proses Kartu Ujian (Native Modal Dialog) --}}
+<dialog id="dialogSyncLoading" closedby="none" aria-labelledby="dialogSyncLoadingTitle" class="bg-transparent p-0 m-auto w-[calc(100%-2rem)] max-w-md border-0 shadow-none">
+    <div class="bg-white border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_#000] overflow-hidden">
+        <div id="dialogSyncLoadingHeader" class="bg-[#20C997] text-black border-b-3 border-black px-5 py-3 flex items-center gap-2.5">
+            <span id="dialogSyncLoadingIcon" class="text-lg" aria-hidden="true">🔄</span>
+            <h1 id="dialogSyncLoadingTitle" class="font-heading font-black text-sm uppercase tracking-wide">
+                Sinkronisasi Data Siswa
+            </h1>
+        </div>
+        <div class="p-6 flex flex-col items-center text-center gap-4">
+            <div class="sync-loading-spinner w-12 h-12 border-4 border-black border-t-[#FFD43B] rounded-full bg-slate-50 shadow-[2px_2px_0px_0px_#000]" aria-hidden="true"></div>
+            <div class="space-y-1">
+                <p id="dialogSyncLoadingHeading" class="font-heading font-black text-sm text-slate-900">
+                    Sedang menyinkronkan data siswa aktif...
+                </p>
+                <p id="dialogSyncLoadingDesc" class="text-xs font-semibold text-slate-600 leading-relaxed">
+                    Sistem sedang menarik dan memperbarui daftar peserta ujian periode ini. Mohon tunggu hingga proses selesai.
+                </p>
+            </div>
+            <progress id="dialogSyncLoadingProgress" aria-label="Proses sedang berlangsung" class="sync-loading-progress w-full h-3.5 rounded-lg border-2 border-black overflow-hidden shadow-[2px_2px_0px_0px_#000]"></progress>
+        </div>
+    </div>
+</dialog>
+
 @push('scripts')
 <style>
-    dialog#modalSiswaTerpilih:modal {
+    dialog#modalSiswaTerpilih:modal,
+    dialog#dialogSyncLoading:modal {
         overscroll-behavior: contain;
     }
-    dialog#modalSiswaTerpilih::backdrop {
+    dialog#modalSiswaTerpilih::backdrop,
+    dialog#dialogSyncLoading::backdrop {
         background-color: rgba(0, 0, 0, 0.75);
         backdrop-filter: blur(2px);
         overflow: hidden;
         overscroll-behavior: contain;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+        .sync-loading-spinner {
+            animation: syncSpin 0.8s linear infinite;
+        }
+    }
+    @keyframes syncSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+    .sync-loading-progress {
+        accent-color: #20C997;
     }
 </style>
 <script>
@@ -1268,6 +1307,95 @@
             }
         });
     }
+
+    function resetKartuLoadingState() {
+        const loadingDialog = document.getElementById('dialogSyncLoading');
+        if (loadingDialog && loadingDialog.open) {
+            loadingDialog.close();
+        }
+        ['btnSyncStudents', 'btnSubmitGenerateNomor'].forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                btn.disabled = false;
+                btn.removeAttribute('aria-disabled');
+            }
+        });
+    }
+
+    function showKartuLoadingScreen({ icon, title, heading, desc, headerClass }) {
+        const loadingDialog = document.getElementById('dialogSyncLoading');
+        const header = document.getElementById('dialogSyncLoadingHeader');
+        const iconEl = document.getElementById('dialogSyncLoadingIcon');
+        const titleEl = document.getElementById('dialogSyncLoadingTitle');
+        const headingEl = document.getElementById('dialogSyncLoadingHeading');
+        const descEl = document.getElementById('dialogSyncLoadingDesc');
+        const progressEl = document.getElementById('dialogSyncLoadingProgress');
+
+        if (header && headerClass) {
+            header.className = `${headerClass} border-b-3 border-black px-5 py-3 flex items-center gap-2.5`;
+        }
+        if (iconEl) iconEl.textContent = icon;
+        if (titleEl) titleEl.textContent = title;
+        if (headingEl) headingEl.textContent = heading;
+        if (descEl) descEl.textContent = desc;
+        if (progressEl) progressEl.setAttribute('aria-label', `${title} sedang berlangsung`);
+
+        if (loadingDialog && typeof loadingDialog.showModal === 'function' && !loadingDialog.open) {
+            loadingDialog.showModal();
+        }
+    }
+
+    function disableSubmitButton(btnId) {
+        const btn = document.getElementById(btnId);
+        if (btn) {
+            btn.disabled = true;
+            btn.setAttribute('aria-disabled', 'true');
+        }
+    }
+
+    function handleSyncStudentsSubmit(event, form) {
+        if (!confirm('Tarik seluruh data siswa aktif dari sistem absensi ke periode ujian ini?')) {
+            event.preventDefault();
+            return false;
+        }
+
+        disableSubmitButton('btnSyncStudents');
+        showKartuLoadingScreen({
+            icon: '🔄',
+            title: 'Sinkronisasi Data Siswa',
+            heading: 'Sedang menyinkronkan data siswa aktif...',
+            desc: 'Sistem sedang menarik dan memperbarui daftar peserta ujian periode ini. Mohon tunggu hingga proses selesai.',
+            headerClass: 'bg-[#20C997] text-black'
+        });
+
+        return true;
+    }
+
+    function handleGenerateNomorSubmit(event) {
+        closeModalGenerateNomor();
+        disableSubmitButton('btnSubmitGenerateNomor');
+        showKartuLoadingScreen({
+            icon: '🔢',
+            title: 'Generate Nomor Peserta',
+            heading: 'Sedang men-generate nomor peserta ujian...',
+            desc: 'Sistem sedang menyusun nomor peserta dan nomor kursi secara berurutan. Mohon tunggu hingga proses selesai.',
+            headerClass: 'bg-[#5294FF] text-white'
+        });
+
+        return true;
+    }
+
+    const dialogSyncLoadingEl = document.getElementById('dialogSyncLoading');
+    if (dialogSyncLoadingEl) {
+        // Keep blocking modal open while form submission is in progress
+        dialogSyncLoadingEl.addEventListener('cancel', function(e) {
+            e.preventDefault();
+        });
+    }
+
+    window.addEventListener('pageshow', function() {
+        resetKartuLoadingState();
+    });
 
     // Inisialisasi status seleksi saat halaman selesai dimuat
     document.addEventListener('DOMContentLoaded', function() {

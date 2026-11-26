@@ -24,30 +24,30 @@
 >
     <x-slot:actions>
         <span class="text-[11px] font-bold text-slate-600 hidden sm:inline mr-1">Format:</span>
-        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'standar']) }}" 
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode?->id, 'format' => 'standar']) }}" 
            class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ ($format ?? 'standar') === 'standar' ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
             📄 Standar
         </a>
-        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'matriks_rombel', 'kelompok' => '1-2']) }}" 
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode?->id, 'format' => 'matriks_rombel', 'kelompok' => '1-2']) }}" 
            class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ (($format ?? 'standar') === 'matriks_rombel' && ($kelompok ?? 'all') === '1-2') ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
             📑 Sheet 1 (Mapel 1–2)
         </a>
-        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'matriks_rombel', 'kelompok' => '3-6']) }}" 
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode?->id, 'format' => 'matriks_rombel', 'kelompok' => '3-6']) }}" 
            class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ (($format ?? 'standar') === 'matriks_rombel' && ($kelompok ?? 'all') === '3-6') ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
             📋 Sheet 2 (Mapel 3–6)
         </a>
         <span class="text-slate-300 mx-0.5 hidden sm:inline">|</span>
-        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap', 'kelompok' => '1-2']) }}" 
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode?->id, 'format' => 'rekap', 'kelompok' => '1-2']) }}" 
            title="Rekap Pengawas Matriks Kelas 1–2"
            class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ (($format ?? 'standar') === 'rekap' && ($kelompok ?? 'all') === '1-2') ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
             📊 Pengawas 1–2
         </a>
-        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap', 'kelompok' => '3-6']) }}" 
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode?->id, 'format' => 'rekap', 'kelompok' => '3-6']) }}" 
            title="Rekap Pengawas Matriks Kelas 3–6"
            class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ (($format ?? 'standar') === 'rekap' && ($kelompok ?? 'all') === '3-6') ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
             📊 Pengawas 3–6
         </a>
-        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode->id, 'format' => 'rekap', 'kelompok' => 'all']) }}" 
+        <a href="{{ route('ujian.jadwal.print', ['periode_id' => $activePeriode?->id, 'format' => 'rekap', 'kelompok' => 'all']) }}" 
            title="Rekap Pengawas Matriks Gabungan Semua Kelas (1–6)"
            class="px-2 py-1 text-xs font-bold border-2 border-black rounded shadow-[1.5px_1.5px_0px_0px_#000] {{ (($format ?? 'standar') === 'rekap' && in_array(($kelompok ?? 'all'), ['all', '1-6'], true)) ? 'bg-[#FFD43B] text-black font-black' : 'bg-white hover:bg-slate-100 text-slate-800' }}">
             📊 Rekap Semua (1–6)

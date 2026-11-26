@@ -252,35 +252,35 @@
                                 </a>
                                 <a href="{{ route('ujian.jenis.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.jenis.*') || request()->routeIs('ujian.periode.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.jenis.*') || request()->routeIs('ujian.periode.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Jenis & Periode</span>
+                                    <span>Jenis & Periode Ujian</span>
                                 </a>
-                                <a href="{{ route('ujian.jadwal.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.jadwal.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.jadwal.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Jadwal Ujian</span>
+                                <a href="{{ route('ujian.pengaturan-ttd.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Pengaturan Kop & TTD</span>
                                 </a>
                                 <a href="{{ route('ujian.ruang.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.ruang.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.ruang.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Master Ruang</span>
-                                </a>
-                                <a href="{{ route('ujian.pengawas.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Pengawas Ruang</span>
-                                </a>
-                                <a href="{{ route('ujian.pengawas.presensi.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Presensi Pengawas</span>
+                                    <span>Master Ruang & Sesi</span>
                                 </a>
                                 <a href="{{ route('ujian.kartu.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.kartu.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.kartu.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
                                     <span>Peserta & Cetak Kartu</span>
                                 </a>
+                                <a href="{{ route('ujian.jadwal.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.jadwal.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.jadwal.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Jadwal Ujian</span>
+                                </a>
+                                <a href="{{ route('ujian.pengawas.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengawas.*') && !request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Jadwal Pengawas Ruang</span>
+                                </a>
                                 <a href="{{ route('ujian.administrasi.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.administrasi.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.administrasi.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
                                     <span>Administrasi Ujian</span>
                                 </a>
-                                <a href="{{ route('ujian.pengaturan-ttd.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Pengaturan Kop & TTD</span>
+                                <a href="{{ route('ujian.pengawas.presensi.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengawas.presensi.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                    <span>Presensi Pengawas</span>
                                 </a>
                             </div>
                         </div>

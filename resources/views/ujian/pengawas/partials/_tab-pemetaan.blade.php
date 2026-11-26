@@ -123,7 +123,7 @@
 
         <form id="formBulkMapping" method="POST" action="{{ route('ujian.pengawas.mapping.bulk') }}">
             @csrf
-            <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
+            <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode?->id }}">
             <input type="hidden" id="bulk_levels_input" name="assigned_levels[]" value="">
 
             {{-- Tabel Pemetaan Guru --}}

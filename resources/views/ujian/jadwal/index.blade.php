@@ -7,6 +7,21 @@
     {{-- Header Card Neo-Brutalism Terpadu --}}
     @include('ujian.jadwal.partials._header')
 
+    @if(! $activePeriode)
+        <div class="p-4 bg-[#FFF3BF] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-amber-950 font-bold text-xs flex items-center gap-2">
+            <span>ℹ️</span>
+            <span>
+                @if($periodes->isEmpty())
+                    Belum ada periode ujian. Buat periode terlebih dahulu di
+                    <a href="{{ route('ujian.jenis.index', ['tab' => 'periode']) }}" class="font-black underline">tab Periode Pelaksanaan</a>
+                    sebelum menyusun jadwal.
+                @else
+                    Periode ujian yang dipilih tidak ditemukan. Pilih periode lain pada menu di atas.
+                @endif
+            </span>
+        </div>
+    @endif
+
     {{-- Flash Alerts --}}
     @if(session('success'))
         <div class="p-4 bg-[#D3F9D8] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-emerald-950 font-bold text-xs flex items-center justify-between">

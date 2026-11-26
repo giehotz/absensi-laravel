@@ -29,14 +29,33 @@
         {{-- Switch Periode Form --}}
         <form method="GET" action="{{ route('ujian.dashboard') }}" class="flex items-center gap-2 shrink-0">
             <select name="periode_id" onchange="this.form.submit()" class="px-3 py-2 text-xs font-bold border-2 border-black rounded-lg bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FFD43B] shadow-[2px_2px_0px_0px_#000]">
-                @foreach($periodes as $p)
+                @forelse($periodes as $p)
                     <option value="{{ $p->id }}" {{ $p->id == $activePeriode?->id ? 'selected' : '' }}>
                         {{ $p->nama_periode }} {{ $p->is_active ? '★ (Aktif)' : '' }}
                     </option>
-                @endforeach
+                @empty
+                    <option value="">Belum ada periode</option>
+                @endforelse
             </select>
         </form>
     </div>
+
+    @if(!$activePeriode)
+        <div class="p-5 bg-amber-100 border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_#000] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">⚠️</span>
+                <div>
+                    <h3 class="text-sm font-black uppercase text-black">Belum Ada Periode Ujian Aktif</h3>
+                    <p class="text-xs font-semibold text-slate-700 mt-0.5">
+                        Anda belum memiliki periode ujian aktif di sistem. Silakan buat atau aktifkan periode ujian terlebih dahulu pada menu <strong>Jenis &amp; Periode Ujian</strong>.
+                    </p>
+                </div>
+            </div>
+            <a href="{{ route('ujian.jenis.index') }}" class="px-4 py-2 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] shrink-0 text-center">
+                Kelola Periode Ujian →
+            </a>
+        </div>
+    @endif
 
     {{-- Alert Messages --}}
     @if(session('success'))
@@ -137,12 +156,21 @@
                     Guru yang terdaftar di bawah ini secara otomatis memiliki akses penuh mengelola modul ujian ini melalui akun portal guru mereka.
                 </p>
             </div>
-            @if(auth()->user()->role === 'admin' && $activePeriode)
-                <button type="button" onclick="document.getElementById('modalTambahPanitia').classList.remove('hidden')" 
-                        class="px-3.5 py-2 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer shrink-0">
-                    <span>+</span>
-                    <span>Tunjuk Guru Jadi Panitia</span>
-                </button>
+            @if(auth()->user()->role === 'admin')
+                @if($activePeriode)
+                    <button type="button" onclick="document.getElementById('modalTambahPanitia').classList.remove('hidden')" 
+                            class="px-3.5 py-2 bg-[#FFD43B] hover:bg-yellow-400 text-black border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <span>+</span>
+                        <span>Tunjuk Guru Jadi Panitia</span>
+                    </button>
+                @else
+                    <a href="{{ route('ujian.jenis.index') }}" 
+                       title="Buat atau pilih periode ujian terlebih dahulu untuk menunjuk panitia"
+                       class="px-3.5 py-2 bg-amber-200 hover:bg-amber-300 text-amber-950 border-2 border-black rounded-lg text-xs font-black shadow-[2px_2px_0px_0px_#000] flex items-center gap-1.5 cursor-pointer shrink-0">
+                        <span>⚠️</span>
+                        <span>Pilih/Buat Periode Ujian Dahulu</span>
+                    </a>
+                @endif
             @endif
         </div>
 
@@ -205,7 +233,11 @@
                     @empty
                         <tr>
                             <td colspan="{{ auth()->user()->role === 'admin' ? 6 : 5 }}" class="p-6 text-center text-slate-500 italic">
-                                Belum ada guru yang ditetapkan sebagai Panitia Ujian untuk periode ini.
+                                @if(!$activePeriode)
+                                    Periode ujian belum tersedia. Silakan <a href="{{ route('ujian.jenis.index') }}" class="underline font-bold text-blue-700">buat atau pilih periode ujian</a> terlebih dahulu untuk mengelola panitia.
+                                @else
+                                    Belum ada guru yang ditetapkan sebagai Panitia Ujian untuk periode ini.
+                                @endif
                             </td>
                         </tr>
                     @endforelse

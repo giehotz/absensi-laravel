@@ -459,6 +459,8 @@ class JadwalPengawasController extends Controller
             $activePeriode = UjianPeriode::with('jenis')->latest('id')->first();
         }
 
+        abort_if(! $activePeriode, 404, 'Periode ujian belum tersedia.');
+
         $tanggal = $request->query('tanggal');
         $ruangId = $request->query('ruang_id');
         $jadwalId = $request->query('jadwal_id');
@@ -579,6 +581,8 @@ class JadwalPengawasController extends Controller
         if (! $activePeriode) {
             $activePeriode = UjianPeriode::first();
         }
+
+        abort_if(! $activePeriode, 404, 'Periode ujian belum tersedia.');
 
         $targetLevels = match ($kelompok) {
             '1-2' => ['1', '2'],
@@ -872,6 +876,8 @@ class JadwalPengawasController extends Controller
         if (! $activePeriode) {
             $activePeriode = UjianPeriode::first();
         }
+
+        abort_if(! $activePeriode, 404, 'Periode ujian belum tersedia.');
 
         $teachers = collect();
         if ($teacherId && $teacherId !== 'all') {

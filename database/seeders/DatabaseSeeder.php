@@ -297,5 +297,8 @@ class DatabaseSeeder extends Seeder
                 'sent_at' => Carbon::parse($today->toDateString().' 07:12:30'),
             ]
         );
+
+        // 13. Data Modul Ujian Kurikulum Merdeka
+        $this->call(UjianKurikulumMerdekaSeeder::class);
     }
 }
