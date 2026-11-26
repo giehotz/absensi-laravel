@@ -158,6 +158,7 @@
                                                     <span class="font-mono text-[10px] text-slate-600">NIP {{ $pw->pengawas1?->nip ?: '-' }}</span>
                                                     @php
                                                         $sourceBadgeClass = match ($pw->assignment_source) {
+                                                            'homeroom_teacher' => 'bg-sky-100 text-sky-950 border-sky-800',
                                                             'subject_teacher' => 'bg-emerald-100 text-emerald-950 border-emerald-800',
                                                             'swapped' => 'bg-purple-100 text-purple-950 border-purple-800',
                                                             'manual' => 'bg-amber-100 text-amber-950 border-amber-800',

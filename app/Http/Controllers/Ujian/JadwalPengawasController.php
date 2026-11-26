@@ -136,6 +136,9 @@ class JadwalPengawasController extends Controller
         $teachingSummary = $activePeriode
             ? $this->teachingResolver->buildTeacherTeachingSummary($activePeriode->academic_year_id)
             : [];
+        $homeroomTeacherSummary = $activePeriode
+            ? $this->teachingResolver->buildHomeroomMap($activePeriode->academic_year_id)
+            : [];
         $swapReasonMap = [];
         foreach ($swapHistories as $sw) {
             if ($sw->source_pengawas_id && ! isset($swapReasonMap[$sw->source_pengawas_id])) {
@@ -156,6 +159,7 @@ class JadwalPengawasController extends Controller
             'classes',
             'subjects',
             'teachingSummary',
+            'homeroomTeacherSummary',
             'swapReasonMap',
             'examDates',
             'mappings',
@@ -255,6 +259,7 @@ class JadwalPengawasController extends Controller
             'kelompok' => ['nullable', 'string', 'in:all,1-2,3-6'],
             'prioritize_subject_teachers' => ['nullable', 'boolean'],
             'preserve_locked' => ['nullable', 'boolean'],
+            'prioritize_homeroom_teachers' => ['nullable', 'boolean'],
         ]);
 
         $kelompok = $validated['kelompok'] ?? 'all';
@@ -271,7 +276,8 @@ class JadwalPengawasController extends Controller
             $request->boolean('reset_existing', true),
             $targetLevels,
             $request->boolean('prioritize_subject_teachers', true),
-            $request->boolean('preserve_locked', true)
+            $request->boolean('preserve_locked', true),
+            $request->boolean('prioritize_homeroom_teachers', true)
         );
 
         $kelompokLabel = match ($kelompok) {
@@ -370,13 +376,21 @@ class JadwalPengawasController extends Controller
             'teacher_id' => ['required', 'exists:teachers,id'],
             'assigned_levels' => ['required', 'array', 'min:1'],
             'assigned_levels.*' => ['in:1,2,3,4,5,6'],
-            'mode_penugasan' => ['nullable', 'in:rotasi,pengampu_mapel'],
+            'mode_penugasan' => ['nullable', 'in:rotasi,pengampu_mapel,wali_kelas'],
             'assigned_subject_ids' => ['nullable', 'array'],
             'assigned_subject_ids.*' => ['exists:subjects,id'],
             'assigned_class_ids' => ['nullable', 'array'],
             'assigned_class_ids.*' => ['exists:school_classes,id'],
+            'lock_to_homeroom' => ['nullable', 'boolean'],
             'keterangan' => ['nullable', 'string', 'max:255'],
         ]);
+
+        $assignedClassIds = $validated['assigned_class_ids'] ?? null;
+        if ($request->boolean('lock_to_homeroom') && empty($assignedClassIds)) {
+            $periode = UjianPeriode::findOrFail($validated['ujian_periode_id']);
+            $homeroomMap = $this->teachingResolver->buildHomeroomMap($periode->academic_year_id);
+            $assignedClassIds = $homeroomMap[(int) $validated['teacher_id']]['class_ids'] ?? null;
+        }
 
         try {
             $this->mappingService->saveMapping(
@@ -386,7 +400,7 @@ class JadwalPengawasController extends Controller
                 $validated['keterangan'] ?? null,
                 $validated['mode_penugasan'] ?? 'rotasi',
                 $validated['assigned_subject_ids'] ?? null,
-                $validated['assigned_class_ids'] ?? null
+                $assignedClassIds
             );
 
             return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
@@ -398,7 +412,7 @@ class JadwalPengawasController extends Controller
     }
 
     /**
-     * Sinkronisasi pemetaan pengawas otomatis berbasis penugasan mengajar guru pengampu mapel.
+     * Sinkronisasi pemetaan pengawas otomatis berbasis wali kelas & penugasan mengajar guru pengampu mapel.
      */
     public function syncMappingFromTeaching(Request $request): RedirectResponse
     {
@@ -408,16 +422,20 @@ class JadwalPengawasController extends Controller
             'levels.*' => ['in:1,2,3,4,5,6'],
             'subject_ids' => ['nullable', 'array'],
             'subject_ids.*' => ['exists:subjects,id'],
+            'include_homeroom' => ['nullable', 'boolean'],
+            'lock_homeroom_only' => ['nullable', 'boolean'],
         ]);
 
         $count = $this->mappingService->syncMappingFromTeaching(
             (int) $validated['ujian_periode_id'],
             $validated['levels'],
-            $validated['subject_ids'] ?? null
+            $validated['subject_ids'] ?? null,
+            $request->boolean('include_homeroom', true),
+            $request->boolean('lock_homeroom_only', false)
         );
 
         return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
-            ->with('success', "Berhasil menyinkronkan pemetaan pengampu mapel untuk {$count} guru aktif (panitia ujian otomatis dikecualikan).");
+            ->with('success', "Berhasil menyinkronkan pemetaan wali kelas & pengampu mapel untuk {$count} guru aktif (panitia ujian otomatis dikecualikan).");
     }
 
     /**

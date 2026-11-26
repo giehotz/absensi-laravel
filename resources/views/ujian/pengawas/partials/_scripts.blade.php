@@ -381,8 +381,23 @@
         form.submit();
     }
 
+    @php
+        $activeTeachersPreviewData = collect($teachers ?? [])->map(function ($t) use ($panitiaTeacherIds) {
+            return [
+                'id' => $t->id,
+                'name' => $t->user?->name ?? 'Guru',
+                'is_panitia' => in_array($t->id, $panitiaTeacherIds ?? [], true),
+            ];
+        })->values();
+        $allSubjectsPreviewData = collect($subjects ?? [])->pluck('name', 'id');
+    @endphp
+    const teachingSummaryData = @json($teachingSummary ?? []);
+    const homeroomTeacherData = @json($homeroomTeacherSummary ?? []);
+    const activeTeachersPreview = @json($activeTeachersPreviewData);
+    const allSubjectsMap = @json($allSubjectsPreviewData);
+
     // Modal Edit Mapping Individual
-    function openModalEditMapping(teacherId, teacherName, teacherNip, assignedLevels, keterangan, modePenugasan = 'rotasi', assignedSubjectIds = []) {
+    function openModalEditMapping(teacherId, teacherName, teacherNip, assignedLevels, keterangan, modePenugasan = 'rotasi', assignedSubjectIds = [], isLockedToHomeroom = false) {
         document.getElementById('edit_map_teacher_id').value = teacherId;
         document.getElementById('edit_map_teacher_name').textContent = teacherName;
         document.getElementById('edit_map_teacher_nip').textContent = 'NIP: ' + (teacherNip || '-');
@@ -399,6 +414,19 @@
             cb.checked = subjectsArray.includes(Number(cb.value));
         });
 
+        const homeroomInfo = homeroomTeacherData[teacherId];
+        const homeroomWrapper = document.getElementById('edit_map_homeroom_lock_wrapper');
+        const homeroomLabel = document.getElementById('edit_map_homeroom_label');
+        const homeroomCheckbox = document.getElementById('edit_map_lock_to_homeroom');
+        if (homeroomWrapper && homeroomInfo && (homeroomInfo.class_names || []).length > 0) {
+            homeroomWrapper.classList.remove('hidden');
+            if (homeroomLabel) homeroomLabel.textContent = homeroomInfo.class_names.join(', ');
+            if (homeroomCheckbox) homeroomCheckbox.checked = Boolean(isLockedToHomeroom);
+        } else if (homeroomWrapper) {
+            homeroomWrapper.classList.add('hidden');
+            if (homeroomCheckbox) homeroomCheckbox.checked = false;
+        }
+
         toggleEditSubjectScope();
         document.getElementById('modalEditMapping').classList.remove('hidden');
     }
@@ -411,20 +439,6 @@
         }
     }
 
-    @php
-        $activeTeachersPreviewData = collect($teachers ?? [])->map(function ($t) use ($panitiaTeacherIds) {
-            return [
-                'id' => $t->id,
-                'name' => $t->user?->name ?? 'Guru',
-                'is_panitia' => in_array($t->id, $panitiaTeacherIds ?? [], true),
-            ];
-        })->values();
-        $allSubjectsPreviewData = collect($subjects ?? [])->pluck('name', 'id');
-    @endphp
-    const teachingSummaryData = @json($teachingSummary ?? []);
-    const activeTeachersPreview = @json($activeTeachersPreviewData);
-    const allSubjectsMap = @json($allSubjectsPreviewData);
-
     function openModalSyncTeachingMapping() {
         renderSyncTeachingPreview();
         document.getElementById('modalSyncTeachingMapping').classList.remove('hidden');
@@ -436,6 +450,7 @@
 
         const selectedLevels = Array.from(document.querySelectorAll('.sync-level-check:checked')).map(cb => cb.value);
         const selectedSubjectIds = Array.from(document.querySelectorAll('.sync-subject-check:checked')).map(cb => Number(cb.value));
+        const includeHomeroom = document.getElementById('sync_include_homeroom')?.checked ?? true;
 
         tbody.textContent = '';
         let rowCount = 0;
@@ -443,29 +458,39 @@
         activeTeachersPreview.forEach(t => {
             if (t.is_panitia) return;
             const summary = teachingSummaryData[t.id];
-            if (!summary || !summary.levels) return;
+            const homeroom = includeHomeroom ? homeroomTeacherData[t.id] : null;
 
-            const hasLevel = summary.levels.some(lvl => selectedLevels.includes(String(lvl)));
-            if (!hasLevel) return;
+            const homeroomMatchesLevel = homeroom && (homeroom.levels || []).some(lvl => selectedLevels.includes(String(lvl)));
+            const teachingMatchesLevel = summary && (summary.levels || []).some(lvl => selectedLevels.includes(String(lvl)));
 
-            const matchedSubjectIds = selectedSubjectIds.length > 0
-                ? summary.subject_ids.filter(sid => selectedSubjectIds.includes(Number(sid)))
-                : summary.subject_ids;
+            if (!homeroomMatchesLevel && !teachingMatchesLevel) return;
 
-            if (matchedSubjectIds.length === 0) return;
+            let matchedSubjectIds = [];
+            if (teachingMatchesLevel && summary) {
+                matchedSubjectIds = selectedSubjectIds.length > 0
+                    ? summary.subject_ids.filter(sid => selectedSubjectIds.includes(Number(sid)))
+                    : summary.subject_ids;
+            }
+
+            if (!homeroomMatchesLevel && matchedSubjectIds.length === 0) return;
 
             const tr = document.createElement('tr');
             const tdName = document.createElement('td');
             tdName.className = 'px-3 py-2 font-bold text-slate-900 border-r border-slate-200';
-            tdName.textContent = t.name;
+            tdName.textContent = t.name + (homeroomMatchesLevel ? ' (Wali Kelas)' : '');
 
             const tdClasses = document.createElement('td');
             tdClasses.className = 'px-3 py-2 text-slate-700 border-r border-slate-200';
-            tdClasses.textContent = (summary.class_names || []).join(', ');
+            const classNames = homeroomMatchesLevel
+                ? Array.from(new Set([...(homeroom.class_names || []), ...(summary?.class_names || [])]))
+                : (summary?.class_names || []);
+            tdClasses.textContent = classNames.join(', ');
 
             const tdSubjects = document.createElement('td');
             tdSubjects.className = 'px-3 py-2 text-emerald-900';
-            tdSubjects.textContent = matchedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ');
+            tdSubjects.textContent = homeroomMatchesLevel
+                ? 'Seluruh mapel di kelas perwalian'
+                : matchedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ');
 
             tr.appendChild(tdName);
             tr.appendChild(tdClasses);
@@ -479,7 +504,7 @@
             const td = document.createElement('td');
             td.colSpan = 3;
             td.className = 'px-3 py-4 text-center italic text-slate-500';
-            td.textContent = 'Tidak ada guru aktif non-panitia yang mengajar sesuai filter tingkat/mapel.';
+            td.textContent = 'Tidak ada guru aktif non-panitia yang mengajar atau menjadi wali kelas sesuai filter.';
             tr.appendChild(td);
             tbody.appendChild(tr);
         }

@@ -37,6 +37,11 @@ class UjianPengawasMapping extends Model
         return ($this->mode_penugasan ?? 'rotasi') === 'pengampu_mapel';
     }
 
+    public function isWaliKelasMode(): bool
+    {
+        return ($this->mode_penugasan ?? 'rotasi') === 'wali_kelas';
+    }
+
     public function allowsSubject(?int $subjectId): bool
     {
         if (empty($this->assigned_subject_ids)) {

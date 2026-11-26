@@ -24,8 +24,9 @@ class PengawasAutoPlotterService
 
     /**
      * Alokasi otomatis pengawas anti-bentrok (2-Pass Allocation):
-     * - Pass 1: Memprioritaskan guru pengampu mapel pada kelas yang diajar (jika diaktifkan).
-     * - Pass 2: Mengisi slot sisa menggunakan pemerataan beban dan rotasi.
+     * - Pass 1A: Kunci Wali Kelas di kelas perwaliannya (Kelas 1–2 atau mode 'wali_kelas').
+     * - Pass 1B: Kunci Guru Pengampu Mapel pada mapel & kelas yang diajar.
+     * - Pass 2: Isi sisa slot secara rotasi merata (wali kelas menjadi cadangan terakhir di kelas lain).
      */
     public function autoPlotSupervisors(
         UjianPeriode $periode,
@@ -33,7 +34,8 @@ class PengawasAutoPlotterService
         bool $resetExisting = true,
         ?array $targetLevels = null,
         bool $prioritizeSubjectTeachers = true,
-        bool $preserveLocked = true
+        bool $preserveLocked = true,
+        bool $prioritizeHomeroomTeachers = true
     ): int {
         return DB::transaction(function () use (
             $periode,
@@ -41,7 +43,8 @@ class PengawasAutoPlotterService
             $resetExisting,
             $targetLevels,
             $prioritizeSubjectTeachers,
-            $preserveLocked
+            $preserveLocked,
+            $prioritizeHomeroomTeachers
         ) {
             $excludedPanitiaIds = UjianPanitia::where('ujian_periode_id', $periode->id)
                 ->where('is_active', true)
@@ -112,7 +115,6 @@ class PengawasAutoPlotterService
                 $eligibleTeacherLookup[$t->id] = true;
             }
 
-            // Muat penugasan di luar jadwal target agar guru multi-kelompok tidak bentrok
             $outsideAssignments = UjianJadwalPengawas::with('jadwal')
                 ->whereHas('jadwal', fn ($q) => $q->where('ujian_periode_id', $periode->id)->whereNotIn('id', $jadwals->pluck('id')))
                 ->get();
@@ -144,12 +146,25 @@ class PengawasAutoPlotterService
             $teachingMap = $prioritizeSubjectTeachers
                 ? $this->teachingResolver->buildTeachingMap($periode->academic_year_id)
                 : [];
-            $homeroomMap = SchoolClass::pluck('homeroom_teacher_id', 'id')->all();
+
+            $homeroomMap = [];
+            $homeroomGrade12Lookup = [];
+            $homeroomClasses = SchoolClass::whereNotNull('homeroom_teacher_id')
+                ->get(['id', 'name', 'level', 'homeroom_teacher_id']);
+
+            foreach ($homeroomClasses as $cls) {
+                $tid = (int) $cls->homeroom_teacher_id;
+                $homeroomMap[(int) $cls->id] = $tid;
+                $numLevel = $this->teachingResolver->extractNumericLevel($cls);
+                if ($numLevel !== null && in_array($numLevel, ['1', '2'], true)) {
+                    $homeroomGrade12Lookup[$tid] = true;
+                }
+            }
+
             $subjectsByNormalizedName = Subject::all()->mapWithKeys(
                 fn (Subject $s) => [$this->teachingResolver->normalizeSubjectName($s->name) => (int) $s->id]
             );
 
-            // Susun slot target yang perlu dialokasikan
             $pendingSlots = [];
 
             foreach ($jadwals as $jadwal) {
@@ -222,7 +237,61 @@ class PengawasAutoPlotterService
                 return 0;
             }
 
-            // PASS 1: Kunci pengawas pengampu mapel (dahulukan rombel tempat ia menjadi wali kelas)
+            // PASS 1A: Prioritaskan Wali Kelas mengawas di kelas perwaliannya sendiri (Kelas 1–2 atau mode 'wali_kelas')
+            if ($prioritizeHomeroomTeachers) {
+                foreach ($pendingSlots as &$slot) {
+                    $assignment = $slot['assignment'];
+                    $homeroomTid = $slot['homeroom_teacher_id'];
+
+                    if ($slot['slot_locked'] || $assignment->pengawas_1_id || $homeroomTid === null) {
+                        continue;
+                    }
+
+                    if (! isset($eligibleTeacherLookup[$homeroomTid])) {
+                        continue;
+                    }
+
+                    $mapping = $mappings->get($homeroomTid);
+                    $isGrade12Slot = in_array($slot['ruang_level'], ['1', '2'], true);
+                    $isWaliKelasMode = $mapping?->isWaliKelasMode() ?? false;
+
+                    if (! $isGrade12Slot && ! $isWaliKelasMode) {
+                        continue;
+                    }
+
+                    if ($hasAnyMapping) {
+                        $allowed = $teacherLevels[$homeroomTid] ?? [];
+                        if ($slot['ruang_level'] !== null && ! in_array($slot['ruang_level'], $allowed, true)) {
+                            continue;
+                        }
+                        if ($mapping && ! $mapping->allowsClass($slot['class_id'])) {
+                            continue;
+                        }
+                    }
+
+                    if ($this->isTeacherBusy($teacherBusySlots[$homeroomTid] ?? [], $slot['date'], $slot['start'], $slot['end'])) {
+                        continue;
+                    }
+
+                    $assignment->pengawas_1_id = $homeroomTid;
+                    $slot['p1_source'] = 'homeroom_teacher';
+
+                    $this->registerTeacherDuty(
+                        $homeroomTid,
+                        $slot['ruang']->id,
+                        $slot['date'],
+                        $slot['start'],
+                        $slot['end'],
+                        $teacherWorkload,
+                        $teacherDailyCount,
+                        $teacherRoomCount,
+                        $teacherBusySlots
+                    );
+                }
+                unset($slot);
+            }
+
+            // PASS 1B: Kunci pengawas pengampu mapel pada sisa slot yang cocok
             if ($prioritizeSubjectTeachers) {
                 $pass1Indices = array_keys($pendingSlots);
                 usort($pass1Indices, function (int $idxA, int $idxB) use ($pendingSlots) {
@@ -289,7 +358,7 @@ class PengawasAutoPlotterService
                 unset($slot);
             }
 
-            // PASS 2: Isi sisa slot secara rotasi merata
+            // PASS 2: Isi sisa slot secara rotasi merata (wali kelas 1–2 diprioritaskan paling akhir sebagai cadangan)
             $totalPlotted = 0;
             $allTeacherIds = $teachers->pluck('id')->all();
 
@@ -305,9 +374,11 @@ class PengawasAutoPlotterService
                     $pengawas1Id = $this->pickBestTeacher(
                         $allTeacherIds,
                         $mappings,
+                        $homeroomGrade12Lookup,
                         $teacherLevels,
                         $slot['ruang_level'],
                         $slot['jadwal_levels'],
+                        $slot['class_id'],
                         $slot['date'],
                         $slot['start'],
                         $slot['end'],
@@ -335,14 +406,16 @@ class PengawasAutoPlotterService
                     }
                 }
 
-                $pengawas2Id = $twoSupervisorsPerRoom ? $assignment->pengawas_2_id : $assignment->pengawas_2_id;
+                $pengawas2Id = $assignment->pengawas_2_id;
                 if ($twoSupervisorsPerRoom && ! $pengawas2Id) {
                     $pengawas2Id = $this->pickBestTeacher(
                         $allTeacherIds,
                         $mappings,
+                        $homeroomGrade12Lookup,
                         $teacherLevels,
                         $slot['ruang_level'],
                         $slot['jadwal_levels'],
+                        $slot['class_id'],
                         $slot['date'],
                         $slot['start'],
                         $slot['end'],
@@ -384,7 +457,7 @@ class PengawasAutoPlotterService
     }
 
     /**
-     * Memilih kandidat guru pengampu mapel terbaik pada Pass 1 (mengutamakan wali kelas rombel).
+     * Memilih kandidat guru pengampu mapel terbaik pada Pass 1B (mengutamakan wali kelas rombel).
      *
      * @param  array<int, int>  $teachingCandidates
      * @param  array<int, bool>  $eligibleTeacherLookup
@@ -453,12 +526,23 @@ class PengawasAutoPlotterService
         return $candidates[0]['id'];
     }
 
+    /**
+     * Memilih kandidat terbaik untuk Pass 2 (menghormati kunci assigned_class_ids dan menjadikan wali kelas cadangan terakhir).
+     *
+     * @param  array<int, int>  $teacherIds
+     * @param  Collection<int, UjianPengawasMapping>  $mappings
+     * @param  array<int, bool>  $homeroomGrade12Lookup
+     * @param  array<int, array<int, string>>  $teacherLevels
+     * @param  array<int, string>  $jadwalLevels
+     */
     private function pickBestTeacher(
         array $teacherIds,
         Collection $mappings,
+        array $homeroomGrade12Lookup,
         array $teacherLevels,
         ?string $ruangLevel,
         array $jadwalLevels,
+        ?int $classId,
         string $date,
         string $start,
         string $end,
@@ -485,16 +569,23 @@ class PengawasAutoPlotterService
                 continue;
             }
 
+            $mapping = $mappings->get($tid);
+            if ($mapping && ! $mapping->allowsClass($classId)) {
+                continue;
+            }
+
             if ($this->isTeacherBusy($teacherBusySlots[$tid] ?? [], $date, $start, $end)) {
                 continue;
             }
 
-            $isPengampuMode = $mappings->get($tid)?->isPengampuMapelMode() ? 1 : 0;
+            $isWaliKelasBackup = ($mapping?->isWaliKelasMode() ?? false) || isset($homeroomGrade12Lookup[$tid]);
+            $modePenalty = $mapping?->isPengampuMapelMode() ? 1 : 0;
 
             $candidates[] = [
                 'id' => $tid,
+                'wali_backup_penalty' => $isWaliKelasBackup ? 1 : 0,
                 'workload' => $teacherWorkload[$tid] ?? 0,
-                'mode_penalty' => $isPengampuMode,
+                'mode_penalty' => $modePenalty,
                 'daily' => $teacherDailyCount[$tid][$date] ?? 0,
                 'room_repeat' => $teacherRoomCount[$tid][$ruangId] ?? 0,
                 'flexibility' => count($allowed),
@@ -506,8 +597,23 @@ class PengawasAutoPlotterService
         }
 
         usort($candidates, function (array $a, array $b) {
-            return [$a['workload'], $a['mode_penalty'], $a['daily'], $a['room_repeat'], $a['flexibility'], $a['id']]
-                <=> [$b['workload'], $b['mode_penalty'], $b['daily'], $b['room_repeat'], $b['flexibility'], $b['id']];
+            return [
+                $a['wali_backup_penalty'],
+                $a['workload'],
+                $a['mode_penalty'],
+                $a['daily'],
+                $a['room_repeat'],
+                $a['flexibility'],
+                $a['id'],
+            ] <=> [
+                $b['wali_backup_penalty'],
+                $b['workload'],
+                $b['mode_penalty'],
+                $b['daily'],
+                $b['room_repeat'],
+                $b['flexibility'],
+                $b['id'],
+            ];
         });
 
         return $candidates[0]['id'];

@@ -151,8 +151,20 @@
                 <select id="edit_map_mode_penugasan" name="mode_penugasan" onchange="toggleEditSubjectScope()"
                         class="w-full px-3 py-2 border-2 border-slate-900 rounded-lg bg-slate-50 text-xs font-bold shadow-[2px_2px_0px_0px_#0f172a] focus:outline-none">
                     <option value="rotasi">Rotasi Umum (Pemerataan Beban)</option>
+                    <option value="wali_kelas">Wali Kelas (Fokus Kelas Perwalian)</option>
                     <option value="pengampu_mapel">Pengampu Mapel (Prioritas Kelas Diajar)</option>
                 </select>
+            </div>
+
+            <div id="edit_map_homeroom_lock_wrapper" class="hidden rounded-lg border-2 border-slate-900 bg-sky-50 p-2.5">
+                <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
+                    <input type="hidden" name="lock_to_homeroom" value="0">
+                    <input type="checkbox" id="edit_map_lock_to_homeroom" name="lock_to_homeroom" value="1" class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                    <span>
+                        <span class="block">Kunci hanya mengawas di kelas perwalian (<span id="edit_map_homeroom_label" class="font-black text-sky-900">-</span>)</span>
+                        <span class="block text-[10px] font-normal text-slate-600">Jika dicentang, guru ini tidak akan dijadikan cadangan di ruang kelas lain.</span>
+                    </span>
+                </label>
             </div>
 
             <div id="edit_map_subjects_wrapper" class="hidden space-y-1.5">
@@ -385,8 +397,13 @@
                 </div>
             </div>
 
-            {{-- Opsi Pengampu Mapel & Lock --}}
+            {{-- Opsi Wali Kelas, Pengampu Mapel & Lock --}}
             <div class="space-y-2 rounded-xl border-2 border-slate-900 bg-slate-50 p-3">
+                <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
+                    <input type="hidden" name="prioritize_homeroom_teachers" value="0">
+                    <input type="checkbox" name="prioritize_homeroom_teachers" value="1" {{ in_array($kelompok ?? 'all', ['1-2', 'all'], true) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                    <span>Prioritaskan Wali Kelas Mengawas di Kelas Perwalian (Kelas 1–2)</span>
+                </label>
                 <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
                     <input type="hidden" name="prioritize_subject_teachers" value="0">
                     <input type="checkbox" name="prioritize_subject_teachers" value="1" {{ in_array($kelompok ?? 'all', ['1-2', 'all'], true) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
@@ -487,7 +504,7 @@
         <div class="flex items-center justify-between pb-3 border-b-2 border-slate-900 mb-4 shrink-0">
             <h3 class="text-sm font-black font-heading text-slate-900 flex items-center gap-2 uppercase tracking-wide">
                 <span>🔄</span>
-                <span>Sinkron Pemetaan Pengampu Mapel</span>
+                <span>Sinkron Wali Kelas &amp; Pengampu Mapel</span>
             </h3>
             <button type="button" onclick="document.getElementById('modalSyncTeachingMapping').classList.add('hidden')"
                     class="h-7 w-7 grid place-items-center rounded border-2 border-slate-900 bg-white font-black text-xs text-slate-900 shadow-[1px_1px_0px_0px_#0f172a] hover:bg-slate-900 hover:text-white transition-colors">
@@ -511,6 +528,22 @@
                         </label>
                     @endforeach
                 </div>
+            </div>
+
+            <div class="space-y-2 rounded-xl border-2 border-slate-900 bg-sky-50 p-3">
+                <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
+                    <input type="hidden" name="include_homeroom" value="0">
+                    <input type="checkbox" id="sync_include_homeroom" name="include_homeroom" value="1" checked
+                           onchange="renderSyncTeachingPreview()"
+                           class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                    <span>Sertakan Wali Kelas dari Master Kelas (otomatis mode Wali Kelas untuk seluruh mapel kelasnya)</span>
+                </label>
+                <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
+                    <input type="hidden" name="lock_homeroom_only" value="0">
+                    <input type="checkbox" id="sync_lock_homeroom_only" name="lock_homeroom_only" value="1"
+                           class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                    <span>Kunci Wali Kelas hanya mengawas di kelas perwaliannya saja (tidak dijadikan cadangan di ruang lain)</span>
+                </label>
             </div>
 
             <div>

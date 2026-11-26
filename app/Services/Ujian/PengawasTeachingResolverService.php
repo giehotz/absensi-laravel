@@ -20,7 +20,7 @@ class PengawasTeachingResolverService
      */
     public function buildTeachingMap(?int $academicYearId = null, ?array $targetLevels = null): array
     {
-        $classIds = $this->resolveClassIds($academicYearId, $targetLevels);
+        $classIds = $this->resolveClasses($academicYearId, $targetLevels)->keys();
         if ($classIds->isEmpty()) {
             return [];
         }
@@ -53,13 +53,7 @@ class PengawasTeachingResolverService
      */
     public function buildTeacherTeachingSummary(?int $academicYearId = null, ?array $targetLevels = null): array
     {
-        $classes = SchoolClass::query()
-            ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
-            ->when(! empty($targetLevels), fn ($q) => $q->whereIn('level', array_map('strval', $targetLevels)))
-            ->orderBy('name')
-            ->get(['id', 'name', 'level'])
-            ->keyBy('id');
-
+        $classes = $this->resolveClasses($academicYearId, $targetLevels);
         if ($classes->isEmpty()) {
             return [];
         }
@@ -108,6 +102,47 @@ class PengawasTeachingResolverService
     }
 
     /**
+     * Membangun peta wali kelas per guru untuk sinkronisasi & UI pemetaan.
+     *
+     * @return array<int, array{
+     *     teacher_id: int,
+     *     levels: array<int, string>,
+     *     class_ids: array<int, int>,
+     *     class_names: array<int, string>
+     * }>
+     */
+    public function buildHomeroomMap(?int $academicYearId = null, ?array $targetLevels = null): array
+    {
+        $classes = $this->resolveClasses($academicYearId, $targetLevels);
+        $homeroomMap = [];
+
+        foreach ($classes as $cls) {
+            if (! $cls->homeroom_teacher_id) {
+                continue;
+            }
+
+            $tid = (int) $cls->homeroom_teacher_id;
+            if (! isset($homeroomMap[$tid])) {
+                $homeroomMap[$tid] = [
+                    'teacher_id' => $tid,
+                    'levels' => [],
+                    'class_ids' => [],
+                    'class_names' => [],
+                ];
+            }
+
+            $level = $this->extractNumericLevel($cls);
+            if ($level !== null && ! in_array($level, $homeroomMap[$tid]['levels'], true)) {
+                $homeroomMap[$tid]['levels'][] = $level;
+            }
+            $homeroomMap[$tid]['class_ids'][] = (int) $cls->id;
+            $homeroomMap[$tid]['class_names'][] = $cls->name;
+        }
+
+        return $homeroomMap;
+    }
+
+    /**
      * Resolusi subject_id dari UjianJadwal (mendukung nama_mapel_kustom).
      *
      * @param  Collection<string, int>  $subjectsByNormalizedName
@@ -128,15 +163,45 @@ class PengawasTeachingResolverService
         return strtolower(preg_replace('/\s+/', ' ', trim($name)) ?? '');
     }
 
-    /**
-     * @return Collection<int, int>
-     */
-    private function resolveClassIds(?int $academicYearId, ?array $targetLevels): Collection
+    public function extractNumericLevel(SchoolClass $class): ?string
     {
-        return SchoolClass::query()
+        if (preg_match('/^[1-6]$/', trim((string) $class->level))) {
+            return trim((string) $class->level);
+        }
+
+        if (preg_match('/\d+/', (string) $class->name, $matches)) {
+            $num = (int) $matches[0];
+            if ($num >= 1 && $num <= 6) {
+                return (string) $num;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Memuat SchoolClass dengan penyaringan tingkat numerik di PHP agar aman saat `school_classes.level` bernilai jenjang (mis. 'MI').
+     *
+     * @return Collection<int, SchoolClass>
+     */
+    private function resolveClasses(?int $academicYearId, ?array $targetLevels): Collection
+    {
+        $classes = SchoolClass::query()
             ->when($academicYearId, fn ($q) => $q->where('academic_year_id', $academicYearId))
-            ->when(! empty($targetLevels), fn ($q) => $q->whereIn('level', array_map('strval', $targetLevels)))
-            ->pluck('id');
+            ->orderBy('name')
+            ->get(['id', 'name', 'level', 'homeroom_teacher_id', 'academic_year_id']);
+
+        if (empty($targetLevels)) {
+            return $classes->keyBy('id');
+        }
+
+        $targetLevelsStr = array_map('strval', $targetLevels);
+
+        return $classes->filter(function (SchoolClass $cls) use ($targetLevelsStr) {
+            $numericLevel = $this->extractNumericLevel($cls);
+
+            return $numericLevel !== null && in_array($numericLevel, $targetLevelsStr, true);
+        })->keyBy('id');
     }
 
     /**
@@ -178,21 +243,5 @@ class PengawasTeachingResolverService
         }
 
         return $rows;
-    }
-
-    private function extractNumericLevel(SchoolClass $class): ?string
-    {
-        if (preg_match('/^[1-6]$/', trim((string) $class->level))) {
-            return trim((string) $class->level);
-        }
-
-        if (preg_match('/\d+/', (string) $class->name, $matches)) {
-            $num = (int) $matches[0];
-            if ($num >= 1 && $num <= 6) {
-                return (string) $num;
-            }
-        }
-
-        return null;
     }
 }

@@ -111,12 +111,12 @@
                     <span>Semua (1–6)</span>
                 </button>
                 <button type="button" onclick="openModalSyncTeachingMapping()"
-                        title="Sinkronkan pemetaan pengampu mapel kelas 1–2 dari jadwal mengajar"
+                        title="Sinkronkan pemetaan wali kelas & pengampu mapel kelas 1–2"
                         class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#FFD43B] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-yellow-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
                     </svg>
-                    <span>Sinkron Pengampu Mapel (1–2)</span>
+                    <span>Sinkron Wali Kelas &amp; Pengampu (1–2)</span>
                 </button>
                 <button type="button" onclick="submitBulkDelete()"
                         title="Hapus Pemetaan Guru Terpilih"
@@ -160,7 +160,10 @@
                                 $mapping = $mappings[$t->id] ?? null;
                                 $assignedLevels = $mapping?->assigned_levels ?? [];
                                 $tSummary = $teachingSummary[$t->id] ?? null;
+                                $tHomeroom = $homeroomTeacherSummary[$t->id] ?? null;
+                                $isWaliKelasMode = $mapping?->isWaliKelasMode() ?? false;
                                 $isPengampuMode = $mapping?->isPengampuMapelMode() ?? false;
+                                $isLockedToHomeroom = !empty($mapping?->assigned_class_ids);
                             @endphp
                             <tr class="pagination-row border-b border-slate-300 transition-colors hover:bg-amber-50/50 {{ $isPanitia ? 'bg-purple-50/40' : '' }}">
                                 <td class="px-3 py-3 text-center border-r border-slate-200">
@@ -207,6 +210,10 @@
                                 <td class="px-3 py-3 text-center border-r border-slate-200">
                                     @if($isPanitia)
                                         <span class="text-[10px] text-slate-400 font-bold">—</span>
+                                    @elseif($isWaliKelasMode)
+                                        <span class="inline-flex items-center rounded-md border-2 border-slate-900 bg-sky-100 px-2 py-0.5 text-[10px] font-black text-sky-950 shadow-[1px_1px_0px_0px_#0f172a]">
+                                            Wali Kelas
+                                        </span>
                                     @elseif($isPengampuMode)
                                         <span class="inline-flex items-center rounded-md border-2 border-slate-900 bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-950 shadow-[1px_1px_0px_0px_#0f172a]">
                                             Pengampu Mapel
@@ -220,21 +227,30 @@
                                 <td class="px-3 py-3 border-r border-slate-200">
                                     @if($isPanitia)
                                         <span class="text-[10px] text-slate-400 font-bold">—</span>
-                                    @elseif($tSummary)
-                                        @php
-                                            $classListText = implode(', ', array_slice($tSummary['class_names'], 0, 3)) . (count($tSummary['class_names']) > 3 ? ' +' . (count($tSummary['class_names']) - 3) : '');
-                                            $lockedSubjectCount = !empty($mapping?->assigned_subject_ids)
-                                                ? count($mapping->assigned_subject_ids)
-                                                : count($tSummary['subject_ids']);
-                                        @endphp
-                                        <div class="font-bold text-slate-900 text-[11px]">
-                                            Kelas {{ $classListText }} • {{ $lockedSubjectCount }} Mapel
-                                        </div>
-                                        @if(!empty($mapping?->assigned_subject_ids))
+                                    @else
+                                        @if($tHomeroom)
+                                            <div class="font-black text-sky-900 text-[11px]">
+                                                Wali {{ implode(', ', $tHomeroom['class_names']) }}
+                                            </div>
+                                        @endif
+                                        @if($tSummary)
+                                            @php
+                                                $classListText = implode(', ', array_slice($tSummary['class_names'], 0, 3)) . (count($tSummary['class_names']) > 3 ? ' +' . (count($tSummary['class_names']) - 3) : '');
+                                                $lockedSubjectCount = !empty($mapping?->assigned_subject_ids)
+                                                    ? count($mapping->assigned_subject_ids)
+                                                    : count($tSummary['subject_ids']);
+                                            @endphp
+                                            <div class="font-bold text-slate-900 text-[11px]">
+                                                {{ $classListText }} • {{ $lockedSubjectCount }} Mapel
+                                            </div>
+                                        @elseif(!$tHomeroom)
+                                            <span class="text-[10px] italic text-slate-400">Belum ada jadwal mengajar</span>
+                                        @endif
+                                        @if($isLockedToHomeroom)
+                                            <div class="text-[10px] text-sky-800 font-semibold">Terkunci hanya kelas perwalian</div>
+                                        @elseif(!empty($mapping?->assigned_subject_ids))
                                             <div class="text-[10px] text-emerald-800 font-semibold">Filter mapel khusus aktif</div>
                                         @endif
-                                    @else
-                                        <span class="text-[10px] italic text-slate-400">Belum ada jadwal mengajar</span>
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 text-center border-r border-slate-200">
@@ -253,7 +269,7 @@
                                 </td>
                                 <td class="px-3 py-3 text-center">
                                     @if(!$isPanitia)
-                                        <button type="button" onclick="openModalEditMapping('{{ $t->id }}', '{{ addslashes($t->user?->name) }}', '{{ $t->nip }}', {{ json_encode($assignedLevels) }}, '{{ addslashes($mapping?->keterangan ?? '') }}', '{{ $mapping?->mode_penugasan ?? 'rotasi' }}', {{ json_encode($mapping?->assigned_subject_ids ?? []) }})"
+                                        <button type="button" onclick="openModalEditMapping('{{ $t->id }}', '{{ addslashes($t->user?->name) }}', '{{ $t->nip }}', {{ json_encode($assignedLevels) }}, '{{ addslashes($mapping?->keterangan ?? '') }}', '{{ $mapping?->mode_penugasan ?? 'rotasi' }}', {{ json_encode($mapping?->assigned_subject_ids ?? []) }}, {{ $isLockedToHomeroom ? 'true' : 'false' }})"
                                                 title="Atur pemetaan kelas: {{ $t->user?->name }}"
                                                 class="grid h-6 w-6 cursor-pointer place-items-center rounded-md border-2 border-slate-900 bg-[#FFD43B] text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-yellow-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all mx-auto">
                                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">

@@ -41,7 +41,7 @@ class PengawasMappingService
         }
 
         $cleanedLevels = array_values(array_unique(array_filter(array_map('strval', $levels))));
-        $normalizedMode = in_array($modePenugasan, ['rotasi', 'pengampu_mapel'], true) ? $modePenugasan : 'rotasi';
+        $normalizedMode = in_array($modePenugasan, ['rotasi', 'pengampu_mapel', 'wali_kelas'], true) ? $modePenugasan : 'rotasi';
         $cleanedSubjects = ! empty($assignedSubjectIds) ? array_values(array_unique(array_map('intval', $assignedSubjectIds))) : null;
         $cleanedClasses = ! empty($assignedClassIds) ? array_values(array_unique(array_map('intval', $assignedClassIds))) : null;
 
@@ -61,11 +61,16 @@ class PengawasMappingService
     }
 
     /**
-     * Menetapkan pemetaan otomatis berbasis data mengajar guru pada tingkat target (default Kelas 1-2).
+     * Menetapkan pemetaan otomatis berbasis data wali kelas dan penugasan mengajar guru pada tingkat target (default Kelas 1-2).
      * Mengecualikan guru yang merupakan panitia ujian aktif.
      */
-    public function syncMappingFromTeaching(int $periodeId, array $levels = ['1', '2'], ?array $subjectIds = null): int
-    {
+    public function syncMappingFromTeaching(
+        int $periodeId,
+        array $levels = ['1', '2'],
+        ?array $subjectIds = null,
+        bool $includeHomeroom = true,
+        bool $lockHomeroomOnly = false
+    ): int {
         $periode = UjianPeriode::findOrFail($periodeId);
         $cleanedLevels = array_values(array_unique(array_filter(array_map('strval', $levels))));
         if (empty($cleanedLevels)) {
@@ -80,8 +85,16 @@ class PengawasMappingService
             $periode->academic_year_id,
             $cleanedLevels
         );
+        $homeroomMap = $includeHomeroom
+            ? $this->teachingResolver->buildHomeroomMap($periode->academic_year_id, $cleanedLevels)
+            : [];
 
-        if (empty($teachingSummary)) {
+        $candidateTeacherIds = array_values(array_unique(array_merge(
+            array_keys($teachingSummary),
+            array_keys($homeroomMap)
+        )));
+
+        if (empty($candidateTeacherIds)) {
             return 0;
         }
 
@@ -90,7 +103,7 @@ class PengawasMappingService
             ->pluck('teacher_id')
             ->all();
 
-        $activeTeacherIds = Teacher::whereIn('id', array_keys($teachingSummary))
+        $activeTeacherIds = Teacher::whereIn('id', $candidateTeacherIds)
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->whereNotIn('id', $excludedPanitiaIds)
             ->pluck('id')
@@ -103,17 +116,21 @@ class PengawasMappingService
 
         $count = 0;
         foreach ($activeTeacherIds as $teacherId) {
+            $homeroom = $homeroomMap[$teacherId] ?? null;
             $summary = $teachingSummary[$teacherId] ?? null;
-            if (! $summary || empty($summary['levels'])) {
+
+            $isHomeroomTeacher = $homeroom && ! empty($homeroom['levels']);
+            if (! $isHomeroomTeacher && (! $summary || empty($summary['levels']))) {
                 continue;
             }
 
-            if ($cleanedSubjectIds !== null && empty(array_intersect($summary['subject_ids'], $cleanedSubjectIds))) {
+            if (! $isHomeroomTeacher && $cleanedSubjectIds !== null && empty(array_intersect($summary['subject_ids'], $cleanedSubjectIds))) {
                 continue;
             }
 
             $existingLevels = array_map('strval', $existingMappings->get($teacherId)?->assigned_levels ?? []);
-            $mergedLevels = array_values(array_unique(array_merge($existingLevels, $summary['levels'])));
+            $newLevels = array_merge($homeroom['levels'] ?? [], $summary['levels'] ?? []);
+            $mergedLevels = array_values(array_unique(array_merge($existingLevels, $newLevels)));
             sort($mergedLevels, SORT_NUMERIC);
 
             UjianPengawasMapping::updateOrCreate(
@@ -123,8 +140,9 @@ class PengawasMappingService
                 ],
                 [
                     'assigned_levels' => $mergedLevels,
-                    'mode_penugasan' => 'pengampu_mapel',
-                    'assigned_subject_ids' => $cleanedSubjectIds,
+                    'mode_penugasan' => $isHomeroomTeacher ? 'wali_kelas' : 'pengampu_mapel',
+                    'assigned_subject_ids' => $isHomeroomTeacher ? null : $cleanedSubjectIds,
+                    'assigned_class_ids' => ($isHomeroomTeacher && $lockHomeroomOnly) ? $homeroom['class_ids'] : null,
                 ]
             );
             $count++;

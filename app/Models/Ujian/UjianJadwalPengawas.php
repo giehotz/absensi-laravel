@@ -43,6 +43,7 @@ class UjianJadwalPengawas extends Model
     public function getAssignmentSourceLabelAttribute(): string
     {
         return match ($this->assignment_source) {
+            'homeroom_teacher' => 'Wali Kelas',
             'subject_teacher' => 'Pengampu',
             'swapped' => 'Ditukar',
             'manual' => 'Manual',
