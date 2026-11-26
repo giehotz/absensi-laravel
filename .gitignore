@@ -30,3 +30,4 @@ Thumbs.db
 /.agents
 /.codegraph/
 /tests
+/database/seeders/SupervisiSitiAminahSeeder.php

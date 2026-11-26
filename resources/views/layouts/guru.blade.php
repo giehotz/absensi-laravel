@@ -344,6 +344,36 @@
                 </div>
                 @endif
 
+                @if(Auth::user()->teacher)
+                @php
+                    $isActiveSupervisor = \App\Models\Supervisi\SupervisiSupervisor::query()
+                        ->where('teacher_id', Auth::user()->teacher->id)
+                        ->where('is_active', true)
+                        ->exists();
+                @endphp
+                <div>
+                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading flex items-center justify-between">
+                        <span>Supervisi Akademik</span>
+                        @if($isActiveSupervisor)
+                            <span class="text-[9px] font-black bg-[#20C997] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Supervisor</span>
+                        @endif
+                    </div>
+                    <div class="space-y-1">
+                        <a href="{{ route('supervisi.dashboard') }}"
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('supervisi.*')
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1'
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700 hover:translate-x-0.5' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm">📋</span>
+                                <span>Supervisi Guru</span>
+                            </div>
+                            <span class="text-[10px] font-black {{ request()->routeIs('supervisi.*') ? 'bg-black text-yellow-300' : 'bg-[#20C997] text-black' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Modul</span>
+                        </a>
+                    </div>
+                </div>
+                @endif
+
                 <!-- Group 4: Laporan -->
                 <div>
                     <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">

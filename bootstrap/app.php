@@ -3,6 +3,7 @@
 use App\Http\Middleware\AuthenticateApiClient;
 use App\Http\Middleware\EnsureIsMbgOfficer;
 use App\Http\Middleware\EnsureRole;
+use App\Http\Middleware\EnsureSupervisiRole;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => EnsureRole::class,
             'mbg.officer' => EnsureIsMbgOfficer::class,
             'api.client' => AuthenticateApiClient::class,
+            'supervisi.role' => EnsureSupervisiRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

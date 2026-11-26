@@ -300,5 +300,8 @@ class DatabaseSeeder extends Seeder
 
         // 13. Data Modul Ujian Kurikulum Merdeka
         $this->call(UjianKurikulumMerdekaSeeder::class);
+
+        // 14. Instrumen Modul Supervisi Guru (Reguler, PMM, Perangkat Ajar)
+        $this->call(SupervisiInstrumenSeeder::class);
     }
 }

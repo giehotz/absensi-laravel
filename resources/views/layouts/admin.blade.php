@@ -292,6 +292,19 @@
                             </div>
                         </div>
 
+                        <!-- Modul Supervisi Guru -->
+                        <a href="{{ route('supervisi.dashboard') }}"
+                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                           {{ request()->routeIs('supervisi.*')
+                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1'
+                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm">📋</span>
+                                <span class="font-heading">Supervisi Guru</span>
+                            </div>
+                            <span class="text-[9px] font-black {{ request()->routeIs('supervisi.*') ? 'bg-black text-yellow-300' : 'bg-[#20C997] text-black' }} px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">Modul</span>
+                        </a>
+
                         <!-- Menu Kalender (Accordion Dropdown) -->
                         @php
                             $isCalendarActive = request()->routeIs('admin.holidays.*') || request()->routeIs('admin.academic-calendar.*') || request()->routeIs('admin.effective-weeks.*');

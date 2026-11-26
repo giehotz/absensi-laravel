@@ -51,5 +51,8 @@ Route::middleware(['auth', 'mbg.officer', EnsureKepalaMonitoring::class])->prefi
 // Modul Terisolasi: Manajemen Ujian & Cetak Kartu Ujian (Admin & Panitia Ujian)
 require base_path('routes/ujian.php');
 
+// Modul Terisolasi: Supervisi Guru & Kepala Madrasah
+require base_path('routes/supervisi.php');
+
 // Rute Publik: Verifikasi Keabsahan Kartu Tanda Pelajar (Scan QR Depan)
 Route::get('validasi/siswa/{identifier}', [PublicVerificationController::class, 'verifyStudent'])->name('public.verify.student');
