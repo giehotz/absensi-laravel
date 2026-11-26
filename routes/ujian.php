@@ -80,6 +80,7 @@ Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
             Route::post('/import-pdf', [JadwalPengawasController::class, 'importPdf'])->name('import-pdf');
             Route::delete('/penugasan/{pengawas}', [JadwalPengawasController::class, 'destroy'])->name('destroy');
             Route::post('/mapping', [JadwalPengawasController::class, 'storeMapping'])->name('mapping.store');
+            Route::post('/mapping/sync-teaching', [JadwalPengawasController::class, 'syncMappingFromTeaching'])->name('mapping.sync-teaching');
             Route::post('/mapping/bulk', [JadwalPengawasController::class, 'bulkMapping'])->name('mapping.bulk');
             Route::delete('/mapping', [JadwalPengawasController::class, 'destroyMapping'])->name('mapping.destroy');
             Route::get('/swap-candidates', [JadwalPengawasController::class, 'getSwapCandidates'])->name('swap.candidates');

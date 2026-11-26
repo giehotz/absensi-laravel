@@ -147,6 +147,28 @@
             </div>
 
             <div>
+                <label class="block text-slate-900 font-black mb-1">Mode Penugasan Pengawas</label>
+                <select id="edit_map_mode_penugasan" name="mode_penugasan" onchange="toggleEditSubjectScope()"
+                        class="w-full px-3 py-2 border-2 border-slate-900 rounded-lg bg-slate-50 text-xs font-bold shadow-[2px_2px_0px_0px_#0f172a] focus:outline-none">
+                    <option value="rotasi">Rotasi Umum (Pemerataan Beban)</option>
+                    <option value="pengampu_mapel">Pengampu Mapel (Prioritas Kelas Diajar)</option>
+                </select>
+            </div>
+
+            <div id="edit_map_subjects_wrapper" class="hidden space-y-1.5">
+                <label class="block text-slate-900 font-black">Batasi Mapel Tertentu (Opsional)</label>
+                <div class="max-h-32 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 border-2 border-slate-900 rounded-lg bg-slate-50">
+                    @foreach($subjects ?? [] as $subj)
+                        <label class="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 cursor-pointer">
+                            <input type="checkbox" name="assigned_subject_ids[]" value="{{ $subj->id }}" class="edit-subject-check w-3.5 h-3.5 rounded border border-slate-900 accent-slate-900">
+                            <span class="truncate">{{ $subj->name }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] text-slate-500">Biarkan tidak dicentang untuk otomatis mengunci semua mapel yang diajar guru ini.</p>
+            </div>
+
+            <div>
                 <label class="block text-slate-900 font-black mb-1">Catatan Pemetaan (Opsional)</label>
                 <input type="text" id="edit_map_keterangan" name="keterangan" placeholder="Contoh: Fokus kelas bawah" class="w-full px-3 py-2 border-2 border-slate-900 rounded-lg bg-slate-50 text-xs font-bold shadow-[2px_2px_0px_0px_#0f172a] focus:outline-none">
             </div>
@@ -363,6 +385,20 @@
                 </div>
             </div>
 
+            {{-- Opsi Pengampu Mapel & Lock --}}
+            <div class="space-y-2 rounded-xl border-2 border-slate-900 bg-slate-50 p-3">
+                <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
+                    <input type="hidden" name="prioritize_subject_teachers" value="0">
+                    <input type="checkbox" name="prioritize_subject_teachers" value="1" {{ in_array($kelompok ?? 'all', ['1-2', 'all'], true) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                    <span>Prioritaskan Guru Pengampu Mapel di Kelas yang Diajar</span>
+                </label>
+                <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
+                    <input type="hidden" name="preserve_locked" value="0">
+                    <input type="checkbox" name="preserve_locked" value="1" checked class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                    <span>Pertahankan Jadwal yang Sudah Ditukar / Diedit Manual (saat Non-Reset)</span>
+                </label>
+            </div>
+
             <div class="pt-3 flex items-center justify-end gap-2 border-t-2 border-slate-900">
                 <button type="button" onclick="document.getElementById('modalAutoPlotter').classList.add('hidden')" class="px-3.5 py-2 border-2 border-slate-900 rounded-lg text-slate-900 bg-slate-100 hover:bg-slate-200 font-bold text-xs shadow-[2px_2px_0px_0px_#0f172a]">
                     Batal
@@ -439,6 +475,81 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
                     </svg>
                     <span>Import PDF Matriks</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- MODAL 7: SINKRON PEMETAAN PENGAMPU MAPEL --}}
+<div id="modalSyncTeachingMapping" class="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 hidden">
+    <div class="bg-white border-4 border-slate-900 rounded-2xl max-w-2xl w-full p-5 shadow-[8px_8px_0px_0px_#0f172a] max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between pb-3 border-b-2 border-slate-900 mb-4 shrink-0">
+            <h3 class="text-sm font-black font-heading text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                <span>🔄</span>
+                <span>Sinkron Pemetaan Pengampu Mapel</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modalSyncTeachingMapping').classList.add('hidden')"
+                    class="h-7 w-7 grid place-items-center rounded border-2 border-slate-900 bg-white font-black text-xs text-slate-900 shadow-[1px_1px_0px_0px_#0f172a] hover:bg-slate-900 hover:text-white transition-colors">
+                ✕
+            </button>
+        </div>
+
+        <form action="{{ route('ujian.pengawas.mapping.sync-teaching') }}" method="POST" class="space-y-4 text-xs font-semibold overflow-y-auto pr-1">
+            @csrf
+            <input type="hidden" name="ujian_periode_id" value="{{ $activePeriode->id }}">
+
+            <div>
+                <label class="block text-slate-900 font-black mb-1.5">Tingkat Kelas Target <span class="text-red-500">*</span></label>
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    @foreach(['1', '2', '3', '4', '5', '6'] as $lvl)
+                        <label class="flex items-center gap-1.5 p-2 border-2 border-slate-900 rounded-lg cursor-pointer bg-white font-black hover:bg-yellow-50">
+                            <input type="checkbox" name="levels[]" value="{{ $lvl }}" {{ in_array($lvl, ['1', '2'], true) ? 'checked' : '' }}
+                                   onchange="renderSyncTeachingPreview()"
+                                   class="sync-level-check w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
+                            <span>Kelas {{ $lvl }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-slate-900 font-black mb-1">Filter Mata Pelajaran (Opsional)</label>
+                <div class="max-h-32 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2.5 border-2 border-slate-900 rounded-xl bg-slate-50">
+                    @foreach($subjects ?? [] as $subj)
+                        <label class="flex items-center gap-1.5 text-[11px] font-bold text-slate-800 cursor-pointer">
+                            <input type="checkbox" name="subject_ids[]" value="{{ $subj->id }}"
+                                   onchange="renderSyncTeachingPreview()"
+                                   class="sync-subject-check w-3.5 h-3.5 rounded border border-slate-900 accent-slate-900">
+                            <span class="truncate">{{ $subj->name }}</span>
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] text-slate-600 mt-1">Kosongkan untuk mengunci semua mapel yang diajar guru, atau pilih mapel inti tertentu (mis. 6 mapel utama Kelas 1–2).</p>
+            </div>
+
+            <div>
+                <div class="text-[11px] font-black uppercase text-slate-900 mb-1.5">Pratinjau Guru yang Akan Disinkronkan</div>
+                <div class="max-h-48 overflow-y-auto border-2 border-slate-900 rounded-xl">
+                    <table class="w-full text-left text-[11px] border-collapse">
+                        <thead class="bg-slate-100 border-b-2 border-slate-900 font-black uppercase text-[10px] sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 border-r border-slate-300">Nama Guru</th>
+                                <th class="px-3 py-2 border-r border-slate-300">Rombel Diajar</th>
+                                <th class="px-3 py-2">Daftar Mapel Dikunci</th>
+                            </tr>
+                        </thead>
+                        <tbody id="syncTeachingPreviewBody" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="pt-3 flex items-center justify-end gap-2 border-t-2 border-slate-900">
+                <button type="button" onclick="document.getElementById('modalSyncTeachingMapping').classList.add('hidden')" class="px-3.5 py-2 border-2 border-slate-900 rounded-lg text-slate-900 bg-slate-100 hover:bg-slate-200 font-bold text-xs shadow-[2px_2px_0px_0px_#0f172a]">
+                    Batal
+                </button>
+                <button type="submit" class="px-4 py-2 border-2 border-slate-900 rounded-lg text-slate-900 bg-[#FFD43B] hover:bg-yellow-400 font-black text-xs shadow-[2px_2px_0px_0px_#0f172a] cursor-pointer">
+                    Sinkronkan Sekarang
                 </button>
             </div>
         </form>

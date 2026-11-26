@@ -17,6 +17,9 @@ class UjianPengawasMapping extends Model
         'ujian_periode_id',
         'teacher_id',
         'assigned_levels',
+        'mode_penugasan',
+        'assigned_subject_ids',
+        'assigned_class_ids',
         'keterangan',
     ];
 
@@ -24,7 +27,40 @@ class UjianPengawasMapping extends Model
     {
         return [
             'assigned_levels' => 'array',
+            'assigned_subject_ids' => 'array',
+            'assigned_class_ids' => 'array',
         ];
+    }
+
+    public function isPengampuMapelMode(): bool
+    {
+        return ($this->mode_penugasan ?? 'rotasi') === 'pengampu_mapel';
+    }
+
+    public function allowsSubject(?int $subjectId): bool
+    {
+        if (empty($this->assigned_subject_ids)) {
+            return true;
+        }
+
+        if ($subjectId === null) {
+            return false;
+        }
+
+        return in_array($subjectId, array_map('intval', $this->assigned_subject_ids), true);
+    }
+
+    public function allowsClass(?int $classId): bool
+    {
+        if (empty($this->assigned_class_ids)) {
+            return true;
+        }
+
+        if ($classId === null) {
+            return false;
+        }
+
+        return in_array($classId, array_map('intval', $this->assigned_class_ids), true);
     }
 
     public function periode(): BelongsTo

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ujian;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
+use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Ujian\UjianJadwal;
 use App\Models\Ujian\UjianJadwalPengawas;
@@ -18,6 +19,7 @@ use App\Services\Ujian\JadwalConflictService;
 use App\Services\Ujian\JadwalPdfParserService;
 use App\Services\Ujian\PengawasAutoPlotterService;
 use App\Services\Ujian\PengawasMappingService;
+use App\Services\Ujian\PengawasTeachingResolverService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +31,8 @@ class JadwalPengawasController extends Controller
     public function __construct(
         protected JadwalConflictService $conflictService,
         protected PengawasAutoPlotterService $autoPlotterService,
-        protected PengawasMappingService $mappingService
+        protected PengawasMappingService $mappingService,
+        protected PengawasTeachingResolverService $teachingResolver
     ) {}
 
     public function index(Request $request): View
@@ -129,6 +132,19 @@ class JadwalPengawasController extends Controller
         $unmappedCount = max(0, $totalTeachersCount - $panitiaCount - $mappedCount);
 
         $classes = SchoolClass::ordered()->get();
+        $subjects = Subject::orderBy('name')->get(['id', 'name', 'code']);
+        $teachingSummary = $activePeriode
+            ? $this->teachingResolver->buildTeacherTeachingSummary($activePeriode->academic_year_id)
+            : [];
+        $swapReasonMap = [];
+        foreach ($swapHistories as $sw) {
+            if ($sw->source_pengawas_id && ! isset($swapReasonMap[$sw->source_pengawas_id])) {
+                $swapReasonMap[$sw->source_pengawas_id] = $sw->alasan ?: 'Ditukar panitia/admin';
+            }
+            if ($sw->target_pengawas_id && ! isset($swapReasonMap[$sw->target_pengawas_id])) {
+                $swapReasonMap[$sw->target_pengawas_id] = $sw->alasan ?: 'Ditukar panitia/admin';
+            }
+        }
 
         return view('ujian.pengawas.index', compact(
             'periodes',
@@ -138,6 +154,9 @@ class JadwalPengawasController extends Controller
             'pengawasList',
             'teachers',
             'classes',
+            'subjects',
+            'teachingSummary',
+            'swapReasonMap',
             'examDates',
             'mappings',
             'panitiaTeacherIds',
@@ -218,7 +237,10 @@ class JadwalPengawasController extends Controller
                 'ujian_jadwal_id' => $validated['ujian_jadwal_id'],
                 'ujian_ruang_id' => $validated['ujian_ruang_id'],
             ],
-            $validated
+            array_merge($validated, [
+                'assignment_source' => 'manual',
+                'is_locked' => true,
+            ])
         );
 
         return back()->with('success', 'Penugasan Pengawas Ruang berhasil disimpan.');
@@ -231,6 +253,8 @@ class JadwalPengawasController extends Controller
             'two_supervisors' => ['nullable', 'boolean'],
             'reset_existing' => ['nullable', 'boolean'],
             'kelompok' => ['nullable', 'string', 'in:all,1-2,3-6'],
+            'prioritize_subject_teachers' => ['nullable', 'boolean'],
+            'preserve_locked' => ['nullable', 'boolean'],
         ]);
 
         $kelompok = $validated['kelompok'] ?? 'all';
@@ -245,7 +269,9 @@ class JadwalPengawasController extends Controller
             $periode,
             $request->boolean('two_supervisors'),
             $request->boolean('reset_existing', true),
-            $targetLevels
+            $targetLevels,
+            $request->boolean('prioritize_subject_teachers', true),
+            $request->boolean('preserve_locked', true)
         );
 
         $kelompokLabel = match ($kelompok) {
@@ -344,6 +370,11 @@ class JadwalPengawasController extends Controller
             'teacher_id' => ['required', 'exists:teachers,id'],
             'assigned_levels' => ['required', 'array', 'min:1'],
             'assigned_levels.*' => ['in:1,2,3,4,5,6'],
+            'mode_penugasan' => ['nullable', 'in:rotasi,pengampu_mapel'],
+            'assigned_subject_ids' => ['nullable', 'array'],
+            'assigned_subject_ids.*' => ['exists:subjects,id'],
+            'assigned_class_ids' => ['nullable', 'array'],
+            'assigned_class_ids.*' => ['exists:school_classes,id'],
             'keterangan' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -352,7 +383,10 @@ class JadwalPengawasController extends Controller
                 (int) $validated['ujian_periode_id'],
                 (int) $validated['teacher_id'],
                 $validated['assigned_levels'],
-                $validated['keterangan'] ?? null
+                $validated['keterangan'] ?? null,
+                $validated['mode_penugasan'] ?? 'rotasi',
+                $validated['assigned_subject_ids'] ?? null,
+                $validated['assigned_class_ids'] ?? null
             );
 
             return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
@@ -361,6 +395,29 @@ class JadwalPengawasController extends Controller
             return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
                 ->with('error', $e->getMessage());
         }
+    }
+
+    /**
+     * Sinkronisasi pemetaan pengawas otomatis berbasis penugasan mengajar guru pengampu mapel.
+     */
+    public function syncMappingFromTeaching(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'ujian_periode_id' => ['required', 'exists:ujian_periode,id'],
+            'levels' => ['required', 'array', 'min:1'],
+            'levels.*' => ['in:1,2,3,4,5,6'],
+            'subject_ids' => ['nullable', 'array'],
+            'subject_ids.*' => ['exists:subjects,id'],
+        ]);
+
+        $count = $this->mappingService->syncMappingFromTeaching(
+            (int) $validated['ujian_periode_id'],
+            $validated['levels'],
+            $validated['subject_ids'] ?? null
+        );
+
+        return redirect()->to(route('ujian.pengawas.index', ['periode_id' => $validated['ujian_periode_id']]).'#pemetaan')
+            ->with('success', "Berhasil menyinkronkan pemetaan pengampu mapel untuk {$count} guru aktif (panitia ujian otomatis dikecualikan).");
     }
 
     /**

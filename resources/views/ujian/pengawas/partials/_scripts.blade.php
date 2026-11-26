@@ -382,18 +382,107 @@
     }
 
     // Modal Edit Mapping Individual
-    function openModalEditMapping(teacherId, teacherName, teacherNip, assignedLevels, keterangan) {
+    function openModalEditMapping(teacherId, teacherName, teacherNip, assignedLevels, keterangan, modePenugasan = 'rotasi', assignedSubjectIds = []) {
         document.getElementById('edit_map_teacher_id').value = teacherId;
         document.getElementById('edit_map_teacher_name').textContent = teacherName;
         document.getElementById('edit_map_teacher_nip').textContent = 'NIP: ' + (teacherNip || '-');
         document.getElementById('edit_map_keterangan').value = keterangan || '';
+        document.getElementById('edit_map_mode_penugasan').value = modePenugasan || 'rotasi';
 
         const levelsArray = (assignedLevels || []).map(String);
         document.querySelectorAll('.edit-level-check').forEach(cb => {
             cb.checked = levelsArray.includes(cb.value);
         });
 
+        const subjectsArray = (assignedSubjectIds || []).map(Number);
+        document.querySelectorAll('.edit-subject-check').forEach(cb => {
+            cb.checked = subjectsArray.includes(Number(cb.value));
+        });
+
+        toggleEditSubjectScope();
         document.getElementById('modalEditMapping').classList.remove('hidden');
+    }
+
+    function toggleEditSubjectScope() {
+        const mode = document.getElementById('edit_map_mode_penugasan')?.value || 'rotasi';
+        const wrapper = document.getElementById('edit_map_subjects_wrapper');
+        if (wrapper) {
+            wrapper.classList.toggle('hidden', mode !== 'pengampu_mapel');
+        }
+    }
+
+    @php
+        $activeTeachersPreviewData = collect($teachers ?? [])->map(function ($t) use ($panitiaTeacherIds) {
+            return [
+                'id' => $t->id,
+                'name' => $t->user?->name ?? 'Guru',
+                'is_panitia' => in_array($t->id, $panitiaTeacherIds ?? [], true),
+            ];
+        })->values();
+        $allSubjectsPreviewData = collect($subjects ?? [])->pluck('name', 'id');
+    @endphp
+    const teachingSummaryData = @json($teachingSummary ?? []);
+    const activeTeachersPreview = @json($activeTeachersPreviewData);
+    const allSubjectsMap = @json($allSubjectsPreviewData);
+
+    function openModalSyncTeachingMapping() {
+        renderSyncTeachingPreview();
+        document.getElementById('modalSyncTeachingMapping').classList.remove('hidden');
+    }
+
+    function renderSyncTeachingPreview() {
+        const tbody = document.getElementById('syncTeachingPreviewBody');
+        if (!tbody) return;
+
+        const selectedLevels = Array.from(document.querySelectorAll('.sync-level-check:checked')).map(cb => cb.value);
+        const selectedSubjectIds = Array.from(document.querySelectorAll('.sync-subject-check:checked')).map(cb => Number(cb.value));
+
+        tbody.textContent = '';
+        let rowCount = 0;
+
+        activeTeachersPreview.forEach(t => {
+            if (t.is_panitia) return;
+            const summary = teachingSummaryData[t.id];
+            if (!summary || !summary.levels) return;
+
+            const hasLevel = summary.levels.some(lvl => selectedLevels.includes(String(lvl)));
+            if (!hasLevel) return;
+
+            const matchedSubjectIds = selectedSubjectIds.length > 0
+                ? summary.subject_ids.filter(sid => selectedSubjectIds.includes(Number(sid)))
+                : summary.subject_ids;
+
+            if (matchedSubjectIds.length === 0) return;
+
+            const tr = document.createElement('tr');
+            const tdName = document.createElement('td');
+            tdName.className = 'px-3 py-2 font-bold text-slate-900 border-r border-slate-200';
+            tdName.textContent = t.name;
+
+            const tdClasses = document.createElement('td');
+            tdClasses.className = 'px-3 py-2 text-slate-700 border-r border-slate-200';
+            tdClasses.textContent = (summary.class_names || []).join(', ');
+
+            const tdSubjects = document.createElement('td');
+            tdSubjects.className = 'px-3 py-2 text-emerald-900';
+            tdSubjects.textContent = matchedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ');
+
+            tr.appendChild(tdName);
+            tr.appendChild(tdClasses);
+            tr.appendChild(tdSubjects);
+            tbody.appendChild(tr);
+            rowCount++;
+        });
+
+        if (rowCount === 0) {
+            const tr = document.createElement('tr');
+            const td = document.createElement('td');
+            td.colSpan = 3;
+            td.className = 'px-3 py-4 text-center italic text-slate-500';
+            td.textContent = 'Tidak ada guru aktif non-panitia yang mengajar sesuai filter tingkat/mapel.';
+            tr.appendChild(td);
+            tbody.appendChild(tr);
+        }
     }
 
     function setEditLevels(levels) {

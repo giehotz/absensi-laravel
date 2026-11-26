@@ -18,6 +18,8 @@ class UjianJadwalPengawas extends Model
         'ujian_ruang_id',
         'pengawas_1_id',
         'pengawas_2_id',
+        'assignment_source',
+        'is_locked',
         'status_p1',
         'status_p2',
         'check_in_p1_at',
@@ -34,7 +36,18 @@ class UjianJadwalPengawas extends Model
         return [
             'check_in_p1_at' => 'datetime',
             'check_in_p2_at' => 'datetime',
+            'is_locked' => 'boolean',
         ];
+    }
+
+    public function getAssignmentSourceLabelAttribute(): string
+    {
+        return match ($this->assignment_source) {
+            'subject_teacher' => 'Pengampu',
+            'swapped' => 'Ditukar',
+            'manual' => 'Manual',
+            default => 'Rotasi',
+        };
     }
 
     public function jadwal(): BelongsTo

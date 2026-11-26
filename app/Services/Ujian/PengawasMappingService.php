@@ -8,6 +8,7 @@ use App\Models\Ujian\UjianJadwalPengawas;
 use App\Models\Ujian\UjianPanitia;
 use App\Models\Ujian\UjianPengawasMapping;
 use App\Models\Ujian\UjianPengawasSwapHistory;
+use App\Models\Ujian\UjianPeriode;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,14 +16,22 @@ use Illuminate\Validation\ValidationException;
 class PengawasMappingService
 {
     public function __construct(
-        protected JadwalConflictService $conflictService
+        protected JadwalConflictService $conflictService,
+        protected PengawasTeachingResolverService $teachingResolver
     ) {}
 
     /**
-     * Menyimpan atau memperbarui pemetaan tingkat kelas untuk seorang guru.
+     * Menyimpan atau memperbarui pemetaan tingkat kelas dan mode penugasan untuk seorang guru.
      */
-    public function saveMapping(int $periodeId, int $teacherId, array $levels, ?string $keterangan = null): UjianPengawasMapping
-    {
+    public function saveMapping(
+        int $periodeId,
+        int $teacherId,
+        array $levels,
+        ?string $keterangan = null,
+        string $modePenugasan = 'rotasi',
+        ?array $assignedSubjectIds = null,
+        ?array $assignedClassIds = null
+    ): UjianPengawasMapping {
         $teacher = Teacher::with('user')->findOrFail($teacherId);
 
         if ($teacher->isPanitiaUjian($periodeId)) {
@@ -32,6 +41,9 @@ class PengawasMappingService
         }
 
         $cleanedLevels = array_values(array_unique(array_filter(array_map('strval', $levels))));
+        $normalizedMode = in_array($modePenugasan, ['rotasi', 'pengampu_mapel'], true) ? $modePenugasan : 'rotasi';
+        $cleanedSubjects = ! empty($assignedSubjectIds) ? array_values(array_unique(array_map('intval', $assignedSubjectIds))) : null;
+        $cleanedClasses = ! empty($assignedClassIds) ? array_values(array_unique(array_map('intval', $assignedClassIds))) : null;
 
         return UjianPengawasMapping::updateOrCreate(
             [
@@ -40,9 +52,85 @@ class PengawasMappingService
             ],
             [
                 'assigned_levels' => $cleanedLevels,
+                'mode_penugasan' => $normalizedMode,
+                'assigned_subject_ids' => $cleanedSubjects,
+                'assigned_class_ids' => $cleanedClasses,
                 'keterangan' => $keterangan,
             ]
         );
+    }
+
+    /**
+     * Menetapkan pemetaan otomatis berbasis data mengajar guru pada tingkat target (default Kelas 1-2).
+     * Mengecualikan guru yang merupakan panitia ujian aktif.
+     */
+    public function syncMappingFromTeaching(int $periodeId, array $levels = ['1', '2'], ?array $subjectIds = null): int
+    {
+        $periode = UjianPeriode::findOrFail($periodeId);
+        $cleanedLevels = array_values(array_unique(array_filter(array_map('strval', $levels))));
+        if (empty($cleanedLevels)) {
+            return 0;
+        }
+
+        $cleanedSubjectIds = ! empty($subjectIds)
+            ? array_values(array_unique(array_map('intval', $subjectIds)))
+            : null;
+
+        $teachingSummary = $this->teachingResolver->buildTeacherTeachingSummary(
+            $periode->academic_year_id,
+            $cleanedLevels
+        );
+
+        if (empty($teachingSummary)) {
+            return 0;
+        }
+
+        $excludedPanitiaIds = UjianPanitia::where('ujian_periode_id', $periodeId)
+            ->where('is_active', true)
+            ->pluck('teacher_id')
+            ->all();
+
+        $activeTeacherIds = Teacher::whereIn('id', array_keys($teachingSummary))
+            ->whereHas('user', fn ($q) => $q->where('is_active', true))
+            ->whereNotIn('id', $excludedPanitiaIds)
+            ->pluck('id')
+            ->all();
+
+        $existingMappings = UjianPengawasMapping::where('ujian_periode_id', $periodeId)
+            ->whereIn('teacher_id', $activeTeacherIds)
+            ->get()
+            ->keyBy('teacher_id');
+
+        $count = 0;
+        foreach ($activeTeacherIds as $teacherId) {
+            $summary = $teachingSummary[$teacherId] ?? null;
+            if (! $summary || empty($summary['levels'])) {
+                continue;
+            }
+
+            if ($cleanedSubjectIds !== null && empty(array_intersect($summary['subject_ids'], $cleanedSubjectIds))) {
+                continue;
+            }
+
+            $existingLevels = array_map('strval', $existingMappings->get($teacherId)?->assigned_levels ?? []);
+            $mergedLevels = array_values(array_unique(array_merge($existingLevels, $summary['levels'])));
+            sort($mergedLevels, SORT_NUMERIC);
+
+            UjianPengawasMapping::updateOrCreate(
+                [
+                    'ujian_periode_id' => $periodeId,
+                    'teacher_id' => $teacherId,
+                ],
+                [
+                    'assigned_levels' => $mergedLevels,
+                    'mode_penugasan' => 'pengampu_mapel',
+                    'assigned_subject_ids' => $cleanedSubjectIds,
+                ]
+            );
+            $count++;
+        }
+
+        return $count;
     }
 
     /**
@@ -326,9 +414,13 @@ class PengawasMappingService
                 throw new \InvalidArgumentException("Pertukaran ditolak: {$teacher2Name} mengalami bentrok jam tugas di ruang {$conflict2->ruang?->nama_ruang}.");
             }
 
-            // Eksekusi pertukaran nilai kolom
+            // Eksekusi pertukaran nilai kolom & kunci penugasan agar tidak tertimpa auto-plot non-reset
             $source->{$sourceColumn} = $teacher2Id;
+            $source->assignment_source = 'swapped';
+            $source->is_locked = true;
             $target->{$targetColumn} = $teacher1Id;
+            $target->assignment_source = 'swapped';
+            $target->is_locked = true;
 
             $source->save();
             $target->save();

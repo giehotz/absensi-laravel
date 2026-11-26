@@ -110,6 +110,14 @@
                     </svg>
                     <span>Semua (1–6)</span>
                 </button>
+                <button type="button" onclick="openModalSyncTeachingMapping()"
+                        title="Sinkronkan pemetaan pengampu mapel kelas 1–2 dari jadwal mengajar"
+                        class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#FFD43B] px-3 py-1.5 text-[11px] font-black text-slate-900 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-yellow-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                    </svg>
+                    <span>Sinkron Pengampu Mapel (1–2)</span>
+                </button>
                 <button type="button" onclick="submitBulkDelete()"
                         title="Hapus Pemetaan Guru Terpilih"
                         class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-slate-900 bg-[#FFE3E3] px-3 py-1.5 text-[11px] font-black text-rose-950 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-rose-200 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
@@ -138,6 +146,8 @@
                             <th class="px-3 py-2.5 font-black border-r border-slate-300">Nama Guru &amp; NIP</th>
                             <th class="w-44 px-3 py-2.5 text-center font-black border-r border-slate-300">Status Kepanitiaan</th>
                             <th class="px-3 py-2.5 font-black border-r border-slate-300">Pemetaan Saat Ini</th>
+                            <th class="w-36 px-3 py-2.5 text-center font-black border-r border-slate-300">Mode Penugasan</th>
+                            <th class="px-3 py-2.5 font-black border-r border-slate-300">Cakupan Mapel &amp; Rombel</th>
                             <th class="w-52 px-3 py-2.5 text-center font-black border-r border-slate-300">Cakupan Tingkat (1–6)</th>
                             <th class="w-20 px-3 py-2.5 text-center font-black">Aksi</th>
                         </tr>
@@ -149,6 +159,8 @@
                                 $panitiaRole = $panitiaRoles[$t->id] ?? null;
                                 $mapping = $mappings[$t->id] ?? null;
                                 $assignedLevels = $mapping?->assigned_levels ?? [];
+                                $tSummary = $teachingSummary[$t->id] ?? null;
+                                $isPengampuMode = $mapping?->isPengampuMapelMode() ?? false;
                             @endphp
                             <tr class="pagination-row border-b border-slate-300 transition-colors hover:bg-amber-50/50 {{ $isPanitia ? 'bg-purple-50/40' : '' }}">
                                 <td class="px-3 py-3 text-center border-r border-slate-200">
@@ -193,6 +205,39 @@
                                     @endif
                                 </td>
                                 <td class="px-3 py-3 text-center border-r border-slate-200">
+                                    @if($isPanitia)
+                                        <span class="text-[10px] text-slate-400 font-bold">—</span>
+                                    @elseif($isPengampuMode)
+                                        <span class="inline-flex items-center rounded-md border-2 border-slate-900 bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-950 shadow-[1px_1px_0px_0px_#0f172a]">
+                                            Pengampu Mapel
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-md border border-slate-300 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                                            Rotasi Umum
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-3 border-r border-slate-200">
+                                    @if($isPanitia)
+                                        <span class="text-[10px] text-slate-400 font-bold">—</span>
+                                    @elseif($tSummary)
+                                        @php
+                                            $classListText = implode(', ', array_slice($tSummary['class_names'], 0, 3)) . (count($tSummary['class_names']) > 3 ? ' +' . (count($tSummary['class_names']) - 3) : '');
+                                            $lockedSubjectCount = !empty($mapping?->assigned_subject_ids)
+                                                ? count($mapping->assigned_subject_ids)
+                                                : count($tSummary['subject_ids']);
+                                        @endphp
+                                        <div class="font-bold text-slate-900 text-[11px]">
+                                            Kelas {{ $classListText }} • {{ $lockedSubjectCount }} Mapel
+                                        </div>
+                                        @if(!empty($mapping?->assigned_subject_ids))
+                                            <div class="text-[10px] text-emerald-800 font-semibold">Filter mapel khusus aktif</div>
+                                        @endif
+                                    @else
+                                        <span class="text-[10px] italic text-slate-400">Belum ada jadwal mengajar</span>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-3 text-center border-r border-slate-200">
                                     @if(!$isPanitia)
                                         <div class="inline-flex items-center gap-1">
                                             @foreach(['1', '2', '3', '4', '5', '6'] as $lvl)
@@ -208,7 +253,7 @@
                                 </td>
                                 <td class="px-3 py-3 text-center">
                                     @if(!$isPanitia)
-                                        <button type="button" onclick="openModalEditMapping('{{ $t->id }}', '{{ addslashes($t->user?->name) }}', '{{ $t->nip }}', {{ json_encode($assignedLevels) }}, '{{ addslashes($mapping?->keterangan ?? '') }}')"
+                                        <button type="button" onclick="openModalEditMapping('{{ $t->id }}', '{{ addslashes($t->user?->name) }}', '{{ $t->nip }}', {{ json_encode($assignedLevels) }}, '{{ addslashes($mapping?->keterangan ?? '') }}', '{{ $mapping?->mode_penugasan ?? 'rotasi' }}', {{ json_encode($mapping?->assigned_subject_ids ?? []) }})"
                                                 title="Atur pemetaan kelas: {{ $t->user?->name }}"
                                                 class="grid h-6 w-6 cursor-pointer place-items-center rounded-md border-2 border-slate-900 bg-[#FFD43B] text-slate-900 shadow-[1.5px_1.5px_0px_0px_#0f172a] hover:bg-yellow-400 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all mx-auto">
                                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
@@ -222,7 +267,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center">
+                                <td colspan="9" class="px-6 py-12 text-center">
                                     <div class="mx-auto flex max-w-sm flex-col items-center gap-2">
                                         <span class="grid h-12 w-12 place-items-center rounded-xl border-2 border-slate-900 bg-amber-100 text-slate-800 shadow-[2px_2px_0px_0px_#0f172a]">
                                             <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -236,7 +281,7 @@
                             </tr>
                         @endforelse
                         <tr class="pagination-search-empty" style="display: none;">
-                            <td colspan="7" class="px-6 py-10 text-center text-xs font-bold text-slate-500">
+                            <td colspan="9" class="px-6 py-10 text-center text-xs font-bold text-slate-500">
                                 Tidak ada guru yang cocok dengan pencarian.
                             </td>
                         </tr>

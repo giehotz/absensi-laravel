@@ -154,7 +154,22 @@
                                                     @endif
                                                     <span class="truncate font-bold text-slate-900">{{ $pw->pengawas1?->user?->name }}</span>
                                                 </div>
-                                                <div class="font-mono text-[10px] text-slate-600">NIP {{ $pw->pengawas1?->nip ?: '-' }}</div>
+                                                <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                                    <span class="font-mono text-[10px] text-slate-600">NIP {{ $pw->pengawas1?->nip ?: '-' }}</span>
+                                                    @php
+                                                        $sourceBadgeClass = match ($pw->assignment_source) {
+                                                            'subject_teacher' => 'bg-emerald-100 text-emerald-950 border-emerald-800',
+                                                            'swapped' => 'bg-purple-100 text-purple-950 border-purple-800',
+                                                            'manual' => 'bg-amber-100 text-amber-950 border-amber-800',
+                                                            default => 'bg-slate-100 text-slate-700 border-slate-400',
+                                                        };
+                                                        $swapTitle = $pw->assignment_source === 'swapped' ? ($swapReasonMap[$pw->id] ?? 'Ditukar panitia/admin') : '';
+                                                    @endphp
+                                                    <span @if($swapTitle) title="{{ $swapTitle }}" @endif
+                                                          class="inline-flex items-center rounded border px-1.5 py-0 text-[9px] font-black uppercase {{ $sourceBadgeClass }}">
+                                                        {{ $pw->assignment_source_label }}
+                                                    </span>
+                                                </div>
                                             </div>
                                             @if($pw->pengawas_1_id)
                                                 <button type="button"
