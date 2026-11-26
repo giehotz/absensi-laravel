@@ -1,5 +1,76 @@
 @push('scripts')
 <script>
+    function getActiveTeacherReturnQuery() {
+        const currentParams = new URLSearchParams(window.location.search);
+        const currentQs = typeof window.buildTeacherIndexQueryString === 'function'
+            ? window.buildTeacherIndexQueryString({
+                page: currentParams.get('page') || String({{ $teachers->currentPage() }}),
+                search: currentParams.get('search') ?? @json($search ?? ''),
+                sort: currentParams.get('sort') || @json($sort ?? 'name_asc'),
+            })
+            : '';
+
+        if (currentQs !== '') {
+            return currentQs;
+        }
+
+        try {
+            const raw = localStorage.getItem(window.TEACHER_INDEX_STORAGE_KEY);
+            if (raw && typeof window.buildTeacherIndexQueryString === 'function') {
+                return window.buildTeacherIndexQueryString(JSON.parse(raw));
+            }
+        } catch (e) {}
+
+        return '';
+    }
+
+    function syncTeacherReturnQueryInputs() {
+        const qs = getActiveTeacherReturnQuery();
+        document.querySelectorAll('.teacher-return-query').forEach(input => {
+            input.value = qs;
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        syncTeacherReturnQueryInputs();
+
+        document.querySelectorAll('.teacher-return-query').forEach(input => {
+            const form = input.closest('form');
+            if (form) {
+                form.addEventListener('submit', syncTeacherReturnQueryInputs);
+            }
+        });
+
+        const filterForm = document.getElementById('teacherFilterForm');
+        if (filterForm) {
+            filterForm.addEventListener('submit', function () {
+                const searchVal = filterForm.querySelector('input[name="search"]')?.value || '';
+                const sortVal = filterForm.querySelector('select[name="sort"]')?.value || 'name_asc';
+                if (typeof window.saveTeacherIndexState === 'function') {
+                    window.saveTeacherIndexState({ page: '1', search: searchVal, sort: sortVal });
+                }
+            });
+        }
+
+        const paginationContainer = document.getElementById('teachersPaginationContainer');
+        if (paginationContainer) {
+            paginationContainer.addEventListener('click', function (event) {
+                const link = event.target.closest('a[href]');
+                if (!link) return;
+                try {
+                    const url = new URL(link.href, window.location.origin);
+                    if (typeof window.saveTeacherIndexState === 'function') {
+                        window.saveTeacherIndexState({
+                            page: url.searchParams.get('page') || '1',
+                            search: url.searchParams.get('search') || '',
+                            sort: url.searchParams.get('sort') || 'name_asc',
+                        });
+                    }
+                } catch (e) {}
+            });
+        }
+    });
+
     // Tutup modal aktif saat menekan tombol Escape
     document.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape') return;
@@ -608,6 +679,8 @@
                 return false;
             }
         }
+
+        syncTeacherReturnQueryInputs();
 
         const submitBtn = document.getElementById('assignment_submit_btn');
         if (submitBtn) {

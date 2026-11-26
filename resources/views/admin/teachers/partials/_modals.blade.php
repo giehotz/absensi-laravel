@@ -28,6 +28,7 @@
 
         <form action="{{ route('admin.teachers.import') }}" method="POST" enctype="multipart/form-data">
             @csrf
+            <input type="hidden" name="return_query" class="teacher-return-query" value="">
             <div class="space-y-5 px-6 py-5">
                 <!-- Info Box -->
                 <div class="space-y-2.5 rounded-xl border-2 border-black bg-[#E7F5FF] p-4 text-xs text-black shadow-[3px_3px_0px_0px_#000]">
@@ -120,6 +121,7 @@
 
         <form action="{{ route('admin.teachers.store') }}" method="POST" class="flex min-h-0 flex-1 flex-col">
             @csrf
+            <input type="hidden" name="return_query" class="teacher-return-query" value="">
             <div class="flex-1 space-y-4 overflow-y-auto px-6 py-5">
                 <div>
                     <label class="mb-1.5 block text-xs font-extrabold uppercase tracking-wide text-black">
@@ -280,6 +282,7 @@
 
         <form id="assignmentTeacherForm" method="POST" class="flex min-h-0 flex-1 flex-col" onsubmit="return handleAssignmentFormSubmit(event)">
             @csrf
+            <input type="hidden" name="return_query" class="teacher-return-query" value="">
             <div class="flex-1 space-y-4 overflow-y-auto px-6 py-5">
                 <!-- Loading State Skeleton -->
                 <div id="assignment_loading_skeleton" class="space-y-4">
@@ -483,6 +486,7 @@
         <form id="savingsOfficerForm" method="POST" class="flex min-h-0 flex-1 flex-col">
             @csrf
             @method('PATCH')
+            <input type="hidden" name="return_query" class="teacher-return-query" value="">
             <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5">
                 <!-- Status Pengelola Tabungan -->
                 <div class="space-y-2.5">

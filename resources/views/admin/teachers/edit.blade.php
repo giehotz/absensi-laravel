@@ -57,7 +57,7 @@
 
             <div class="flex flex-wrap items-center gap-2.5">
                 <a href="{{ route('admin.teachers.index') }}"
-                   class="inline-flex min-h-10 items-center gap-2 rounded-lg border-2 border-black bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[4px_4px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
+                   class="teacher-back-to-index inline-flex min-h-10 items-center gap-2 rounded-lg border-2 border-black bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[4px_4px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
                     <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
@@ -73,6 +73,7 @@
           class="space-y-6">
         @csrf
         @method('PUT')
+        <input type="hidden" name="return_query" id="edit_teacher_return_query" value="">
 
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-12 lg:items-start">
             <!-- Kolom Kiri: Foto Profil, Akun Login & Ringkasan Penugasan -->
@@ -536,7 +537,7 @@
                 <!-- Footer Tombol Simpan -->
                 <div class="flex flex-wrap items-center justify-end gap-3 rounded-xl border-2 border-black bg-white p-5 shadow-[5px_5px_0px_0px_#000]">
                     <a href="{{ route('admin.teachers.index') }}"
-                       class="inline-flex min-h-11 items-center justify-center rounded-lg border-2 border-black bg-white px-5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[4px_4px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
+                       class="teacher-back-to-index inline-flex min-h-11 items-center justify-center rounded-lg border-2 border-black bg-white px-5 py-2.5 text-xs font-extrabold uppercase tracking-wide text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[4px_4px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none">
                         Batal
                     </a>
                     <button type="submit"
@@ -555,6 +556,35 @@
 
 @push('scripts')
 <script>
+    (function () {
+        const storageKey = 'admin_teachers_index_state_{{ auth()->id() }}';
+        let savedQuery = '';
+        try {
+            const raw = localStorage.getItem(storageKey);
+            if (raw) {
+                const state = JSON.parse(raw);
+                const params = new URLSearchParams();
+                if (state.search) params.set('search', String(state.search));
+                if (state.sort && state.sort !== 'name_asc') params.set('sort', String(state.sort));
+                const page = parseInt(state.page, 10);
+                if (!Number.isNaN(page) && page > 1) params.set('page', String(page));
+                savedQuery = params.toString();
+            }
+        } catch (e) {}
+
+        const returnInput = document.getElementById('edit_teacher_return_query');
+        if (returnInput) {
+            returnInput.value = savedQuery;
+        }
+
+        if (savedQuery !== '') {
+            const baseIndexUrl = @json(route('admin.teachers.index'));
+            document.querySelectorAll('.teacher-back-to-index').forEach(link => {
+                link.href = baseIndexUrl + '?' + savedQuery;
+            });
+        }
+    })();
+
     function toggleEditPasswordVisibility() {
         const input = document.getElementById('password');
         const iconContainer = document.getElementById('edit_page_eye_icon');

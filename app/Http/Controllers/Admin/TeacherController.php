@@ -32,7 +32,7 @@ class TeacherController extends Controller
         protected ImageUploadService $imageUploadService
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $search = trim((string) $request->query('search', ''));
         $sort = (string) $request->query('sort', 'name_asc');
@@ -58,6 +58,14 @@ class TeacherController extends Controller
         };
 
         $teachers = $query->paginate(15)->withQueryString();
+        if ($teachers->currentPage() > $teachers->lastPage() && $teachers->lastPage() >= 1) {
+            if ($request->session()->has('success') || $request->session()->has('error')) {
+                $request->session()->reflash();
+            }
+
+            return redirect()->route('admin.teachers.index', array_merge($request->query(), ['page' => $teachers->lastPage()]));
+        }
+
         $subjects = Subject::orderBy('name')->get();
         $classes = SchoolClass::ordered()->get();
 
@@ -107,7 +115,7 @@ class TeacherController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Data guru baru berhasil ditambahkan.');
+        return $this->redirectToTeachersIndex($request)->with('success', 'Data guru baru berhasil ditambahkan.');
     }
 
     /**
@@ -215,10 +223,10 @@ class TeacherController extends Controller
             }
         });
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Data guru berhasil diperbarui.');
+        return $this->redirectToTeachersIndex($request)->with('success', 'Data guru berhasil diperbarui.');
     }
 
-    public function destroy(Teacher $teacher): RedirectResponse
+    public function destroy(Request $request, Teacher $teacher): RedirectResponse
     {
         $user = $teacher->user;
         $teacher->delete();
@@ -226,7 +234,7 @@ class TeacherController extends Controller
             $user->delete();
         }
 
-        return redirect()->route('admin.teachers.index')->with('success', 'Data guru berhasil dihapus.');
+        return $this->redirectToTeachersIndex($request)->with('success', 'Data guru berhasil dihapus.');
     }
 
     public function downloadTemplate(): StreamedResponse
@@ -348,7 +356,7 @@ class TeacherController extends Controller
             $rows = $sheet->toArray(null, true, true, true);
 
             if (count($rows) <= 1) {
-                return redirect()->route('admin.teachers.index')->with('error', 'File Excel kosong atau tidak memiliki baris data.');
+                return $this->redirectToTeachersIndex($request)->with('error', 'File Excel kosong atau tidak memiliki baris data.');
             }
 
             $importedCount = 0;
@@ -433,12 +441,12 @@ class TeacherController extends Controller
             }
 
             if ($importedCount === 0 && ! empty($skipped)) {
-                return redirect()->route('admin.teachers.index')->with('error', 'Tidak ada data guru yang berhasil diimpor. '.implode(', ', array_slice($skipped, 0, 3)));
+                return $this->redirectToTeachersIndex($request)->with('error', 'Tidak ada data guru yang berhasil diimpor. '.implode(', ', array_slice($skipped, 0, 3)));
             }
 
-            return redirect()->route('admin.teachers.index')->with('success', $message);
+            return $this->redirectToTeachersIndex($request)->with('success', $message);
         } catch (\Throwable $e) {
-            return redirect()->route('admin.teachers.index')->with('error', 'Gagal memproses file Excel: '.$e->getMessage());
+            return $this->redirectToTeachersIndex($request)->with('error', 'Gagal memproses file Excel: '.$e->getMessage());
         }
     }
 
@@ -617,7 +625,7 @@ class TeacherController extends Controller
             }
         });
 
-        return redirect()->route('admin.teachers.index')
+        return $this->redirectToTeachersIndex($request)
             ->with('success', 'Pengaturan penugasan mengajar untuk guru '.$teacher->user?->name.' berhasil disimpan.');
     }
 
@@ -675,6 +683,51 @@ class TeacherController extends Controller
             ? "Wewenang Pengelola Tabungan untuk {$teacherName} berhasil disimpan."
             : "Status Pengelola Tabungan untuk {$teacherName} berhasil dinonaktifkan.";
 
-        return back()->with('success', $message);
+        return $this->redirectToTeachersIndex($request)->with('success', $message);
+    }
+
+    /**
+     * Mengambil parameter query halaman/pencarian/urutan yang aman dari input return_query.
+     *
+     * @return array<string, string>
+     */
+    protected function extractReturnQueryParams(Request $request): array
+    {
+        $rawQuery = ltrim(trim((string) $request->input('return_query', '')), '?');
+        if ($rawQuery === '') {
+            return [];
+        }
+
+        parse_str($rawQuery, $parsed);
+        $allowed = [];
+
+        foreach (['page', 'search', 'sort'] as $key) {
+            if (isset($parsed[$key]) && is_scalar($parsed[$key]) && (string) $parsed[$key] !== '') {
+                $allowed[$key] = (string) $parsed[$key];
+            }
+        }
+
+        return $allowed;
+    }
+
+    /**
+     * Mengalihkan kembali ke daftar guru dengan parameter halaman, pencarian, dan urutan yang dipilih.
+     */
+    protected function redirectToTeachersIndex(Request $request): RedirectResponse
+    {
+        $params = $this->extractReturnQueryParams($request);
+        if (empty($params)) {
+            $refererQuery = parse_url((string) $request->headers->get('referer', ''), PHP_URL_QUERY);
+            if (is_string($refererQuery) && $refererQuery !== '') {
+                parse_str($refererQuery, $parsed);
+                foreach (['page', 'search', 'sort'] as $key) {
+                    if (isset($parsed[$key]) && is_scalar($parsed[$key]) && (string) $parsed[$key] !== '') {
+                        $params[$key] = (string) $parsed[$key];
+                    }
+                }
+            }
+        }
+
+        return redirect()->route('admin.teachers.index', $params);
     }
 }

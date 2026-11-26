@@ -114,7 +114,7 @@
 <div class="overflow-hidden rounded-xl border-2 border-black bg-white shadow-[5px_5px_0px_0px_#000]">
     <!-- Search & Sort Toolbar -->
     <div class="border-b-2 border-black bg-[#FFFDF5] p-4">
-        <form action="{{ route('admin.teachers.index') }}" method="GET" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <form id="teacherFilterForm" action="{{ route('admin.teachers.index') }}" method="GET" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <!-- Search Input -->
             <div class="relative flex-1 max-w-md">
                 <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -127,6 +127,7 @@
                        class="min-h-11 w-full rounded-lg border-2 border-black bg-white py-2 pl-9 pr-12 text-xs font-semibold text-black placeholder:font-medium placeholder:text-slate-400 shadow-[2px_2px_0px_0px_#000] transition-all focus:bg-[#FFF9DB]/50 focus:shadow-[3px_3px_0px_0px_#000] focus:outline-none sm:text-sm">
                 @if(!empty($search))
                     <a href="{{ route('admin.teachers.index', request()->except(['search', 'page'])) }}"
+                       onclick="clearTeacherIndexState(true)"
                        class="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded border border-black bg-slate-100 text-black transition hover:bg-[#FF6B6B] hover:text-white"
                        title="Hapus kata kunci"
                        aria-label="Hapus kata kunci pencarian">
@@ -159,6 +160,7 @@
 
                 @if(!empty($search) || ($sort ?? 'name_asc') !== 'name_asc')
                     <a href="{{ route('admin.teachers.index') }}"
+                       onclick="clearTeacherIndexState(false)"
                        class="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:flex-none sm:text-sm"
                        title="Reset Semua Filter">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -176,7 +178,7 @@
                     Menampilkan <strong class="font-black tabular-nums">{{ $teachers->total() }}</strong> hasil untuk
                     <strong class="font-black">"{{ $search }}"</strong>
                 </span>
-                <a href="{{ route('admin.teachers.index') }}" class="font-extrabold text-rose-700 underline decoration-2 hover:text-rose-900">
+                <a href="{{ route('admin.teachers.index') }}" onclick="clearTeacherIndexState(false)" class="font-extrabold text-rose-700 underline decoration-2 hover:text-rose-900">
                     Hapus Pencarian
                 </a>
             </div>
@@ -464,10 +466,11 @@
 
                                     <form action="{{ route('admin.teachers.destroy', $teacher) }}"
                                           method="POST"
-                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus data guru ini?')"
+                                          onsubmit="syncTeacherReturnQueryInputs(); return confirm('Apakah Anda yakin ingin menghapus data guru ini?')"
                                           class="inline">
                                         @csrf
                                         @method('DELETE')
+                                        <input type="hidden" name="return_query" class="teacher-return-query" value="">
                                         <button type="submit"
                                                 class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFE3E3] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FF6B6B] hover:text-white hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                                                 title="Hapus Guru">
@@ -498,6 +501,7 @@
                                         Tidak ada guru yang cocok dengan kata kunci "{{ $search }}".
                                     </p>
                                     <a href="{{ route('admin.teachers.index') }}"
+                                       onclick="clearTeacherIndexState(false)"
                                        class="mt-4 inline-flex items-center gap-1.5 rounded-lg border-2 border-black bg-[#FFD43B] px-4 py-2 text-xs font-extrabold uppercase text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FCC419] hover:shadow-[4px_4px_0px_0px_#000]">
                                         Tampilkan Semua Guru
                                     </a>
@@ -530,7 +534,7 @@
     </div>
 
     @if($teachers->hasPages())
-        <div class="border-t-2 border-black bg-[#FFFDF5] px-5 py-3.5">
+        <div id="teachersPaginationContainer" class="border-t-2 border-black bg-[#FFFDF5] px-5 py-3.5">
             {{ $teachers->links() }}
         </div>
     @endif
