@@ -98,7 +98,7 @@
                                     data-name="{{ $tName }}" 
                                     data-nip="{{ $tNip }}"
                                     {{ (string) old('headmaster_teacher_id', $setting->headmaster_teacher_id) === (string) $t->id ? 'selected' : '' }}>
-                                {{ $tName }} (NIP: {{ $tNip ?: '-' }})
+                                {{ $t->isKepala() ? '[Kepala Madrasah] ' : '' }}{{ $tName }} (NIP: {{ $tNip ?: '-' }})
                             </option>
                         @endforeach
                     @endif

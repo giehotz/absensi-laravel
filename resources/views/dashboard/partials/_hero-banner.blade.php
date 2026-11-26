@@ -70,36 +70,63 @@
             <div class="flex items-center justify-between mb-3">
                 <span class="text-[11px] font-extrabold uppercase tracking-wider text-blue-100 flex items-center gap-1.5">
                     <i data-lucide="zap" class="w-3.5 h-3.5 text-[#FFD43B] fill-[#FFD43B]"></i>
-                    Aksi Cepat Administrator
+                    {{ Auth::user()?->isKepala() ? 'Pintasan Monitoring Kepala' : 'Aksi Cepat Administrator' }}
                 </span>
                 <span class="text-[10px] font-semibold text-blue-200">6 Pintasan</span>
             </div>
 
             <div class="grid grid-cols-2 gap-2.5">
-                <a href="{{ route('admin.attendances.manual', ['date' => $date]) }}" class="neo-btn bg-[#22C55E] hover:bg-emerald-400 text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
-                    <i data-lucide="clipboard-check" class="w-4 h-4 shrink-0"></i>
-                    <span class="truncate">Presensi Manual</span>
-                </a>
-                <a href="{{ route('admin.reports.attendance', ['start_date' => $date, 'end_date' => $date]) }}" class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
-                    <i data-lucide="bar-chart-3" class="w-4 h-4 shrink-0"></i>
-                    <span class="truncate">Rekap Laporan</span>
-                </a>
-                <a href="{{ route('admin.teaching-journals.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
-                    <i data-lucide="book-open" class="w-4 h-4 text-blue-600 shrink-0"></i>
-                    <span class="truncate">Jurnal Guru</span>
-                </a>
-                <a href="{{ route('admin.savings.index') }}" class="neo-btn bg-[#7DD3FC] hover:bg-[#a5d8ff] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
-                    <i data-lucide="wallet" class="w-4 h-4 shrink-0"></i>
-                    <span class="truncate">Kas Tabungan</span>
-                </a>
-                <a href="{{ route('admin.academic-calendar.index') }}" class="neo-btn bg-[#FEF08A] hover:bg-[#ffec99] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
-                    <i data-lucide="calendar-days" class="w-4 h-4 shrink-0"></i>
-                    <span class="truncate">Kalender Akademik</span>
-                </a>
-                <a href="{{ route('admin.settings.index') }}" class="neo-btn bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
-                    <i data-lucide="settings" class="w-4 h-4 text-slate-600 shrink-0"></i>
-                    <span class="truncate">Pengaturan</span>
-                </a>
+                @if(Auth::user()?->isKepala())
+                    <a href="{{ route('admin.reports.attendance', ['start_date' => $date, 'end_date' => $date]) }}" class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Rekap Laporan</span>
+                    </a>
+                    <a href="{{ route('admin.teaching-journals.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="book-open" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                        <span class="truncate">Jurnal Guru</span>
+                    </a>
+                    <a href="{{ route('admin.teachers.index') }}" class="neo-btn bg-[#D3F9D8] hover:bg-[#b2f2bb] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="users" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Guru &amp; Tendik</span>
+                    </a>
+                    <a href="{{ route('admin.academic-calendar.index') }}" class="neo-btn bg-[#FEF08A] hover:bg-[#ffec99] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="calendar-days" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Kalender Akademik</span>
+                    </a>
+                    <a href="{{ route('ujian.dashboard') }}" class="neo-btn bg-[#E5DBFF] hover:bg-[#d0bfff] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="file-text" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Monitoring Ujian</span>
+                    </a>
+                    <a href="{{ route('mbg.rekap.index') }}" class="neo-btn bg-[#7DD3FC] hover:bg-[#a5d8ff] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="utensils" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Rekap MBG</span>
+                    </a>
+                @else
+                    <a href="{{ route('admin.attendances.manual', ['date' => $date]) }}" class="neo-btn bg-[#22C55E] hover:bg-emerald-400 text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="clipboard-check" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Presensi Manual</span>
+                    </a>
+                    <a href="{{ route('admin.reports.attendance', ['start_date' => $date, 'end_date' => $date]) }}" class="neo-btn bg-[#FFD43B] hover:bg-[#ffe066] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Rekap Laporan</span>
+                    </a>
+                    <a href="{{ route('admin.teaching-journals.index') }}" class="neo-btn bg-white hover:bg-slate-100 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="book-open" class="w-4 h-4 text-blue-600 shrink-0"></i>
+                        <span class="truncate">Jurnal Guru</span>
+                    </a>
+                    <a href="{{ route('admin.savings.index') }}" class="neo-btn bg-[#7DD3FC] hover:bg-[#a5d8ff] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="wallet" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Kas Tabungan</span>
+                    </a>
+                    <a href="{{ route('admin.academic-calendar.index') }}" class="neo-btn bg-[#FEF08A] hover:bg-[#ffec99] text-slate-950 rounded-lg px-3 py-2 text-xs font-extrabold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="calendar-days" class="w-4 h-4 shrink-0"></i>
+                        <span class="truncate">Kalender Akademik</span>
+                    </a>
+                    <a href="{{ route('admin.settings.index') }}" class="neo-btn bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg px-3 py-2 text-xs font-bold flex items-center gap-2 text-left cursor-pointer transition-all active:translate-x-0.5 active:translate-y-0.5">
+                        <i data-lucide="settings" class="w-4 h-4 text-slate-600 shrink-0"></i>
+                        <span class="truncate">Pengaturan</span>
+                    </a>
+                @endif
             </div>
         </div>
     </div>

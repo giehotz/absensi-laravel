@@ -125,19 +125,21 @@
             </div>
         </div>
 
-        <!-- Kas Tabungan -->
-        <a href="{{ route('admin.savings.index') }}" 
-           class="neo-card-sm bg-[#FEF9C3] hover:bg-[#fef08a] rounded-xl p-3.5 flex items-center gap-3 col-span-2 sm:col-span-1 cursor-pointer transition-transform active:translate-x-0.5 active:translate-y-0.5">
-            <div class="w-10 h-10 rounded-lg bg-amber-400 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0_#0F172A]">
-                <i data-lucide="piggy-bank" class="w-5 h-5 text-slate-900"></i>
-            </div>
-            <div class="min-w-0">
-                <p class="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">Kas Tabungan</p>
-                <p class="text-lg font-black text-slate-900 font-mono leading-tight truncate">
-                    Rp {{ number_format($stats['total_savings'], 0, ',', '.') }}
-                </p>
-                <p class="text-[10px] font-semibold text-amber-800 truncate">Saldo Siswa Terhimpun</p>
-            </div>
-        </a>
+        @if(! Auth::user()?->isKepala() && $stats['total_savings'] !== null)
+            <!-- Kas Tabungan -->
+            <a href="{{ route('admin.savings.index') }}" 
+               class="neo-card-sm bg-[#FEF9C3] hover:bg-[#fef08a] rounded-xl p-3.5 flex items-center gap-3 col-span-2 sm:col-span-1 cursor-pointer transition-transform active:translate-x-0.5 active:translate-y-0.5">
+                <div class="w-10 h-10 rounded-lg bg-amber-400 border-2 border-slate-900 flex items-center justify-center shrink-0 shadow-[1.5px_1.5px_0_#0F172A]">
+                    <i data-lucide="piggy-bank" class="w-5 h-5 text-slate-900"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-[10px] font-extrabold uppercase tracking-wider text-amber-900">Kas Tabungan</p>
+                    <p class="text-lg font-black text-slate-900 font-mono leading-tight truncate">
+                        Rp {{ number_format($stats['total_savings'], 0, ',', '.') }}
+                    </p>
+                    <p class="text-[10px] font-semibold text-amber-800 truncate">Saldo Siswa Terhimpun</p>
+                </div>
+            </a>
+        @endif
     </div>
 </section>

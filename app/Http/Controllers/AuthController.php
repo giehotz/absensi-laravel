@@ -103,7 +103,7 @@ class AuthController extends Controller
     private function redirectToDashboard(User $user): RedirectResponse
     {
         return match ($user->role) {
-            'admin' => redirect()->route('admin.dashboard'),
+            'admin', 'kepala' => redirect()->route('admin.dashboard'),
             'guru' => redirect()->route('guru.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
             'orangtua' => redirect()->route('orangtua.dashboard'),

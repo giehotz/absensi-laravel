@@ -40,7 +40,7 @@ class SchoolClassController extends Controller
         }
 
         $classes = $query->paginate(15)->withQueryString();
-        $teachers = Teacher::with('user')->get();
+        $teachers = Teacher::with('user')->excludeKepala()->get();
         $academicYears = AcademicYear::all();
         $distinctYears = AcademicYear::distinctYearNames();
 

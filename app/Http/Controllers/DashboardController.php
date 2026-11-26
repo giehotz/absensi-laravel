@@ -45,10 +45,10 @@ class DashboardController extends Controller
         $totalStudents = Student::currentAcademicYear()->count();
         $maleStudents = Student::currentAcademicYear()->where('gender', 'L')->count();
         $femaleStudents = Student::currentAcademicYear()->where('gender', 'P')->count();
-        $totalTeachers = Teacher::count();
+        $totalTeachers = Teacher::excludeKepala()->count();
         $totalClasses = SchoolClass::currentAcademicYear()->count();
         $pendingLeavesCount = LeaveRequest::where('status', 'pending')->count();
-        $totalSavingsBalance = (float) SavingsAccount::sum('balance');
+        $totalSavingsBalance = Auth::user()?->isKepala() ? null : (float) SavingsAccount::sum('balance');
         $todayJournalsCount = TeachingJournal::whereDate('date', $date)->count();
 
         $attendancesDate = Attendance::whereDate('date', $date)->get();

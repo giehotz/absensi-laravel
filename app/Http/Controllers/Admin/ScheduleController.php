@@ -81,7 +81,7 @@ class ScheduleController extends Controller
             ];
         }
 
-        $teachers = Teacher::with(['user', 'assignments'])->get()->sortBy(fn ($t) => $t->user->name ?? '');
+        $teachers = Teacher::with(['user', 'assignments'])->excludeKepala()->get()->sortBy(fn ($t) => $t->user->name ?? '');
         $subjects = Subject::orderBy('name')->get();
 
         $teacherAssignmentsMap = $teachers->mapWithKeys(function ($t) {

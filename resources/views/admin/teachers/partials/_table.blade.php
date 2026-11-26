@@ -110,11 +110,52 @@
 </style>
 @endpush
 
-<!-- Main Data Card (Integrated Toolbar + Table + Pagination) -->
+<!-- Main Data Card (Tabs + Toolbar + Table + Pagination) -->
 <div class="overflow-hidden rounded-xl border-2 border-black bg-white shadow-[5px_5px_0px_0px_#000]">
+    <!-- Navigation Tabs: Guru vs Tata Usaha (TU) vs Kepala Madrasah -->
+    @php
+        $currentTab = $tab ?? 'guru';
+        $isGuruTab = $currentTab === 'guru';
+        $isTuTab = $currentTab === 'tu';
+        $isKepalaTab = $currentTab === 'kepala';
+        $isKepalaViewer = Auth::user()?->isKepala() ?? false;
+        $tabSortParam = ($sort ?? 'name_asc') !== 'name_asc' ? $sort : null;
+        $resetTabParams = $isGuruTab ? [] : ['tab' => $currentTab];
+    @endphp
+    <nav aria-label="Kategori Guru, Tata Usaha, dan Kepala Madrasah" class="flex overflow-x-auto border-b-2 border-black bg-[#FFF9DB]">
+        <a href="{{ route('admin.teachers.index', array_filter(['tab' => 'guru', 'sort' => $tabSortParam])) }}"
+           @if($isGuruTab) aria-current="page" @endif
+           onclick="saveTeacherIndexState({ tab: 'guru', page: '1', search: '', sort: @json($sort ?? 'name_asc') })"
+           class="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-5 py-3.5 text-xs sm:text-sm font-black uppercase tracking-wide border-r-2 border-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-black {{ $isGuruTab ? 'bg-white text-black after:content-[\'\'] after:absolute after:inset-x-0 after:bottom-0 after:border-b-4 after:border-black' : 'text-slate-600 hover:bg-[#FFF3BF] hover:text-black' }}">
+            <span>Guru (Pendidik)</span>
+            <span class="inline-flex items-center rounded-md border border-black px-2 py-0.5 text-[11px] font-black tabular-nums {{ $isGuruTab ? 'bg-[#FFD43B] text-black' : 'bg-white text-slate-700' }}">
+                {{ $guruCount }}
+            </span>
+        </a>
+        <a href="{{ route('admin.teachers.index', array_filter(['tab' => 'tu', 'sort' => $tabSortParam])) }}"
+           @if($isTuTab) aria-current="page" @endif
+           onclick="saveTeacherIndexState({ tab: 'tu', page: '1', search: '', sort: @json($sort ?? 'name_asc') })"
+           class="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-5 py-3.5 text-xs sm:text-sm font-black uppercase tracking-wide border-r-2 border-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-black {{ $isTuTab ? 'bg-white text-black after:content-[\'\'] after:absolute after:inset-x-0 after:bottom-0 after:border-b-4 after:border-black' : 'text-slate-600 hover:bg-[#FFF3BF] hover:text-black' }}">
+            <span>Tata Usaha (TU)</span>
+            <span class="inline-flex items-center rounded-md border border-black px-2 py-0.5 text-[11px] font-black tabular-nums {{ $isTuTab ? 'bg-[#A5D8FF] text-black' : 'bg-white text-slate-700' }}">
+                {{ $tuCount }}
+            </span>
+        </a>
+        <a href="{{ route('admin.teachers.index', array_filter(['tab' => 'kepala', 'sort' => $tabSortParam])) }}"
+           @if($isKepalaTab) aria-current="page" @endif
+           onclick="saveTeacherIndexState({ tab: 'kepala', page: '1', search: '', sort: @json($sort ?? 'name_asc') })"
+           class="relative flex-none whitespace-nowrap inline-flex items-center gap-2 px-5 py-3.5 text-xs sm:text-sm font-black uppercase tracking-wide border-r-2 border-black transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-black {{ $isKepalaTab ? 'bg-white text-black after:content-[\'\'] after:absolute after:inset-x-0 after:bottom-0 after:border-b-4 after:border-black' : 'text-slate-600 hover:bg-[#FFF3BF] hover:text-black' }}">
+            <span>Kepala Madrasah</span>
+            <span class="inline-flex items-center rounded-md border border-black px-2 py-0.5 text-[11px] font-black tabular-nums {{ $isKepalaTab ? 'bg-[#D3F9D8] text-black' : 'bg-white text-slate-700' }}">
+                {{ $kepalaCount }}
+            </span>
+        </a>
+    </nav>
+
     <!-- Search & Sort Toolbar -->
     <div class="border-b-2 border-black bg-[#FFFDF5] p-4">
         <form id="teacherFilterForm" action="{{ route('admin.teachers.index') }}" method="GET" class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <input type="hidden" name="tab" value="{{ $currentTab }}">
             <!-- Search Input -->
             <div class="relative flex-1 max-w-md">
                 <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -123,11 +164,11 @@
                 <input type="text"
                        name="search"
                        value="{{ $search ?? '' }}"
-                       placeholder="Cari nama guru, NUPTK, NIP, atau email..."
+                       placeholder="{{ $isKepalaTab ? 'Cari nama Kepala Madrasah, NUPTK, NIP, atau email...' : ($isTuTab ? 'Cari nama staf TU, NUPTK, NIP, atau email...' : 'Cari nama guru, NUPTK, NIP, atau email...') }}"
                        class="min-h-11 w-full rounded-lg border-2 border-black bg-white py-2 pl-9 pr-12 text-xs font-semibold text-black placeholder:font-medium placeholder:text-slate-400 shadow-[2px_2px_0px_0px_#000] transition-all focus:bg-[#FFF9DB]/50 focus:shadow-[3px_3px_0px_0px_#000] focus:outline-none sm:text-sm">
                 @if(!empty($search))
                     <a href="{{ route('admin.teachers.index', request()->except(['search', 'page'])) }}"
-                       onclick="clearTeacherIndexState(true)"
+                       onclick="clearTeacherIndexState(true, '{{ $currentTab }}')"
                        class="absolute right-0.5 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded border border-black bg-slate-100 text-black transition hover:bg-[#FF6B6B] hover:text-white"
                        title="Hapus kata kunci"
                        aria-label="Hapus kata kunci pencarian">
@@ -159,8 +200,8 @@
                 </button>
 
                 @if(!empty($search) || ($sort ?? 'name_asc') !== 'name_asc')
-                    <a href="{{ route('admin.teachers.index') }}"
-                       onclick="clearTeacherIndexState(false)"
+                    <a href="{{ route('admin.teachers.index', $resetTabParams) }}"
+                       onclick="clearTeacherIndexState(false, '{{ $currentTab }}')"
                        class="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-slate-100 hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none sm:flex-none sm:text-sm"
                        title="Reset Semua Filter">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -178,7 +219,7 @@
                     Menampilkan <strong class="font-black tabular-nums">{{ $teachers->total() }}</strong> hasil untuk
                     <strong class="font-black">"{{ $search }}"</strong>
                 </span>
-                <a href="{{ route('admin.teachers.index') }}" onclick="clearTeacherIndexState(false)" class="font-extrabold text-rose-700 underline decoration-2 hover:text-rose-900">
+                <a href="{{ route('admin.teachers.index', $resetTabParams) }}" onclick="clearTeacherIndexState(false, '{{ $currentTab }}')" class="font-extrabold text-rose-700 underline decoration-2 hover:text-rose-900">
                     Hapus Pencarian
                 </a>
             </div>
@@ -186,17 +227,17 @@
     </div>
 
     <!-- Data Table -->
-    <div class="teachers-table-wrapper overflow-x-auto" tabindex="0" role="region" aria-label="Daftar guru dan tenaga pendidik">
+    <div class="teachers-table-wrapper overflow-x-auto" tabindex="0" role="region" aria-label="{{ $isKepalaTab ? 'Daftar Kepala Madrasah' : ($isTuTab ? 'Daftar tenaga kependidikan dan tata usaha' : 'Daftar guru dan tenaga pendidik') }}">
         <table class="teachers-table w-full min-w-[960px] text-left text-sm">
-            <caption class="sr-only">Daftar guru dan tenaga pendidik</caption>
+            <caption class="sr-only">{{ $isKepalaTab ? 'Daftar Kepala Madrasah' : ($isTuTab ? 'Daftar tenaga kependidikan dan tata usaha' : 'Daftar guru dan tenaga pendidik') }}</caption>
             <thead class="border-b-2 border-black bg-[#FFF9DB] text-xs font-black uppercase tracking-wider text-black">
                 <tr>
                     <th class="w-12 py-3.5 pl-5 pr-3 text-right">No</th>
                     <th class="px-4 py-3.5">
-                        <a href="{{ route('admin.teachers.index', array_merge(request()->except(['sort', 'page']), ['sort' => ($sort ?? 'name_asc') === 'name_asc' ? 'name_desc' : 'name_asc'])) }}"
+                        <a href="{{ route('admin.teachers.index', array_merge(request()->except(['sort', 'page']), ['tab' => $currentTab, 'sort' => ($sort ?? 'name_asc') === 'name_asc' ? 'name_desc' : 'name_asc'])) }}"
                            class="group inline-flex items-center gap-1.5 text-black transition hover:text-slate-700"
                            title="Klik untuk membalikkan urutan A-Z / Z-A">
-                            <span>Profil Guru</span>
+                            <span>{{ $isKepalaTab ? 'Profil Kepala' : ($isTuTab ? 'Profil Staf TU' : 'Profil Guru') }}</span>
                             @if(($sort ?? 'name_asc') === 'name_asc')
                                 <span class="inline-flex items-center rounded border border-black bg-black px-1.5 py-0.5 text-[10px] font-extrabold text-[#FFD43B]">A-Z ↑</span>
                             @elseif(($sort ?? '') === 'name_desc')
@@ -207,8 +248,8 @@
                         </a>
                     </th>
                     <th class="px-4 py-3.5">NUPTK / NIP</th>
-                    <th class="px-4 py-3.5">TTL & Pendidikan</th>
-                    <th class="px-4 py-3.5">Peran & Penugasan</th>
+                    <th class="px-4 py-3.5">TTL &amp; Pendidikan</th>
+                    <th class="px-4 py-3.5">{{ $isKepalaTab ? 'Peran Lembaga' : ($isTuTab ? 'Peran & Wewenang' : 'Peran & Penugasan') }}</th>
                     <th class="py-3.5 pl-4 pr-5 text-right">Aksi</th>
                 </tr>
             </thead>
@@ -320,53 +361,66 @@
                         </td>
 
                         <!-- Peran & Penugasan -->
-                        <td class="px-4 py-4 align-top" data-label="Peran &amp; Penugasan">
+                        <td class="px-4 py-4 align-top" data-label="{{ $isKepalaTab ? 'Peran Lembaga' : ($isTuTab ? 'Peran & Wewenang' : 'Peran & Penugasan') }}">
                             <div class="space-y-2 text-xs">
-                                <!-- Wali Kelas -->
-                                <div class="flex items-start gap-2">
-                                    <span class="w-9 shrink-0 pt-0.5 text-[10px] font-extrabold uppercase text-slate-500">Wali</span>
-                                    @if($teacher->homeroomClasses->isNotEmpty())
-                                        <div class="flex flex-wrap gap-1">
-                                            @foreach($teacher->homeroomClasses as $cls)
-                                                <span class="inline-flex items-center rounded border border-black bg-[#D3F9D8] px-2 py-0.5 text-[11px] font-extrabold text-black">
-                                                    {{ $cls->name }}
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <span class="pt-0.5 text-[11px] font-medium text-slate-400 italic">Bukan wali kelas</span>
-                                    @endif
-                                </div>
+                                @if($isKepalaTab)
+                                    <span class="inline-flex items-center gap-1 rounded border-2 border-black bg-[#D3F9D8] px-2.5 py-0.5 text-[11px] font-black text-black shadow-[1px_1px_0px_0px_#000]">
+                                        🏛️ Kepala Madrasah / Sekolah
+                                    </span>
+                                    <div class="text-[11px] font-medium text-slate-600">
+                                        Hak akses Monitoring (tanpa KBM, Tabungan, atau tugas operasional lain).
+                                    </div>
+                                @elseif(! $isTuTab)
+                                    <!-- Wali Kelas -->
+                                    <div class="flex items-start gap-2">
+                                        <span class="w-9 shrink-0 pt-0.5 text-[10px] font-extrabold uppercase text-slate-500">Wali</span>
+                                        @if($teacher->homeroomClasses->isNotEmpty())
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach($teacher->homeroomClasses as $cls)
+                                                    <span class="inline-flex items-center rounded border border-black bg-[#D3F9D8] px-2 py-0.5 text-[11px] font-extrabold text-black">
+                                                        {{ $cls->name }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <span class="pt-0.5 text-[11px] font-medium text-slate-400 italic">Bukan wali kelas</span>
+                                        @endif
+                                    </div>
 
-                                <!-- KBM -->
-                                <div class="flex items-start gap-2">
-                                    <span class="w-9 shrink-0 pt-0.5 text-[10px] font-extrabold uppercase text-slate-500">KBM</span>
-                                    @if($teacher->assignments->isNotEmpty())
-                                        @php
-                                            $assignedSubNames = $teacher->assignments->pluck('subject.name')->unique()->filter();
-                                            $assignedClassCount = $teacher->assignments->pluck('school_class_id')->unique()->count();
-                                        @endphp
-                                        <div class="flex flex-wrap items-center gap-1">
-                                            @foreach($assignedSubNames as $sName)
-                                                <span class="inline-flex items-center rounded border border-black bg-[#E5DBFF] px-2 py-0.5 text-[11px] font-bold text-black">
-                                                    {{ $sName }}
+                                    <!-- KBM -->
+                                    <div class="flex items-start gap-2">
+                                        <span class="w-9 shrink-0 pt-0.5 text-[10px] font-extrabold uppercase text-slate-500">KBM</span>
+                                        @if($teacher->assignments->isNotEmpty())
+                                            @php
+                                                $assignedSubNames = $teacher->assignments->pluck('subject.name')->unique()->filter();
+                                                $assignedClassCount = $teacher->assignments->pluck('school_class_id')->unique()->count();
+                                            @endphp
+                                            <div class="flex flex-wrap items-center gap-1">
+                                                @foreach($assignedSubNames as $sName)
+                                                    <span class="inline-flex items-center rounded border border-black bg-[#E5DBFF] px-2 py-0.5 text-[11px] font-bold text-black">
+                                                        {{ $sName }}
+                                                    </span>
+                                                @endforeach
+                                                <span class="inline-flex items-center rounded border border-black bg-white px-1.5 py-0.5 font-mono text-[10px] font-extrabold text-black tabular-nums">
+                                                    {{ $assignedClassCount }} Rombel
                                                 </span>
-                                            @endforeach
-                                            <span class="inline-flex items-center rounded border border-black bg-white px-1.5 py-0.5 font-mono text-[10px] font-extrabold text-black tabular-nums">
-                                                {{ $assignedClassCount }} Rombel
+                                            </div>
+                                        @else
+                                            <span class="inline-flex items-center rounded border border-black bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-black">
+                                                Semua Mapel
                                             </span>
-                                        </div>
-                                    @else
-                                        <span class="inline-flex items-center rounded border border-black bg-[#FFF9DB] px-2 py-0.5 text-[11px] font-bold text-black">
-                                            Semua Mapel
-                                        </span>
-                                    @endif
-                                </div>
+                                        @endif
+                                    </div>
+                                @else
+                                    <span class="inline-flex items-center rounded border border-black bg-[#E7F5FF] px-2 py-0.5 text-[11px] font-black text-black">
+                                        Tata Usaha (TU)
+                                    </span>
+                                @endif
 
-                                <!-- Tambahan: Pengelola Tabungan & Petugas MBG -->
-                                @if($teacher->is_savings_officer || $teacher->is_petugas_mbg)
+                                <!-- Tambahan: Pengelola Tabungan (hanya non-Kepala non-monitoring) & Petugas MBG -->
+                                @if(! $isKepalaTab && (($teacher->is_savings_officer && ! $isKepalaViewer) || $teacher->is_petugas_mbg))
                                     <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                                        @if($teacher->is_savings_officer)
+                                        @if($teacher->is_savings_officer && ! $isKepalaViewer)
                                             @if($teacher->savings_scope === 'all')
                                                 <span class="inline-flex items-center gap-1 rounded border-2 border-black bg-[#20C997] px-2 py-0.5 text-[10px] font-black text-black shadow-[2px_2px_0px_0px_#000]"
                                                       title="Mengelola tabungan seluruh rombel/kelas">
@@ -406,82 +460,92 @@
 
                         <!-- Aksi -->
                         <td class="teacher-card-actions py-4 pl-4 pr-5 text-right align-top" data-label="Aksi">
-                            <div class="inline-flex flex-col items-end gap-2">
-                                <!-- Role / Assignment Actions -->
-                                <div class="inline-flex items-center gap-1.5">
-                                    <button type="button"
-                                            onclick="openAssignmentModal({{ $teacher->id }}, '{{ addslashes($teacher->user->name ?? 'Guru') }}', {{ $teacher->homeroomClasses->isNotEmpty() ? 'true' : 'false' }}, {{ json_encode($teacher->homeroomClasses->pluck('id')->all()) }}, {{ json_encode($teacher->homeroomClasses->pluck('name')->all()) }})"
-                                            class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#E5DBFF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#D0BFFF] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                                            title="Atur Mata Pelajaran dan Rombel yang Diajar">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                                        </svg>
-                                        <span>Mengajar</span>
-                                    </button>
+                            @if($isKepalaViewer)
+                                <span class="inline-flex items-center rounded border border-black/30 bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-600">
+                                    Hanya Lihat
+                                </span>
+                            @else
+                                <div class="inline-flex flex-col items-end gap-2">
+                                    @if(! $isKepalaTab)
+                                        <!-- Role / Assignment Actions -->
+                                        <div class="inline-flex items-center gap-1.5">
+                                            @if(! $isTuTab)
+                                                <button type="button"
+                                                        onclick="openAssignmentModal({{ $teacher->id }}, '{{ addslashes($teacher->user->name ?? 'Guru') }}', {{ $teacher->homeroomClasses->isNotEmpty() ? 'true' : 'false' }}, {{ json_encode($teacher->homeroomClasses->pluck('id')->all()) }}, {{ json_encode($teacher->homeroomClasses->pluck('name')->all()) }})"
+                                                        class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#E5DBFF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#D0BFFF] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                                        title="Atur Mata Pelajaran dan Rombel yang Diajar">
+                                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                                    </svg>
+                                                    <span>Mengajar</span>
+                                                </button>
+                                            @endif
 
-                                    <button type="button"
-                                            onclick="openSavingsModal({{ json_encode([
-                                                'id' => $teacher->id,
-                                                'name' => $teacher->user->name ?? 'Guru',
-                                                'is_savings_officer' => (bool) $teacher->is_savings_officer,
-                                                'savings_scope' => $teacher->savings_scope ?? 'all',
-                                                'managed_class_ids' => $teacher->managedSavingsClasses->pluck('id')->all(),
-                                                'action_url' => route('admin.teachers.savings-assignment', $teacher),
-                                            ]) }})"
-                                            class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none {{ $teacher->is_savings_officer ? 'bg-[#63E6BE] hover:bg-[#38D9A9]' : 'bg-white hover:bg-[#FFF3BF]' }}"
-                                            title="{{ $teacher->is_savings_officer ? 'Atur Wewenang Rombel Pengelola Tabungan' : 'Tunjuk Sebagai Pengelola Tabungan Siswa' }}">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                        </svg>
-                                        <span>Tabungan</span>
-                                    </button>
-                                </div>
+                                            <button type="button"
+                                                    onclick="openSavingsModal({{ json_encode([
+                                                        'id' => $teacher->id,
+                                                        'name' => $teacher->user->name ?? 'Guru',
+                                                        'is_savings_officer' => (bool) $teacher->is_savings_officer,
+                                                        'savings_scope' => $teacher->savings_scope ?? 'all',
+                                                        'managed_class_ids' => $teacher->managedSavingsClasses->pluck('id')->all(),
+                                                        'action_url' => route('admin.teachers.savings-assignment', $teacher),
+                                                    ]) }})"
+                                                    class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none {{ $teacher->is_savings_officer ? 'bg-[#63E6BE] hover:bg-[#38D9A9]' : 'bg-white hover:bg-[#FFF3BF]' }}"
+                                                    title="{{ $teacher->is_savings_officer ? 'Atur Wewenang Rombel Pengelola Tabungan' : 'Tunjuk Sebagai Pengelola Tabungan Siswa' }}">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                                </svg>
+                                                <span>Tabungan</span>
+                                            </button>
+                                        </div>
+                                    @endif
 
-                                <!-- Edit & Delete Actions -->
-                                <div class="inline-flex items-center gap-1.5">
-                                    <form action="{{ route('admin.teachers.impersonate', $teacher) }}"
-                                          method="POST"
-                                          data-teacher-name="{{ $teacherName }}"
-                                          onsubmit="return confirmTeacherImpersonation(this)"
-                                          class="inline">
-                                        @csrf
-                                        <button type="submit"
-                                                class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#A5D8FF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#74C0FC] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                                                title="Masuk sebagai akun guru ini (Impersonasi)">
+                                    <!-- Edit & Delete Actions -->
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <form action="{{ route('admin.teachers.impersonate', $teacher) }}"
+                                              method="POST"
+                                              data-teacher-name="{{ $teacherName }}"
+                                              onsubmit="return confirmTeacherImpersonation(this)"
+                                              class="inline">
+                                            @csrf
+                                            <button type="submit"
+                                                    class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#A5D8FF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#74C0FC] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                                    title="Masuk sebagai akun ini (Impersonasi)">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                </svg>
+                                                <span>Masuk</span>
+                                            </button>
+                                        </form>
+
+                                        <a href="{{ route('admin.teachers.edit', $teacher) }}"
+                                           class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFF3BF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FFD43B] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                           title="Edit Data">
                                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                             </svg>
-                                            <span>Masuk</span>
-                                        </button>
-                                    </form>
+                                            <span>Edit</span>
+                                        </a>
 
-                                    <a href="{{ route('admin.teachers.edit', $teacher) }}"
-                                       class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFF3BF] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FFD43B] hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                                       title="Edit Data Guru">
-                                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                        </svg>
-                                        <span>Edit</span>
-                                    </a>
-
-                                    <form action="{{ route('admin.teachers.destroy', $teacher) }}"
-                                          method="POST"
-                                          onsubmit="syncTeacherReturnQueryInputs(); return confirm('Apakah Anda yakin ingin menghapus data guru ini?')"
-                                          class="inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <input type="hidden" name="return_query" class="teacher-return-query" value="">
-                                        <button type="submit"
-                                                class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFE3E3] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FF6B6B] hover:text-white hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                                                title="Hapus Guru">
-                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                            <span>Hapus</span>
-                                        </button>
-                                    </form>
+                                        <form action="{{ route('admin.teachers.destroy', $teacher) }}"
+                                              method="POST"
+                                              onsubmit="syncTeacherReturnQueryInputs(); return confirm('Apakah Anda yakin ingin menghapus data ini?')"
+                                              class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <input type="hidden" name="return_query" class="teacher-return-query" value="">
+                                            <button type="submit"
+                                                    class="inline-flex cursor-pointer items-center gap-1 rounded-lg border-2 border-black bg-[#FFE3E3] px-2.5 py-1 text-[11px] font-extrabold text-black shadow-[2px_2px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FF6B6B] hover:text-white hover:shadow-[3px_3px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                                    title="Hapus Data">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.25" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                                <span>Hapus</span>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         </td>
                     </tr>
                 @empty
@@ -495,35 +559,41 @@
                                 </div>
                                 @if(!empty($search))
                                     <h3 class="mt-4 text-sm font-black text-black">
-                                        Data guru tidak ditemukan
+                                        {{ $isKepalaTab ? 'Data Kepala Madrasah tidak ditemukan' : ($isTuTab ? 'Data Tata Usaha (TU) tidak ditemukan' : 'Data guru tidak ditemukan') }}
                                     </h3>
                                     <p class="mt-1 text-xs font-medium text-slate-600">
-                                        Tidak ada guru yang cocok dengan kata kunci "{{ $search }}".
+                                        Tidak ada {{ $isKepalaTab ? 'Kepala Madrasah' : ($isTuTab ? 'staf TU' : 'guru') }} yang cocok dengan kata kunci "{{ $search }}".
                                     </p>
-                                    <a href="{{ route('admin.teachers.index') }}"
-                                       onclick="clearTeacherIndexState(false)"
+                                    <a href="{{ route('admin.teachers.index', $resetTabParams) }}"
+                                       onclick="clearTeacherIndexState(false, '{{ $currentTab }}')"
                                        class="mt-4 inline-flex items-center gap-1.5 rounded-lg border-2 border-black bg-[#FFD43B] px-4 py-2 text-xs font-extrabold uppercase text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FCC419] hover:shadow-[4px_4px_0px_0px_#000]">
-                                        Tampilkan Semua Guru
+                                        {{ $isKepalaTab ? 'Tampilkan Semua Kepala' : ($isTuTab ? 'Tampilkan Semua TU' : 'Tampilkan Semua Guru') }}
                                     </a>
                                 @else
                                     <h3 class="mt-4 text-sm font-black text-black">
-                                        Belum ada data guru
+                                        {{ $isKepalaTab ? 'Belum ada data Kepala Madrasah' : ($isTuTab ? 'Belum ada data Tata Usaha (TU)' : 'Belum ada data guru') }}
                                     </h3>
                                     <p class="mt-1 text-xs font-medium text-slate-600">
-                                        Mulai dengan menambahkan guru secara manual atau mengimpor dari file Excel.
+                                        @if($isKepalaViewer)
+                                            Data {{ $isKepalaTab ? 'Kepala Madrasah' : ($isTuTab ? 'staf TU' : 'guru') }} belum tersedia.
+                                        @else
+                                            Mulai dengan menambahkan {{ $isKepalaTab ? 'Kepala Madrasah' : ($isTuTab ? 'staf TU' : 'guru') }} secara manual atau mengimpor dari file Excel.
+                                        @endif
                                     </p>
-                                    <div class="mt-4 flex items-center gap-2.5">
-                                        <button type="button"
-                                                onclick="openModal('importTeacherModal')"
-                                                class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-black bg-[#FFD43B] px-3.5 py-2 text-xs font-extrabold uppercase text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FCC419]">
-                                            Import Excel
-                                        </button>
-                                        <button type="button"
-                                                onclick="openModal('createTeacherModal')"
-                                                class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-black bg-[#20C997] px-3.5 py-2 text-xs font-extrabold uppercase text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#12B886]">
-                                            + Tambah Guru
-                                        </button>
-                                    </div>
+                                    @if(! $isKepalaViewer)
+                                        <div class="mt-4 flex items-center gap-2.5">
+                                            <button type="button"
+                                                    onclick="openModal('importTeacherModal')"
+                                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-black bg-[#FFD43B] px-3.5 py-2 text-xs font-extrabold uppercase text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#FCC419]">
+                                                Import Excel
+                                            </button>
+                                            <button type="button"
+                                                    onclick="openModal('createTeacherModal')"
+                                                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-black bg-[#20C997] px-3.5 py-2 text-xs font-extrabold uppercase text-black shadow-[3px_3px_0px_0px_#000] transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-[#12B886]">
+                                                + Tambah {{ $isKepalaTab ? 'Kepala' : ($isTuTab ? 'TU' : 'Guru') }}
+                                            </button>
+                                        </div>
+                                    @endif
                                 @endif
                             </div>
                         </td>

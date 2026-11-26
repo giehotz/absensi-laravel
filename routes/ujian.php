@@ -11,10 +11,11 @@ use App\Http\Controllers\Ujian\PengawasAbsensiAdminController;
 use App\Http\Controllers\Ujian\PesertaKartuUjianController;
 use App\Http\Controllers\Ujian\RuangUjianController;
 use App\Http\Controllers\Ujian\SesiUjianController;
+use App\Http\Middleware\EnsureKepalaMonitoring;
 use App\Http\Middleware\EnsurePanitiaUjian;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth', EnsurePanitiaUjian::class])
+Route::middleware(['web', 'auth', EnsurePanitiaUjian::class, EnsureKepalaMonitoring::class])
     ->prefix('ujian')
     ->name('ujian.')
     ->group(function () {

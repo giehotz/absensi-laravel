@@ -38,12 +38,12 @@ class ImpersonationController extends Controller
 
         $teacherUser = $teacher->user;
 
-        if (! $teacherUser || ! $teacherUser->isGuru()) {
-            return back()->with('error', 'Akun guru yang dipilih tidak valid atau tidak ditemukan.');
+        if (! $teacherUser || (! $teacherUser->isGuru() && ! $teacherUser->isKepala())) {
+            return back()->with('error', 'Akun yang dipilih tidak valid atau tidak ditemukan.');
         }
 
         if (! $teacherUser->is_active) {
-            return back()->with('error', "Akun guru {$teacherUser->name} sedang dinonaktifkan sehingga tidak dapat diakses.");
+            return back()->with('error', "Akun {$teacherUser->name} sedang dinonaktifkan sehingga tidak dapat diakses.");
         }
 
         $request->session()->put([
@@ -55,11 +55,17 @@ class ImpersonationController extends Controller
         Auth::login($teacherUser);
         $request->session()->regenerate();
 
-        Log::info('Admin memulai impersonasi akun guru.', [
+        Log::info('Admin memulai impersonasi akun guru/kepala.', [
             'admin_id' => $admin->id,
             'teacher_id' => $teacher->id,
             'teacher_user_id' => $teacherUser->id,
         ]);
+
+        if ($teacherUser->isKepala()) {
+            return redirect()
+                ->route('admin.dashboard')
+                ->with('success', "Anda sekarang masuk sebagai Kepala Madrasah ({$teacherUser->name}) dalam mode monitoring.");
+        }
 
         return redirect()
             ->route('guru.dashboard')

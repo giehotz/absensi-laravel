@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\SubjectReferenceController;
 use App\Http\Controllers\ImpersonationController;
 use App\Http\Controllers\PublicVerificationController;
+use App\Http\Middleware\EnsureKepalaMonitoring;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -10,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     if (Auth::check()) {
         return match (Auth::user()->role) {
-            'admin' => redirect()->route('admin.dashboard'),
+            'admin', 'kepala' => redirect()->route('admin.dashboard'),
             'guru' => redirect()->route('guru.dashboard'),
             'siswa' => redirect()->route('siswa.dashboard'),
             'orangtua' => redirect()->route('orangtua.dashboard'),
@@ -36,7 +37,7 @@ Route::prefix('api/v1')->group(function () {
 });
 
 // Rute Peran Pengguna Terautentikasi
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(base_path('routes/admin.php'));
+Route::middleware(['auth', 'role:admin,kepala', EnsureKepalaMonitoring::class])->prefix('admin')->name('admin.')->group(base_path('routes/admin.php'));
 Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(base_path('routes/guru.php'));
 Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(base_path('routes/siswa.php'));
 Route::middleware(['auth', 'role:orangtua'])->prefix('orangtua')->name('orangtua.')->group(base_path('routes/orangtua.php'));
@@ -45,7 +46,7 @@ Route::middleware(['auth', 'role:orangtua'])->prefix('orangtua')->name('orangtua
 require base_path('routes/tabungan.php');
 
 // Modul Terisolasi: Distribusi Makan Bergizi Gratis (MBG)
-Route::middleware(['auth', 'mbg.officer'])->prefix('mbg')->name('mbg.')->group(base_path('routes/mbg.php'));
+Route::middleware(['auth', 'mbg.officer', EnsureKepalaMonitoring::class])->prefix('mbg')->name('mbg.')->group(base_path('routes/mbg.php'));
 
 // Modul Terisolasi: Manajemen Ujian & Cetak Kartu Ujian (Admin & Panitia Ujian)
 require base_path('routes/ujian.php');

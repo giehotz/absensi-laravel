@@ -4,6 +4,7 @@
         const currentParams = new URLSearchParams(window.location.search);
         const currentQs = typeof window.buildTeacherIndexQueryString === 'function'
             ? window.buildTeacherIndexQueryString({
+                tab: currentParams.get('tab') || @json($tab ?? 'guru'),
                 page: currentParams.get('page') || String({{ $teachers->currentPage() }}),
                 search: currentParams.get('search') ?? @json($search ?? ''),
                 sort: currentParams.get('sort') || @json($sort ?? 'name_asc'),
@@ -44,10 +45,11 @@
         const filterForm = document.getElementById('teacherFilterForm');
         if (filterForm) {
             filterForm.addEventListener('submit', function () {
+                const tabVal = filterForm.querySelector('input[name="tab"]')?.value || @json($tab ?? 'guru');
                 const searchVal = filterForm.querySelector('input[name="search"]')?.value || '';
                 const sortVal = filterForm.querySelector('select[name="sort"]')?.value || 'name_asc';
                 if (typeof window.saveTeacherIndexState === 'function') {
-                    window.saveTeacherIndexState({ page: '1', search: searchVal, sort: sortVal });
+                    window.saveTeacherIndexState({ tab: tabVal, page: '1', search: searchVal, sort: sortVal });
                 }
             });
         }
@@ -61,6 +63,7 @@
                     const url = new URL(link.href, window.location.origin);
                     if (typeof window.saveTeacherIndexState === 'function') {
                         window.saveTeacherIndexState({
+                            tab: url.searchParams.get('tab') || @json($tab ?? 'guru'),
                             page: url.searchParams.get('page') || '1',
                             search: url.searchParams.get('search') || '',
                             sort: url.searchParams.get('sort') || 'name_asc',

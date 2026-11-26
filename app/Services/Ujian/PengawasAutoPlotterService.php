@@ -58,6 +58,7 @@ class PengawasAutoPlotterService
             $hasAnyMapping = $mappings->isNotEmpty();
 
             $teachers = Teacher::with('user')
+                ->excludeKepala()
                 ->whereHas('user', fn ($q) => $q->where('is_active', true))
                 ->whereNotIn('id', $excludedPanitiaIds)
                 ->get()

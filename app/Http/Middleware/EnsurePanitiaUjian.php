@@ -20,7 +20,7 @@ class EnsurePanitiaUjian
             return redirect()->route('login');
         }
 
-        if ($user->isAdmin() || $user->isPanitiaUjian()) {
+        if ($user->isAdmin() || $user->isPanitiaUjian() || $user->isKepala()) {
             return $next($request);
         }
 

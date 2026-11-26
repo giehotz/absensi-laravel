@@ -24,7 +24,7 @@ class EnsureRole
         if (! in_array($user->role, $roles, true)) {
             // Redirect to their own role dashboard
             $targetRoute = match ($user->role) {
-                'admin' => 'admin.dashboard',
+                'admin', 'kepala' => 'admin.dashboard',
                 'guru' => 'guru.dashboard',
                 'siswa' => 'siswa.dashboard',
                 'orangtua' => 'orangtua.dashboard',

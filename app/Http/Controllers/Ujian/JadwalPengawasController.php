@@ -120,6 +120,7 @@ class JadwalPengawasController extends Controller
             ->values();
 
         $teachers = Teacher::with(['user', 'pengawasMappings'])
+            ->excludeKepala()
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->get()
             ->sortBy(fn ($t) => $t->user?->name ?? '')

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Ujian\UjianPanitia;
 use App\Models\Ujian\UjianPengawasMapping;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,8 +16,15 @@ class Teacher extends Model
 {
     use HasFactory;
 
+    public const STAFF_TYPE_GURU = 'guru';
+
+    public const STAFF_TYPE_TU = 'tu';
+
+    public const STAFF_TYPE_KEPALA = 'kepala';
+
     protected $fillable = [
         'user_id',
+        'staff_type',
         'nuptk',
         'nip',
         'gender',
@@ -88,6 +96,30 @@ class Teacher extends Model
             ->where('is_active', true)
             ->when($periodeId, fn ($q) => $q->where('ujian_periode_id', $periodeId))
             ->exists();
+    }
+
+    public function isTu(): bool
+    {
+        return ($this->staff_type ?? self::STAFF_TYPE_GURU) === self::STAFF_TYPE_TU;
+    }
+
+    public function isKepala(): bool
+    {
+        return ($this->staff_type ?? self::STAFF_TYPE_GURU) === self::STAFF_TYPE_KEPALA;
+    }
+
+    public function scopeByStaffType(Builder $query, string $staffType): Builder
+    {
+        $normalized = in_array($staffType, [self::STAFF_TYPE_GURU, self::STAFF_TYPE_TU, self::STAFF_TYPE_KEPALA], true)
+            ? $staffType
+            : self::STAFF_TYPE_GURU;
+
+        return $query->where('teachers.staff_type', $normalized);
+    }
+
+    public function scopeExcludeKepala(Builder $query): Builder
+    {
+        return $query->where('teachers.staff_type', '!=', self::STAFF_TYPE_KEPALA);
     }
 
     public function isPetugasMbg(): bool

@@ -34,6 +34,12 @@ class PengawasMappingService
     ): UjianPengawasMapping {
         $teacher = Teacher::with('user')->findOrFail($teacherId);
 
+        if ($teacher->isKepala()) {
+            throw ValidationException::withMessages([
+                'teacher_id' => "Akun {$teacher->user?->name} berstatus Kepala Madrasah dan dikecualikan dari tugas pengawas ujian.",
+            ]);
+        }
+
         if ($teacher->isPanitiaUjian($periodeId)) {
             throw ValidationException::withMessages([
                 'teacher_id' => "Guru {$teacher->user?->name} terdaftar sebagai Panitia Ujian aktif dan tidak dapat dipetakan sebagai pengawas.",
@@ -104,6 +110,7 @@ class PengawasMappingService
             ->all();
 
         $activeTeacherIds = Teacher::whereIn('id', $candidateTeacherIds)
+            ->excludeKepala()
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->whereNotIn('id', $excludedPanitiaIds)
             ->pluck('id')
@@ -162,8 +169,8 @@ class PengawasMappingService
 
         $count = 0;
         foreach ($teachers as $teacher) {
-            // Abaikan jika guru terdaftar sebagai panitia ujian
-            if ($teacher->isPanitiaUjian($periodeId)) {
+            // Abaikan jika guru adalah Kepala Madrasah atau panitia ujian
+            if ($teacher->isKepala() || $teacher->isPanitiaUjian($periodeId)) {
                 continue;
             }
 
@@ -209,6 +216,10 @@ class PengawasMappingService
 
         if (! ($teacher->user?->is_active ?? true)) {
             return ['eligible' => false, 'reason' => "Guru {$teacher->user?->name} berstatus tidak aktif."];
+        }
+
+        if ($teacher->isKepala()) {
+            return ['eligible' => false, 'reason' => "{$teacher->user?->name} berstatus Kepala Madrasah dan dikecualikan dari tugas pengawas ujian."];
         }
 
         if ($teacher->isPanitiaUjian($jadwal->ujian_periode_id)) {

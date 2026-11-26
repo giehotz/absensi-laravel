@@ -23,6 +23,7 @@
         'SMA/SMK' => 'SMA / SMK / Sederajat',
     ];
     $isActive = (string) old('is_active', $teacher->user?->is_active ?? true ? '1' : '0');
+    $staffType = (string) old('staff_type', $teacher->staff_type ?: 'guru');
     $isPetugasMbg = (bool) old('is_petugas_mbg', $teacher->is_petugas_mbg);
     $isSavingsOfficer = (string) old('is_savings_officer', $teacher->is_savings_officer ? '1' : '0');
     $savingsScope = (string) old('savings_scope', $teacher->savings_scope ?: 'all');
@@ -187,6 +188,41 @@
 
                         <div class="space-y-2">
                             <label class="block text-xs font-extrabold uppercase tracking-wide text-black">
+                                Kategori PTK <span class="text-rose-600">*</span>
+                            </label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#FFF9DB] has-[:checked]:bg-[#FFD43B] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                                    <input type="radio"
+                                           name="staff_type"
+                                           value="guru"
+                                           onchange="toggleEditStaffTypeSections()"
+                                           {{ ! in_array($staffType, ['tu', 'kepala'], true) ? 'checked' : '' }}
+                                           class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                                    <span>Guru</span>
+                                </label>
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#E7F5FF] has-[:checked]:bg-[#A5D8FF] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                                    <input type="radio"
+                                           name="staff_type"
+                                           value="tu"
+                                           onchange="toggleEditStaffTypeSections()"
+                                           {{ $staffType === 'tu' ? 'checked' : '' }}
+                                           class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                                    <span>TU</span>
+                                </label>
+                                <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#D3F9D8] has-[:checked]:bg-[#63E6BE] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                                    <input type="radio"
+                                           name="staff_type"
+                                           value="kepala"
+                                           onchange="toggleEditStaffTypeSections()"
+                                           {{ $staffType === 'kepala' ? 'checked' : '' }}
+                                           class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                                    <span>Kepala</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <label class="block text-xs font-extrabold uppercase tracking-wide text-black">
                                 Status Akun <span class="text-rose-600">*</span>
                             </label>
                             <div class="grid grid-cols-2 gap-2.5">
@@ -215,7 +251,7 @@
                 </div>
 
                 <!-- Ringkasan Wali Kelas & KBM (Konteks) -->
-                <div class="rounded-xl border-2 border-black bg-[#FFFDF5] p-5 shadow-[5px_5px_0px_0px_#000]">
+                <div id="edit_kbm_summary_card" class="rounded-xl border-2 border-black bg-[#FFFDF5] p-5 shadow-[5px_5px_0px_0px_#000] {{ $staffType === 'guru' ? '' : 'hidden' }}">
                     <h2 class="border-b-2 border-black pb-2.5 text-sm font-black uppercase tracking-wide text-black">
                         Ringkasan Penugasan KBM
                     </h2>
@@ -393,7 +429,7 @@
                 </div>
 
                 <!-- Kartu Peran Tambahan: Petugas MBG & Pengelola Tabungan -->
-                <div class="rounded-xl border-2 border-black bg-white p-6 shadow-[5px_5px_0px_0px_#000]">
+                <div id="edit_additional_roles_card" class="rounded-xl border-2 border-black bg-white p-6 shadow-[5px_5px_0px_0px_#000] {{ $staffType === 'kepala' ? 'hidden' : '' }}">
                     <div class="border-b-2 border-black pb-3">
                         <h2 class="text-base font-black uppercase tracking-wide text-black">
                             Peran & Wewenang Tambahan
@@ -564,6 +600,7 @@
             if (raw) {
                 const state = JSON.parse(raw);
                 const params = new URLSearchParams();
+                if (state.tab === 'tu' || state.tab === 'kepala') params.set('tab', state.tab);
                 if (state.search) params.set('search', String(state.search));
                 if (state.sort && state.sort !== 'name_asc') params.set('sort', String(state.sort));
                 const page = parseInt(state.page, 10);
@@ -678,6 +715,19 @@
             classesContainer.classList.remove('hidden');
         } else {
             classesContainer.classList.add('hidden');
+        }
+    }
+
+    function toggleEditStaffTypeSections() {
+        const selectedType = document.querySelector('input[name="staff_type"]:checked')?.value || 'guru';
+        const kbmCard = document.getElementById('edit_kbm_summary_card');
+        const additionalRolesCard = document.getElementById('edit_additional_roles_card');
+
+        if (kbmCard) {
+            kbmCard.classList.toggle('hidden', selectedType !== 'guru');
+        }
+        if (additionalRolesCard) {
+            additionalRolesCard.classList.toggle('hidden', selectedType === 'kepala');
         }
     }
 

@@ -55,7 +55,10 @@ class SettingController extends Controller
                 ->count();
         }
 
-        $teachers = Teacher::with('user')->get()->sortBy(fn ($t) => $t->user?->name ?? '')->values();
+        $teachers = Teacher::with('user')
+            ->get()
+            ->sortBy(fn ($t) => [($t->isKepala() ? 0 : 1), $t->user?->name ?? ''])
+            ->values();
 
         return view('admin.settings.index', compact('setting', 'academicYears', 'activeAttendanceCount', 'archivedAttendanceCount', 'teachers'));
     }
@@ -143,13 +146,26 @@ class SettingController extends Controller
             $setting->school_village = $validated['school_village'];
         }
 
-        // Simpan Data Kepala Madrasah (Data Guru atau Input Manual)
+        // Simpan Data Kepala Madrasah (Data Guru/Kepala atau Input Manual)
         if (! empty($validated['headmaster_teacher_id'])) {
             $teacher = Teacher::with('user')->find($validated['headmaster_teacher_id']);
             if ($teacher) {
                 $setting->headmaster_teacher_id = $teacher->id;
                 $setting->card_principal_name = $teacher->user?->name ?? $validated['card_principal_name'];
                 $setting->card_principal_nip = $teacher->nip ?? $validated['card_principal_nip'];
+
+                if (! $teacher->isKepala()) {
+                    $teacher->assignments()->delete();
+                    SchoolClass::where('homeroom_teacher_id', $teacher->id)->update(['homeroom_teacher_id' => null]);
+                    $teacher->managedSavingsClasses()->sync([]);
+                    $teacher->update([
+                        'staff_type' => Teacher::STAFF_TYPE_KEPALA,
+                        'is_petugas_mbg' => false,
+                        'is_savings_officer' => false,
+                        'savings_scope' => 'all',
+                    ]);
+                    $teacher->user?->update(['role' => 'kepala']);
+                }
             }
         } else {
             $setting->headmaster_teacher_id = null;

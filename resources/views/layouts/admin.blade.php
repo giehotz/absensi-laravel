@@ -79,6 +79,9 @@
             </div>
 
             <!-- Navigation Links -->
+            @php
+                $isKepalaUser = Auth::user()?->isKepala() ?? false;
+            @endphp
             <nav id="sidebarNav" class="flex-1 overflow-y-auto sidebar-scroll p-4 space-y-4">
                 <!-- Group 1: Menu Utama -->
                 <div>
@@ -130,17 +133,19 @@
                             <span>Data Kelas & Rombel</span>
                         </a>
 
-                        <!-- Kenaikan Kelas & Kelulusan -->
-                        <a href="{{ route('admin.students.promotion.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.students.promotion.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.students.promotion.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                            </svg>
-                            <span>Kenaikan Kelas</span>
-                        </a>
+                        @if(! $isKepalaUser)
+                            <!-- Kenaikan Kelas & Kelulusan -->
+                            <a href="{{ route('admin.students.promotion.index') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.students.promotion.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.students.promotion.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                                </svg>
+                                <span>Kenaikan Kelas</span>
+                            </a>
+                        @endif
 
                         <!-- Studio Kartu Pelajar -->
                         <a href="{{ route('admin.students.cards') }}" 
@@ -254,10 +259,12 @@
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.jenis.*') || request()->routeIs('ujian.periode.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
                                     <span>Jenis & Periode Ujian</span>
                                 </a>
-                                <a href="{{ route('ujian.pengaturan-ttd.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                                    <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
-                                    <span>Pengaturan Kop & TTD</span>
-                                </a>
+                                @if(! $isKepalaUser)
+                                    <a href="{{ route('ujian.pengaturan-ttd.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.pengaturan-ttd.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
+                                        <span>Pengaturan Kop &amp; TTD</span>
+                                    </a>
+                                @endif
                                 <a href="{{ route('ujian.ruang.index') }}" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-all duration-150 cursor-pointer group {{ request()->routeIs('ujian.ruang.*') ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[2px_2px_0px_0px_#000000] translate-x-1' : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
                                     <span class="w-1.5 h-1.5 rounded-full {{ request()->routeIs('ujian.ruang.*') ? 'bg-black' : 'bg-slate-400 group-hover:bg-[#FFD43B]' }}"></span>
                                     <span>Master Ruang & Sesi</span>
@@ -348,17 +355,19 @@
                         Presensi & Laporan
                     </div>
                     <div class="space-y-1">
-                        <!-- Presensi Manual -->
-                        <a href="{{ route('admin.attendances.manual') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.attendances.manual*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.attendances.manual*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 2l3 3h-3V4zm-4 7a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Presensi Manual</span>
-                        </a>
+                        @if(! $isKepalaUser)
+                            <!-- Presensi Manual -->
+                            <a href="{{ route('admin.attendances.manual') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.attendances.manual*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.attendances.manual*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 2l3 3h-3V4zm-4 7a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Presensi Manual</span>
+                            </a>
+                        @endif
 
                         <!-- Laporan Presensi -->
                         <a href="{{ route('admin.reports.attendance') }}" 
@@ -375,26 +384,28 @@
                     </div>
                 </div>
 
-                <!-- Group 5: Keuangan -->
-                <div>
-                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Keuangan
+                @if(! $isKepalaUser)
+                    <!-- Group 5: Keuangan -->
+                    <div>
+                        <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                            Keuangan
+                        </div>
+                        <div class="space-y-1">
+                            <!-- Tabungan Siswa -->
+                            <a href="{{ route('admin.savings.index') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.savings.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.savings.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                                    <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>Tabungan Siswa</span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="space-y-1">
-                        <!-- Tabungan Siswa -->
-                        <a href="{{ route('admin.savings.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.savings.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.savings.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
-                                <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Tabungan Siswa</span>
-                        </a>
-                    </div>
-                </div>
+                @endif
 
                 <!-- Group: Makan Bergizi Gratis (MBG) -->
                 <div>
@@ -402,18 +413,20 @@
                         Makan Bergizi Gratis (MBG)
                     </div>
                     <div class="space-y-1">
-                        <!-- Monitoring & Distribusi MBG -->
-                        <a href="{{ route('mbg.dashboard') }}" 
-                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('mbg.dashboard') || request()->routeIs('mbg.distributions.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <div class="flex items-center gap-3">
-                                <span class="text-sm">🍱</span>
-                                <span>Distribusi & Catat</span>
-                            </div>
-                            <span class="text-[9px] font-black bg-[#20C997] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">MBG</span>
-                        </a>
+                        @if(! $isKepalaUser)
+                            <!-- Monitoring & Distribusi MBG -->
+                            <a href="{{ route('mbg.dashboard') }}" 
+                               class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('mbg.dashboard') || request()->routeIs('mbg.distributions.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-sm">🍱</span>
+                                    <span>Distribusi & Catat</span>
+                                </div>
+                                <span class="text-[9px] font-black bg-[#20C997] text-black px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">MBG</span>
+                            </a>
+                        @endif
 
                         <!-- Rekapitulasi Laporan MBG -->
                         <a href="{{ route('mbg.rekap.index') }}" 
@@ -425,78 +438,82 @@
                             <span>Rekapitulasi MBG</span>
                         </a>
 
-                        <!-- Kelola Petugas MBG -->
-                        <a href="{{ route('admin.petugas-mbg.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.petugas-mbg.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <span class="text-sm">👥</span>
-                            <span>Kelola Petugas MBG</span>
-                        </a>
+                        @if(! $isKepalaUser)
+                            <!-- Kelola Petugas MBG -->
+                            <a href="{{ route('admin.petugas-mbg.index') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.petugas-mbg.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <span class="text-sm">👥</span>
+                                <span>Kelola Petugas MBG</span>
+                            </a>
+                        @endif
                     </div>
                 </div>
 
-                <!-- Group 6: Sistem & Utilitas -->
-                <div>
-                    <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
-                        Sistem & Utilitas
-                    </div>
-                    <div class="space-y-1">
-                        <!-- QR Generator -->
-                        <a href="{{ route('admin.qr-generator.index') }}" 
-                           class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.qr-generator.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <div class="flex items-center gap-3">
-                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.qr-generator.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                @if(! $isKepalaUser)
+                    <!-- Group 6: Sistem & Utilitas -->
+                    <div>
+                        <div class="px-2 mb-1.5 text-[10px] font-black uppercase tracking-wider text-slate-400 font-heading">
+                            Sistem &amp; Utilitas
+                        </div>
+                        <div class="space-y-1">
+                            <!-- QR Generator -->
+                            <a href="{{ route('admin.qr-generator.index') }}" 
+                               class="flex items-center justify-between px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.qr-generator.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.qr-generator.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                                    </svg>
+                                    <span>QR Generator</span>
+                                </div>
+                                <span class="text-[9px] font-black bg-[#5294FF] text-white px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
+                            </a>
+
+
+                            <!-- Pengaturan -->
+                            <a href="{{ route('admin.settings.index') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.settings.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.settings.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
                                 </svg>
-                                <span>QR Generator</span>
-                            </div>
-                            <span class="text-[9px] font-black bg-[#5294FF] text-white px-1.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_0px_#000]">NEW</span>
-                        </a>
+                                <span>Pengaturan</span>
+                            </a>
 
-
-                        <!-- Pengaturan -->
-                        <a href="{{ route('admin.settings.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.settings.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.settings.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>Pengaturan</span>
-                        </a>
-
-                        <!-- API & Integrasi -->
-                        <a href="{{ route('admin.api-clients.index') }}" 
-                           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
-                           {{ request()->routeIs('admin.api-clients.*') 
-                                ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
-                                : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
-                            <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.api-clients.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
-                            </svg>
-                            <span>API & Integrasi</span>
-                        </a>
+                            <!-- API & Integrasi -->
+                            <a href="{{ route('admin.api-clients.index') }}" 
+                               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs transition-all duration-150 cursor-pointer group
+                               {{ request()->routeIs('admin.api-clients.*') 
+                                    ? 'bg-[#FFD43B] text-black border-2 border-black font-black shadow-[3px_3px_0px_0px_#000000] translate-x-1' 
+                                    : 'text-slate-300 border-2 border-transparent font-bold hover:bg-slate-800/90 hover:text-white hover:border-slate-700' }}">
+                                <svg class="w-4 h-4 shrink-0 {{ request()->routeIs('admin.api-clients.*') ? 'text-black' : 'text-slate-400 group-hover:text-white' }}" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>API &amp; Integrasi</span>
+                            </a>
+                        </div>
                     </div>
-                </div>
+                @endif
             </nav>
 
             <!-- Sidebar Footer: High Contrast User Profile Card -->
             <div class="p-3 border-t-4 border-black bg-[#1E293B] shrink-0 space-y-2.5">
                 <div class="flex items-center gap-2.5 p-2 bg-[#0F172A] border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_#000]">
                     <div class="w-8 h-8 rounded-md bg-[#FFD43B] border-2 border-black flex items-center justify-center font-bold text-xs shrink-0 shadow-[1px_1px_0px_0px_#000]">
-                        👑
+                        {{ $isKepalaUser ? '🏛️' : '👑' }}
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="text-xs font-bold text-white truncate">{{ Auth::user()->name }}</div>
                         <div class="text-[10px] font-semibold text-[#FFD43B] flex items-center gap-1">
                             <span class="w-1.5 h-1.5 rounded-full bg-[#20C997]"></span>
-                            <span>Administrator</span>
+                            <span>{{ $isKepalaUser ? 'Kepala Madrasah' : 'Administrator' }}</span>
                         </div>
                     </div>
                 </div>
@@ -526,9 +543,9 @@
                 </button>
                 <div>
                     <div class="hidden sm:flex items-center gap-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">
-                        <span class="text-black font-black">Panel Admin</span>
+                        <span class="text-black font-black">{{ (Auth::user()?->isKepala() ?? false) ? 'Panel Kepala' : 'Panel Admin' }}</span>
                         <span>/</span>
-                        <span>Navigasi</span>
+                        <span>{{ (Auth::user()?->isKepala() ?? false) ? 'Mode Monitoring' : 'Navigasi' }}</span>
                     </div>
                     <h1 class="font-heading font-black text-lg sm:text-xl text-black leading-tight">
                         @yield('page-title', 'Panel Admin')
@@ -552,6 +569,27 @@
 
         <!-- Page Body -->
         <main class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+            @if(session()->has(\App\Http\Controllers\ImpersonationController::SESSION_ADMIN_ID))
+                <div class="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border-2 border-black bg-[#A5D8FF] px-4 py-3 text-xs font-bold text-black shadow-[4px_4px_0px_0px_#000]">
+                    <div>
+                        Anda sedang masuk menggunakan akun <strong class="font-black">{{ Auth::user()?->name }}</strong> (Impersonasi Admin: {{ session(\App\Http\Controllers\ImpersonationController::SESSION_ADMIN_NAME) }}).
+                    </div>
+                    <form action="{{ route('impersonation.stop') }}" method="POST" class="shrink-0">
+                        @csrf
+                        <button type="submit" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-2 border-black bg-[#FFD43B] px-3.5 py-1.5 text-xs font-black uppercase text-black shadow-[2px_2px_0px_0px_#000] hover:bg-yellow-300">
+                            Kembali ke Admin
+                        </button>
+                    </form>
+                </div>
+            @endif
+
+            @if(Auth::user()?->isKepala())
+                <div class="mb-5 flex items-center gap-2.5 rounded-xl border-2 border-black bg-[#E7F5FF] px-4 py-2.5 text-xs font-semibold text-slate-900 shadow-[3px_3px_0px_0px_#000]">
+                    <span class="inline-flex items-center rounded border border-black bg-[#FFD43B] px-2 py-0.5 text-[10px] font-black uppercase text-black">Mode Monitoring</span>
+                    <span>Akun Kepala Madrasah hanya dapat melihat, mencetak, dan mengekspor laporan (tanpa akses ubah data, pengaturan sistem, maupun Tabungan Siswa).</span>
+                </div>
+            @endif
+
             <!-- Flash Alerts via SweetAlert2 -->
             @if(session('success'))
             <script>

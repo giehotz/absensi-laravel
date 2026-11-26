@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Teacher;
@@ -34,12 +35,21 @@ class TeacherController extends Controller
 
     public function index(Request $request): View|RedirectResponse
     {
+        $requestedTab = (string) $request->query('tab', Teacher::STAFF_TYPE_GURU);
+        $tab = in_array($requestedTab, [Teacher::STAFF_TYPE_GURU, Teacher::STAFF_TYPE_TU, Teacher::STAFF_TYPE_KEPALA], true)
+            ? $requestedTab
+            : Teacher::STAFF_TYPE_GURU;
         $search = trim((string) $request->query('search', ''));
         $sort = (string) $request->query('sort', 'name_asc');
 
+        $guruCount = Teacher::where('staff_type', Teacher::STAFF_TYPE_GURU)->count();
+        $tuCount = Teacher::where('staff_type', Teacher::STAFF_TYPE_TU)->count();
+        $kepalaCount = Teacher::where('staff_type', Teacher::STAFF_TYPE_KEPALA)->count();
+
         $query = Teacher::with(['user', 'homeroomClasses', 'assignments.subject', 'assignments.schoolClass', 'managedSavingsClasses'])
             ->select('teachers.*')
-            ->leftJoin('users', 'teachers.user_id', '=', 'users.id');
+            ->leftJoin('users', 'teachers.user_id', '=', 'users.id')
+            ->byStaffType($tab);
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
@@ -69,13 +79,24 @@ class TeacherController extends Controller
         $subjects = Subject::orderBy('name')->get();
         $classes = SchoolClass::ordered()->get();
 
-        return view('admin.teachers.index', compact('teachers', 'subjects', 'classes', 'search', 'sort'));
+        return view('admin.teachers.index', compact(
+            'teachers',
+            'subjects',
+            'classes',
+            'search',
+            'sort',
+            'tab',
+            'guruCount',
+            'tuCount',
+            'kepalaCount'
+        ));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'staff_type' => ['nullable', 'in:guru,tu,kepala'],
             'nuptk' => ['nullable', 'string', 'max:50', 'unique:teachers,nuptk'],
             'nip' => ['nullable', 'string', 'max:50', 'unique:teachers,nip'],
             'gender' => ['required', 'in:L,P'],
@@ -94,17 +115,20 @@ class TeacherController extends Controller
             'email.unique' => 'Email sudah terdaftar pada sistem.',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        $staffType = $validated['staff_type'] ?? Teacher::STAFF_TYPE_GURU;
+
+        DB::transaction(function () use ($validated, $staffType) {
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => ! empty($validated['email']) ? $validated['email'] : null,
                 'password' => Hash::make(! empty($validated['password']) ? $validated['password'] : 'password'),
-                'role' => 'guru',
+                'role' => $staffType === Teacher::STAFF_TYPE_KEPALA ? 'kepala' : 'guru',
                 'is_active' => true,
             ]);
 
-            Teacher::create([
+            $teacher = Teacher::create([
                 'user_id' => $user->id,
+                'staff_type' => $staffType,
                 'nuptk' => ! empty($validated['nuptk']) ? $validated['nuptk'] : null,
                 'nip' => ! empty($validated['nip']) ? $validated['nip'] : null,
                 'gender' => $validated['gender'],
@@ -113,9 +137,19 @@ class TeacherController extends Controller
                 'last_education' => ! empty($validated['last_education']) ? $validated['last_education'] : null,
                 'phone' => ! empty($validated['phone']) ? $validated['phone'] : null,
             ]);
+
+            if ($staffType === Teacher::STAFF_TYPE_KEPALA) {
+                $this->syncKepalaState($teacher, $staffType);
+            }
         });
 
-        return $this->redirectToTeachersIndex($request)->with('success', 'Data guru baru berhasil ditambahkan.');
+        $label = match ($staffType) {
+            Teacher::STAFF_TYPE_KEPALA => 'Data Kepala Madrasah',
+            Teacher::STAFF_TYPE_TU => 'Data Tata Usaha (TU)',
+            default => 'Data guru',
+        };
+
+        return $this->redirectToTeachersIndex($request, $staffType)->with('success', "{$label} baru berhasil ditambahkan.");
     }
 
     /**
@@ -140,6 +174,7 @@ class TeacherController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'staff_type' => ['nullable', 'in:guru,tu,kepala'],
             'nuptk' => ['nullable', 'string', 'max:50', 'unique:teachers,nuptk,'.$teacher->id],
             'nip' => ['nullable', 'string', 'max:50', 'unique:teachers,nip,'.$teacher->id],
             'gender' => ['required', 'in:L,P'],
@@ -168,15 +203,20 @@ class TeacherController extends Controller
             'photo.max' => 'Ukuran foto maksimal 5MB.',
         ]);
 
-        $isSavingsOfficer = $request->boolean('is_savings_officer');
-        $savingsScope = $isSavingsOfficer ? ($validated['savings_scope'] ?? 'all') : 'all';
-        $isPetugasMbg = $request->boolean('is_petugas_mbg');
+        $previousStaffType = $teacher->staff_type ?: Teacher::STAFF_TYPE_GURU;
+        $staffType = $validated['staff_type'] ?? $previousStaffType;
+        $isKepala = $staffType === Teacher::STAFF_TYPE_KEPALA;
 
-        DB::transaction(function () use ($request, $validated, $teacher, $isSavingsOfficer, $savingsScope, $isPetugasMbg) {
+        $isSavingsOfficer = ! $isKepala && $request->boolean('is_savings_officer');
+        $savingsScope = $isSavingsOfficer ? ($validated['savings_scope'] ?? 'all') : 'all';
+        $isPetugasMbg = ! $isKepala && $request->boolean('is_petugas_mbg');
+
+        DB::transaction(function () use ($request, $validated, $teacher, $isSavingsOfficer, $savingsScope, $isPetugasMbg, $staffType, $previousStaffType) {
             $userUpdate = [
                 'name' => $validated['name'],
                 'email' => ! empty($validated['email']) ? $validated['email'] : null,
                 'is_active' => (bool) $validated['is_active'],
+                'role' => $staffType === Teacher::STAFF_TYPE_KEPALA ? 'kepala' : 'guru',
             ];
 
             if (! empty($validated['password'])) {
@@ -203,6 +243,7 @@ class TeacherController extends Controller
             }
 
             $teacher->update([
+                'staff_type' => $staffType,
                 'nuptk' => ! empty($validated['nuptk']) ? $validated['nuptk'] : null,
                 'nip' => ! empty($validated['nip']) ? $validated['nip'] : null,
                 'gender' => $validated['gender'],
@@ -221,9 +262,17 @@ class TeacherController extends Controller
             } else {
                 $teacher->managedSavingsClasses()->sync([]);
             }
+
+            $this->syncKepalaState($teacher->fresh('user'), $staffType, $previousStaffType);
         });
 
-        return $this->redirectToTeachersIndex($request)->with('success', 'Data guru berhasil diperbarui.');
+        $label = match ($staffType) {
+            Teacher::STAFF_TYPE_KEPALA => 'Data Kepala Madrasah',
+            Teacher::STAFF_TYPE_TU => 'Data Tata Usaha (TU)',
+            default => 'Data guru',
+        };
+
+        return $this->redirectToTeachersIndex($request, $staffType)->with('success', "{$label} berhasil diperbarui.");
     }
 
     public function destroy(Request $request, Teacher $teacher): RedirectResponse
@@ -243,7 +292,7 @@ class TeacherController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Template Data Guru');
 
-        // Headers 9 Kolom sesuai format baru
+        // Headers 10 Kolom (kolom J opsional: Guru/TU/Kepala)
         $headers = [
             'A1' => 'No',
             'B1' => 'NUPTK',
@@ -254,6 +303,7 @@ class TeacherController extends Controller
             'G1' => 'Tgl Lahir (dd-mm-yyyy)',
             'H1' => 'Pendidikan Terakhir',
             'I1' => 'Password',
+            'J1' => 'Jenis (Guru/TU/Kepala)',
         ];
 
         foreach ($headers as $cell => $value) {
@@ -282,14 +332,14 @@ class TeacherController extends Controller
                 ],
             ],
         ];
-        $sheet->getStyle('A1:I1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
         $sheet->getRowDimension(1)->setRowHeight(28);
 
         // Sample Data Rows realistis
         $sampleData = [
-            [1, '1234567890123456', '198501012010011001', 'Ahmad Dahlan, S.Pd.', 'L', 'Yogyakarta', '01-01-1985', 'S1', 'password'],
-            [2, '2345678901234567', '', 'Siti Khadijah, M.Pd.', 'P', 'Surabaya', '02-02-1987', 'S2', 'password'],
-            [3, '', '199003032015031003', 'Budi Santoso, S.Kom.', 'L', 'Bandung', '03-03-1990', 'S1', 'password'],
+            [1, '1234567890123456', '198501012010011001', 'Ahmad Dahlan, S.Pd.', 'L', 'Yogyakarta', '01-01-1985', 'S1', 'password', 'Guru'],
+            [2, '2345678901234567', '', 'Siti Khadijah, M.Pd.', 'P', 'Surabaya', '02-02-1987', 'S2', 'password', 'Guru'],
+            [3, '', '199003032015031003', 'Budi Santoso, S.Kom.', 'L', 'Bandung', '03-03-1990', 'S1', 'password', 'TU'],
         ];
 
         $rowNum = 2;
@@ -303,6 +353,7 @@ class TeacherController extends Controller
             $sheet->setCellValue('G'.$rowNum, $row[6]);
             $sheet->setCellValue('H'.$rowNum, $row[7]);
             $sheet->setCellValue('I'.$rowNum, $row[8]);
+            $sheet->setCellValue('J'.$rowNum, $row[9]);
             $rowNum++;
         }
 
@@ -318,13 +369,14 @@ class TeacherController extends Controller
                 'vertical' => Alignment::VERTICAL_CENTER,
             ],
         ];
-        $sheet->getStyle('A2:I'.($rowNum - 1))->applyFromArray($dataStyle);
+        $sheet->getStyle('A2:J'.($rowNum - 1))->applyFromArray($dataStyle);
         $sheet->getStyle('A2:A'.($rowNum - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('E2:E'.($rowNum - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('G2:G'.($rowNum - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('J2:J'.($rowNum - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Auto-fit columns
-        foreach (range('A', 'I') as $col) {
+        foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -343,11 +395,14 @@ class TeacherController extends Controller
     {
         $request->validate([
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:5120'],
+            'default_staff_type' => ['nullable', 'in:guru,tu,kepala'],
         ], [
             'file.required' => 'File Excel wajib diunggah.',
             'file.mimes' => 'Format file harus berupa Excel (.xlsx, .xls) atau .csv.',
             'file.max' => 'Ukuran file maksimal adalah 5MB.',
         ]);
+
+        $defaultStaffType = $request->input('default_staff_type', Teacher::STAFF_TYPE_GURU);
 
         try {
             $file = $request->file('file');
@@ -375,6 +430,7 @@ class TeacherController extends Controller
                 $rawBirthDate = trim((string) ($row['G'] ?? ''));
                 $lastEducation = trim((string) ($row['H'] ?? ''));
                 $password = trim((string) ($row['I'] ?? ''));
+                $rawStaffType = trim((string) ($row['J'] ?? ''));
 
                 // Skip row if completely empty
                 if (empty($name) && empty($nuptk) && empty($nip)) {
@@ -405,21 +461,23 @@ class TeacherController extends Controller
                 // Normalize Gender
                 $gender = $this->normalizeGender($rawGender);
 
-                // Parse Birth Date
+                // Parse Birth Date & Staff Type
                 $birthDate = $this->parseDateValue($rawBirthDate);
+                $staffType = $this->normalizeStaffType($rawStaffType, $defaultStaffType);
 
                 // Create user (email nullable) and teacher
-                DB::transaction(function () use ($name, $nuptk, $nip, $gender, $birthPlace, $birthDate, $lastEducation, $password) {
+                DB::transaction(function () use ($name, $nuptk, $nip, $gender, $birthPlace, $birthDate, $lastEducation, $password, $staffType) {
                     $user = User::create([
                         'name' => $name,
                         'email' => null,
                         'password' => Hash::make(! empty($password) ? $password : 'password'),
-                        'role' => 'guru',
+                        'role' => $staffType === Teacher::STAFF_TYPE_KEPALA ? 'kepala' : 'guru',
                         'is_active' => true,
                     ]);
 
-                    Teacher::create([
+                    $teacher = Teacher::create([
                         'user_id' => $user->id,
+                        'staff_type' => $staffType,
                         'nuptk' => ! empty($nuptk) ? $nuptk : null,
                         'nip' => ! empty($nip) ? $nip : null,
                         'gender' => $gender,
@@ -427,6 +485,10 @@ class TeacherController extends Controller
                         'birth_date' => $birthDate,
                         'last_education' => ! empty($lastEducation) ? $lastEducation : null,
                     ]);
+
+                    if ($staffType === Teacher::STAFF_TYPE_KEPALA) {
+                        $this->syncKepalaState($teacher, $staffType);
+                    }
                 });
 
                 $importedCount++;
@@ -506,6 +568,35 @@ class TeacherController extends Controller
     }
 
     /**
+     * Normalisasi kategori PTK menjadi 'guru', 'tu', atau 'kepala'.
+     */
+    protected function normalizeStaffType(?string $rawType, string $fallback = Teacher::STAFF_TYPE_GURU): string
+    {
+        $normalized = strtolower(trim((string) $rawType));
+        $validFallback = in_array($fallback, [Teacher::STAFF_TYPE_GURU, Teacher::STAFF_TYPE_TU, Teacher::STAFF_TYPE_KEPALA], true)
+            ? $fallback
+            : Teacher::STAFF_TYPE_GURU;
+
+        if ($normalized === '') {
+            return $validFallback;
+        }
+
+        if (str_contains($normalized, 'kepala') || $normalized === 'kamad' || $normalized === 'kepsek') {
+            return Teacher::STAFF_TYPE_KEPALA;
+        }
+
+        if (str_contains($normalized, 'tu') || str_contains($normalized, 'tata usaha') || str_contains($normalized, 'tendik')) {
+            return Teacher::STAFF_TYPE_TU;
+        }
+
+        if (str_contains($normalized, 'guru') || str_contains($normalized, 'pendidik')) {
+            return Teacher::STAFF_TYPE_GURU;
+        }
+
+        return $validFallback;
+    }
+
+    /**
      * Ambil data penugasan mengajar guru untuk form modal (JSON).
      */
     public function getAssignments(Teacher $teacher)
@@ -562,6 +653,10 @@ class TeacherController extends Controller
      */
     public function updateAssignments(Request $request, Teacher $teacher): RedirectResponse
     {
+        if ($teacher->isKepala()) {
+            return $this->redirectToTeachersIndex($request)
+                ->with('error', 'Kepala Madrasah tidak memiliki penugasan mengajar atau wali kelas.');
+        }
         $validated = $request->validate([
             'mode' => ['required', 'in:unrestricted,restricted'],
             'homeroom_class_id' => ['nullable', 'exists:school_classes,id'],
@@ -634,6 +729,9 @@ class TeacherController extends Controller
      */
     public function toggleSavingsOfficer(Teacher $teacher): RedirectResponse
     {
+        if ($teacher->isKepala()) {
+            return back()->with('error', 'Kepala Madrasah tidak dapat ditugaskan sebagai Pengelola Tabungan Siswa.');
+        }
         $newState = ! (bool) $teacher->is_savings_officer;
         $teacher->update([
             'is_savings_officer' => $newState,
@@ -653,6 +751,10 @@ class TeacherController extends Controller
      */
     public function updateSavingsAssignment(Request $request, Teacher $teacher): RedirectResponse
     {
+        if ($teacher->isKepala()) {
+            return $this->redirectToTeachersIndex($request)
+                ->with('error', 'Kepala Madrasah tidak dapat ditugaskan sebagai Pengelola Tabungan Siswa.');
+        }
         $validated = $request->validate([
             'is_savings_officer' => ['required', 'boolean'],
             'savings_scope' => ['required_if:is_savings_officer,1', 'in:all,restricted'],
@@ -687,7 +789,7 @@ class TeacherController extends Controller
     }
 
     /**
-     * Mengambil parameter query halaman/pencarian/urutan yang aman dari input return_query.
+     * Mengambil parameter query tab/halaman/pencarian/urutan yang aman dari input return_query.
      *
      * @return array<string, string>
      */
@@ -701,26 +803,32 @@ class TeacherController extends Controller
         parse_str($rawQuery, $parsed);
         $allowed = [];
 
-        foreach (['page', 'search', 'sort'] as $key) {
+        foreach (['tab', 'page', 'search', 'sort'] as $key) {
             if (isset($parsed[$key]) && is_scalar($parsed[$key]) && (string) $parsed[$key] !== '') {
                 $allowed[$key] = (string) $parsed[$key];
             }
+        }
+
+        $validTabs = [Teacher::STAFF_TYPE_GURU, Teacher::STAFF_TYPE_TU, Teacher::STAFF_TYPE_KEPALA];
+        if (isset($allowed['tab']) && ! in_array($allowed['tab'], $validTabs, true)) {
+            unset($allowed['tab']);
         }
 
         return $allowed;
     }
 
     /**
-     * Mengalihkan kembali ke daftar guru dengan parameter halaman, pencarian, dan urutan yang dipilih.
+     * Mengalihkan kembali ke daftar guru/TU/kepala dengan parameter tab, halaman, pencarian, dan urutan yang dipilih.
      */
-    protected function redirectToTeachersIndex(Request $request): RedirectResponse
+    protected function redirectToTeachersIndex(Request $request, ?string $targetTab = null): RedirectResponse
     {
+        $validTabs = [Teacher::STAFF_TYPE_GURU, Teacher::STAFF_TYPE_TU, Teacher::STAFF_TYPE_KEPALA];
         $params = $this->extractReturnQueryParams($request);
         if (empty($params)) {
             $refererQuery = parse_url((string) $request->headers->get('referer', ''), PHP_URL_QUERY);
             if (is_string($refererQuery) && $refererQuery !== '') {
                 parse_str($refererQuery, $parsed);
-                foreach (['page', 'search', 'sort'] as $key) {
+                foreach (['tab', 'page', 'search', 'sort'] as $key) {
                     if (isset($parsed[$key]) && is_scalar($parsed[$key]) && (string) $parsed[$key] !== '') {
                         $params[$key] = (string) $parsed[$key];
                     }
@@ -728,6 +836,45 @@ class TeacherController extends Controller
             }
         }
 
+        if (isset($params['tab']) && ! in_array($params['tab'], $validTabs, true)) {
+            unset($params['tab']);
+        }
+
+        if ($targetTab !== null && in_array($targetTab, $validTabs, true)) {
+            $currentTab = $params['tab'] ?? Teacher::STAFF_TYPE_GURU;
+            if ($currentTab !== $targetTab) {
+                $params['tab'] = $targetTab;
+                unset($params['page']);
+            }
+        }
+
         return redirect()->route('admin.teachers.index', $params);
+    }
+
+    /**
+     * Menyinkronkan tugas tambahan & pengaturan Kepala Madrasah ketika staff_type menjadi/keluar dari 'kepala'.
+     */
+    protected function syncKepalaState(Teacher $teacher, string $staffType, ?string $previousStaffType = null): void
+    {
+        $setting = AttendanceSetting::first();
+
+        if ($staffType === Teacher::STAFF_TYPE_KEPALA) {
+            $teacher->assignments()->delete();
+            SchoolClass::where('homeroom_teacher_id', $teacher->id)->update(['homeroom_teacher_id' => null]);
+            $teacher->managedSavingsClasses()->sync([]);
+
+            if ($setting) {
+                $setting->headmaster_teacher_id = $teacher->id;
+                $setting->card_principal_name = $teacher->user?->name ?? $setting->card_principal_name;
+                $setting->card_principal_nip = $teacher->nip ?? $setting->card_principal_nip;
+                $setting->save();
+            }
+
+            return;
+        }
+
+        if ($previousStaffType === Teacher::STAFF_TYPE_KEPALA && $setting && (int) $setting->headmaster_teacher_id === (int) $teacher->id) {
+            $setting->update(['headmaster_teacher_id' => null]);
+        }
     }
 }

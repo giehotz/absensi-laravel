@@ -33,7 +33,7 @@
                 <!-- Info Box -->
                 <div class="space-y-2.5 rounded-xl border-2 border-black bg-[#E7F5FF] p-4 text-xs text-black shadow-[3px_3px_0px_0px_#000]">
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <span class="font-black uppercase tracking-wide">Format Kolom Excel (9 Kolom)</span>
+                        <span class="font-black uppercase tracking-wide">Format Kolom Excel (10 Kolom)</span>
                         <a href="{{ route('admin.teachers.template') }}"
                            class="inline-flex items-center gap-1 rounded border border-black bg-white px-2 py-0.5 text-[11px] font-extrabold text-black shadow-[1px_1px_0px_0px_#000] transition hover:bg-[#FFD43B]">
                             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -43,14 +43,35 @@
                         </a>
                     </div>
                     <div class="overflow-x-auto rounded-lg border-2 border-black bg-white px-3 py-2 font-mono text-[11px] font-bold text-black whitespace-nowrap">
-                        No | NUPTK | NIP | NAMA | JENIS KELAMIN | Tempat Lahir | Tgl Lahir (dd-mm-yyyy) | Pendidikan Terakhir | Password
+                        No | NUPTK | NIP | NAMA | JENIS KELAMIN | Tempat Lahir | Tgl Lahir (dd-mm-yyyy) | Pendidikan Terakhir | Password | Jenis (Guru/TU/Kepala)
                     </div>
                     <ul class="list-disc space-y-1 pl-4 font-medium text-slate-800">
-                        <li><strong class="font-extrabold text-black">Email tidak perlu diisi:</strong> Guru melengkapi email secara mandiri di akun mereka.</li>
+                        <li><strong class="font-extrabold text-black">Email tidak perlu diisi:</strong> Guru/TU/Kepala melengkapi email secara mandiri di akun mereka.</li>
                         <li>Kolom <strong class="font-extrabold text-black">Password</strong> opsional (default otomatis: <code class="rounded border border-black bg-white px-1 py-0.5 text-[11px] font-bold">password</code>).</li>
+                        <li>Kolom <strong class="font-extrabold text-black">Jenis (Guru/TU/Kepala)</strong> opsional; jika dikosongkan mengikuti pilihan kategori bawaan di bawah.</li>
                         <li>Format tanggal lahir: <code class="rounded border border-black bg-white px-1 py-0.5 text-[11px] font-bold">dd-mm-yyyy</code> (contoh: <code class="rounded border border-black bg-white px-1 py-0.5 text-[11px] font-bold">14-05-1985</code>).</li>
                         <li>Jenis Kelamin: <code class="rounded border border-black bg-white px-1 py-0.5 text-[11px] font-bold">L</code> (Laki-laki) atau <code class="rounded border border-black bg-white px-1 py-0.5 text-[11px] font-bold">P</code> (Perempuan).</li>
                     </ul>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-extrabold uppercase tracking-wide text-black">
+                        Kategori Bawaan (bila kolom Jenis kosong)
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#FFF9DB] has-[:checked]:bg-[#FFD43B] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                            <input type="radio" name="default_staff_type" value="guru" {{ ! in_array($tab ?? 'guru', ['tu', 'kepala'], true) ? 'checked' : '' }} class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                            <span>Guru</span>
+                        </label>
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#E7F5FF] has-[:checked]:bg-[#A5D8FF] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                            <input type="radio" name="default_staff_type" value="tu" {{ ($tab ?? 'guru') === 'tu' ? 'checked' : '' }} class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                            <span>TU</span>
+                        </label>
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#D3F9D8] has-[:checked]:bg-[#63E6BE] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                            <input type="radio" name="default_staff_type" value="kepala" {{ ($tab ?? 'guru') === 'kepala' ? 'checked' : '' }} class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                            <span>Kepala</span>
+                        </label>
+                    </div>
                 </div>
 
                 <!-- File Upload Dropzone -->
@@ -123,6 +144,25 @@
             @csrf
             <input type="hidden" name="return_query" class="teacher-return-query" value="">
             <div class="flex-1 space-y-4 overflow-y-auto px-6 py-5">
+                <div>
+                    <label class="mb-1.5 block text-xs font-extrabold uppercase tracking-wide text-black">
+                        Kategori PTK <span class="text-rose-600">*</span>
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#FFF9DB] has-[:checked]:bg-[#FFD43B] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                            <input type="radio" name="staff_type" value="guru" {{ ! in_array($tab ?? 'guru', ['tu', 'kepala'], true) ? 'checked' : '' }} class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                            <span>Guru</span>
+                        </label>
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#E7F5FF] has-[:checked]:bg-[#A5D8FF] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                            <input type="radio" name="staff_type" value="tu" {{ ($tab ?? 'guru') === 'tu' ? 'checked' : '' }} class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                            <span>TU</span>
+                        </label>
+                        <label class="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-black bg-white p-2.5 text-xs font-extrabold transition hover:bg-[#D3F9D8] has-[:checked]:bg-[#63E6BE] has-[:checked]:shadow-[2px_2px_0px_0px_#000]">
+                            <input type="radio" name="staff_type" value="kepala" {{ ($tab ?? 'guru') === 'kepala' ? 'checked' : '' }} class="h-4 w-4 border-2 border-black text-black focus:ring-0">
+                            <span>Kepala</span>
+                        </label>
+                    </div>
+                </div>
                 <div>
                     <label class="mb-1.5 block text-xs font-extrabold uppercase tracking-wide text-black">
                         Nama Lengkap & Gelar <span class="text-rose-600">*</span>

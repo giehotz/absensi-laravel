@@ -24,8 +24,12 @@ class EnsureIsMbgOfficer
             return $next($request);
         }
 
+        if ($user->isKepala() && $request->routeIs('mbg.rekap.*') && $request->isMethodSafe()) {
+            return $next($request);
+        }
+
         $targetRoute = match ($user->role) {
-            'admin' => 'admin.dashboard',
+            'admin', 'kepala' => 'admin.dashboard',
             'guru' => 'guru.dashboard',
             'siswa' => 'siswa.dashboard',
             'orangtua' => 'orangtua.dashboard',
