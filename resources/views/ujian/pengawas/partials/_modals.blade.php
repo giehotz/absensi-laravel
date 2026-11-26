@@ -177,7 +177,7 @@
                         </label>
                     @endforeach
                 </div>
-                <p class="text-[10px] text-slate-500">Biarkan tidak dicentang untuk otomatis mengunci semua mapel yang diajar guru ini.</p>
+                <p class="text-[10px] text-slate-500">Berlaku untuk mode Pengampu Mapel maupun Wali Kelas. Biarkan tidak dicentang untuk otomatis mengikuti jadwal mengajar guru (atau seluruh mapel perwalian bila belum ada data mengajar).</p>
             </div>
 
             <div>
@@ -402,7 +402,10 @@
                 <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
                     <input type="hidden" name="prioritize_homeroom_teachers" value="0">
                     <input type="checkbox" name="prioritize_homeroom_teachers" value="1" {{ in_array($kelompok ?? 'all', ['1-2', 'all'], true) ? 'checked' : '' }} class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
-                    <span>Prioritaskan Wali Kelas Mengawas di Kelas Perwalian (Kelas 1–2)</span>
+                    <span>
+                        <span class="block">Prioritaskan Wali Kelas Mengawas Mapel Ampuannya di Kelas Perwalian (Kelas 1–2)</span>
+                        <span class="block text-[10px] font-normal text-slate-600">Mapel di luar ampuannya diserahkan ke guru lain yang ditetapkan pada cakupan Kelas 1–2.</span>
+                    </span>
                 </label>
                 <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
                     <input type="hidden" name="prioritize_subject_teachers" value="0">
@@ -536,7 +539,7 @@
                     <input type="checkbox" id="sync_include_homeroom" name="include_homeroom" value="1" checked
                            onchange="renderSyncTeachingPreview()"
                            class="mt-0.5 w-4 h-4 rounded border-2 border-slate-900 accent-slate-900">
-                    <span>Sertakan Wali Kelas dari Master Kelas (otomatis mode Wali Kelas untuk seluruh mapel kelasnya)</span>
+                    <span>Sertakan Wali Kelas dari Master Kelas (otomatis mode Wali Kelas sesuai mapel ampuannya)</span>
                 </label>
                 <label class="flex items-start gap-2 cursor-pointer text-[11px] font-bold text-slate-900">
                     <input type="hidden" name="lock_homeroom_only" value="0">
@@ -575,6 +578,7 @@
                         <tbody id="syncTeachingPreviewBody" class="divide-y divide-slate-200"></tbody>
                     </table>
                 </div>
+                <div id="syncOtherMappedPreviewBox" class="mt-2 hidden rounded-lg border-2 border-slate-900 bg-amber-50 p-2.5 text-[11px] text-slate-900"></div>
             </div>
 
             <div class="pt-3 flex items-center justify-end gap-2 border-t-2 border-slate-900">

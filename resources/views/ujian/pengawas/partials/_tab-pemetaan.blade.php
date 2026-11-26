@@ -243,7 +243,14 @@
                                             <div class="font-bold text-slate-900 text-[11px]">
                                                 {{ $classListText }} • {{ $lockedSubjectCount }} Mapel
                                             </div>
-                                        @elseif(!$tHomeroom)
+                                            @if($tHomeroom)
+                                                <div class="text-[10px] text-slate-600 font-medium">Mapel di luar ampuan diisi guru cakupan</div>
+                                            @endif
+                                        @elseif($tHomeroom && !empty($mapping?->assigned_subject_ids))
+                                            <div class="text-[10px] text-emerald-800 font-semibold">Filter khusus: {{ count($mapping->assigned_subject_ids) }} Mapel • lain ke guru cakupan</div>
+                                        @elseif($tHomeroom)
+                                            <div class="text-[10px] text-slate-500 italic">Semua mapel perwalian (belum ada jadwal mengajar)</div>
+                                        @else
                                             <span class="text-[10px] italic text-slate-400">Belum ada jadwal mengajar</span>
                                         @endif
                                         @if($isLockedToHomeroom)

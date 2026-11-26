@@ -141,7 +141,7 @@ class PengawasMappingService
                 [
                     'assigned_levels' => $mergedLevels,
                     'mode_penugasan' => $isHomeroomTeacher ? 'wali_kelas' : 'pengampu_mapel',
-                    'assigned_subject_ids' => $isHomeroomTeacher ? null : $cleanedSubjectIds,
+                    'assigned_subject_ids' => $cleanedSubjectIds,
                     'assigned_class_ids' => ($isHomeroomTeacher && $lockHomeroomOnly) ? $homeroom['class_ids'] : null,
                 ]
             );

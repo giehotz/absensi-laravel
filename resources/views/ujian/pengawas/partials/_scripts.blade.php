@@ -382,11 +382,15 @@
     }
 
     @php
-        $activeTeachersPreviewData = collect($teachers ?? [])->map(function ($t) use ($panitiaTeacherIds) {
+        $activeTeachersPreviewData = collect($teachers ?? [])->map(function ($t) use ($panitiaTeacherIds, $mappings) {
+            $m = $mappings[$t->id] ?? null;
+
             return [
                 'id' => $t->id,
                 'name' => $t->user?->name ?? 'Guru',
                 'is_panitia' => in_array($t->id, $panitiaTeacherIds ?? [], true),
+                'mapped_levels' => array_map('strval', $m?->assigned_levels ?? []),
+                'mode_penugasan' => $m?->mode_penugasan ?? null,
             ];
         })->values();
         $allSubjectsPreviewData = collect($subjects ?? [])->pluck('name', 'id');
@@ -435,7 +439,7 @@
         const mode = document.getElementById('edit_map_mode_penugasan')?.value || 'rotasi';
         const wrapper = document.getElementById('edit_map_subjects_wrapper');
         if (wrapper) {
-            wrapper.classList.toggle('hidden', mode !== 'pengampu_mapel');
+            wrapper.classList.toggle('hidden', mode !== 'pengampu_mapel' && mode !== 'wali_kelas');
         }
     }
 
@@ -488,9 +492,17 @@
 
             const tdSubjects = document.createElement('td');
             tdSubjects.className = 'px-3 py-2 text-emerald-900';
-            tdSubjects.textContent = homeroomMatchesLevel
-                ? 'Seluruh mapel di kelas perwalian'
-                : matchedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ');
+            if (homeroomMatchesLevel) {
+                if (selectedSubjectIds.length > 0) {
+                    tdSubjects.textContent = 'Filter khusus: ' + selectedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ');
+                } else if (teachingMatchesLevel && matchedSubjectIds.length > 0) {
+                    tdSubjects.textContent = matchedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ') + ' (mapel lain ke guru cakupan)';
+                } else {
+                    tdSubjects.textContent = 'Semua mapel di kelas perwalian (belum ada data jadwal mengajar)';
+                }
+            } else {
+                tdSubjects.textContent = matchedSubjectIds.map(sid => allSubjectsMap[sid] || ('Mapel #' + sid)).join(', ');
+            }
 
             tr.appendChild(tdName);
             tr.appendChild(tdClasses);
@@ -507,6 +519,23 @@
             td.textContent = 'Tidak ada guru aktif non-panitia yang mengajar atau menjadi wali kelas sesuai filter.';
             tr.appendChild(td);
             tbody.appendChild(tr);
+        }
+
+        const otherBox = document.getElementById('syncOtherMappedPreviewBox');
+        if (otherBox) {
+            const otherMappedNames = activeTeachersPreview
+                .filter(t => !t.is_panitia
+                    && t.mode_penugasan === 'rotasi'
+                    && (t.mapped_levels || []).some(lvl => selectedLevels.includes(String(lvl))))
+                .map(t => t.name);
+
+            if (otherMappedNames.length > 0) {
+                otherBox.classList.remove('hidden');
+                otherBox.textContent = 'Guru rotasi lain dengan cakupan tingkat terpilih (' + otherMappedNames.length + '): ' + otherMappedNames.join(', ') + ' — tetap ditugaskan pada mapel di luar ampuan wali kelas.';
+            } else {
+                otherBox.classList.add('hidden');
+                otherBox.textContent = '';
+            }
         }
     }
 

@@ -143,9 +143,17 @@ class PengawasAutoPlotterService
                 );
             }
 
-            $teachingMap = $prioritizeSubjectTeachers
+            $teachingMap = ($prioritizeSubjectTeachers || $prioritizeHomeroomTeachers)
                 ? $this->teachingResolver->buildTeachingMap($periode->academic_year_id)
                 : [];
+
+            $taughtSubjectsByTeacherClass = [];
+            foreach ($teachingMap as $pairKey => $pairTeacherIds) {
+                [$pairClassId, $pairSubjectId] = array_map('intval', explode(':', $pairKey));
+                foreach ($pairTeacherIds as $pairTid) {
+                    $taughtSubjectsByTeacherClass["{$pairTid}:{$pairClassId}"][$pairSubjectId] = true;
+                }
+            }
 
             $homeroomMap = [];
             $homeroomGrade12Lookup = [];
@@ -237,7 +245,7 @@ class PengawasAutoPlotterService
                 return 0;
             }
 
-            // PASS 1A: Prioritaskan Wali Kelas mengawas di kelas perwaliannya sendiri (Kelas 1–2 atau mode 'wali_kelas')
+            // PASS 1A: Prioritaskan Wali Kelas mengawas mapel ampuannya di kelas perwalian (Kelas 1–2 atau mode 'wali_kelas')
             if ($prioritizeHomeroomTeachers) {
                 foreach ($pendingSlots as &$slot) {
                     $assignment = $slot['assignment'];
@@ -267,6 +275,16 @@ class PengawasAutoPlotterService
                         if ($mapping && ! $mapping->allowsClass($slot['class_id'])) {
                             continue;
                         }
+                    }
+
+                    if (! $this->isHomeroomTeacherEligibleForSubject(
+                        $mapping,
+                        $taughtSubjectsByTeacherClass,
+                        $homeroomTid,
+                        $slot['class_id'],
+                        $slot['subject_id']
+                    )) {
+                        continue;
                     }
 
                     if ($this->isTeacherBusy($teacherBusySlots[$homeroomTid] ?? [], $slot['date'], $slot['start'], $slot['end'])) {
@@ -454,6 +472,35 @@ class PengawasAutoPlotterService
 
             return $totalPlotted;
         });
+    }
+
+    /**
+     * Menentukan apakah wali kelas berhak dikunci pada Pass 1A untuk mapel tertentu:
+     * 1. Gunakan daftar `assigned_subject_ids` pada pemetaan bila diisi eksplisit.
+     * 2. Jika kosong, periksa daftar mapel yang diajar wali kelas di kelas tersebut (`teacher_assignments`/`schedules`).
+     * 3. Jika keduanya kosong, wali kelas mengawas seluruh mapel di kelas perwaliannya.
+     *
+     * @param  array<string, array<int, bool>>  $taughtSubjectsByTeacherClass
+     */
+    private function isHomeroomTeacherEligibleForSubject(
+        ?UjianPengawasMapping $mapping,
+        array $taughtSubjectsByTeacherClass,
+        int $teacherId,
+        ?int $classId,
+        ?int $subjectId
+    ): bool {
+        if ($mapping && ! empty($mapping->assigned_subject_ids)) {
+            return $mapping->allowsSubject($subjectId);
+        }
+
+        if ($classId !== null) {
+            $taughtMap = $taughtSubjectsByTeacherClass["{$teacherId}:{$classId}"] ?? [];
+            if (! empty($taughtMap)) {
+                return $subjectId !== null && isset($taughtMap[$subjectId]);
+            }
+        }
+
+        return true;
     }
 
     /**

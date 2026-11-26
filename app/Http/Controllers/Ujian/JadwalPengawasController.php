@@ -392,14 +392,19 @@ class JadwalPengawasController extends Controller
             $assignedClassIds = $homeroomMap[(int) $validated['teacher_id']]['class_ids'] ?? null;
         }
 
+        $modePenugasan = $validated['mode_penugasan'] ?? 'rotasi';
+        $assignedSubjectIds = in_array($modePenugasan, ['pengampu_mapel', 'wali_kelas'], true)
+            ? ($validated['assigned_subject_ids'] ?? null)
+            : null;
+
         try {
             $this->mappingService->saveMapping(
                 (int) $validated['ujian_periode_id'],
                 (int) $validated['teacher_id'],
                 $validated['assigned_levels'],
                 $validated['keterangan'] ?? null,
-                $validated['mode_penugasan'] ?? 'rotasi',
-                $validated['assigned_subject_ids'] ?? null,
+                $modePenugasan,
+                $assignedSubjectIds,
                 $assignedClassIds
             );
 
