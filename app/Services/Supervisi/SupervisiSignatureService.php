@@ -45,7 +45,7 @@ class SupervisiSignatureService
     }
 
     /**
-     * Validasi urutan sekuensial tanda tangan digital: Guru -> Supervisor -> Kepala Madrasah.
+     * Validasi urutan sekuensial tanda tangan digital: Supervisor -> Guru -> Kepala Madrasah.
      *
      * @return array{allowed: bool, message: string}
      */
@@ -68,15 +68,15 @@ class SupervisiSignatureService
             ];
         }
 
-        if ($role === SupervisiDokumenSignature::ROLE_GURU) {
+        if ($role === SupervisiDokumenSignature::ROLE_SUPERVISOR) {
             return ['allowed' => true, 'message' => ''];
         }
 
-        if ($role === SupervisiDokumenSignature::ROLE_SUPERVISOR) {
-            if (empty($sigs['guru'])) {
+        if ($role === SupervisiDokumenSignature::ROLE_GURU) {
+            if (empty($sigs['supervisor'])) {
                 return [
                     'allowed' => false,
-                    'message' => 'Menunggu tanda tangan Guru yang bersangkutan terlebih dahulu.',
+                    'message' => 'Menunggu tanda tangan Supervisor penilai terlebih dahulu.',
                 ];
             }
 
@@ -84,11 +84,11 @@ class SupervisiSignatureService
         }
 
         if ($role === SupervisiDokumenSignature::ROLE_KEPALA) {
-            if (empty($sigs['guru'])) {
-                return ['allowed' => false, 'message' => 'Guru belum menandatangani dokumen ini.'];
-            }
             if (empty($sigs['supervisor'])) {
                 return ['allowed' => false, 'message' => 'Menunggu tanda tangan Supervisor terlebih dahulu.'];
+            }
+            if (empty($sigs['guru'])) {
+                return ['allowed' => false, 'message' => 'Guru belum menandatangani dokumen ini.'];
             }
 
             return ['allowed' => true, 'message' => ''];

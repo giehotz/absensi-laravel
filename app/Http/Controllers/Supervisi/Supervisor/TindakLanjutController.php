@@ -21,21 +21,24 @@ class TindakLanjutController extends Controller
     public function show(Request $request, SupervisiJadwal $jadwal): View|RedirectResponse
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $jadwal);
+        $portalPrefix = $this->resolvePortalPrefix($request);
 
         if (! $this->guard->canAccessPascaObservasi($jadwal)) {
-            return redirect()->route('supervisi.supervisor.jadwal.index')
+            return redirect()->route("supervisi.{$portalPrefix}.jadwal.index")
                 ->with('error', 'Formulir Tindak Lanjut & Refleksi hanya dapat diakses setelah observasi kelas selesai dinilai.');
         }
 
         $jadwal->load(['academicYear', 'teacher.user', 'schoolClass', 'subject', 'hasils.jenisPenilaian', 'tindakLanjut', 'coachingTirtas']);
         $coachingPasca = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PASCA);
 
-        return view('supervisi.supervisor.tindak_lanjut', compact('jadwal', 'coachingPasca'));
+        return view('supervisi.supervisor.tindak_lanjut', compact('jadwal', 'coachingPasca', 'portalPrefix'));
     }
 
     public function feedbackC(Request $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $jadwal);
+        $this->guard->ensureNotLocked($jadwal);
+        $portalPrefix = $this->resolvePortalPrefix($request);
 
         $tindakLanjut = $jadwal->tindakLanjut;
         if (! $tindakLanjut) {
@@ -53,13 +56,15 @@ class TindakLanjutController extends Controller
             'status_tindak_lanjut' => 'form_c_disepakati',
         ]);
 
-        return redirect()->route('supervisi.supervisor.tindak-lanjut.show', $jadwal)
+        return redirect()->route("supervisi.{$portalPrefix}.tindak-lanjut.show", $jadwal)
             ->with('success', 'Umpan balik Formulir C berhasil disimpan.');
     }
 
     public function evaluateD(Request $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $jadwal);
+        $this->guard->ensureNotLocked($jadwal);
+        $portalPrefix = $this->resolvePortalPrefix($request);
 
         $tindakLanjut = $jadwal->tindakLanjut;
         if (! $tindakLanjut || empty($tindakLanjut->inspirasi_baru)) {
@@ -84,13 +89,15 @@ class TindakLanjutController extends Controller
             ]);
         });
 
-        return redirect()->route('supervisi.supervisor.tindak-lanjut.show', $jadwal)
+        return redirect()->route("supervisi.{$portalPrefix}.tindak-lanjut.show", $jadwal)
             ->with('success', 'Evaluasi akhir Formulir D tersimpan. Siklus supervisi telah Selesai.');
     }
 
     public function storeCoachingPasca(Request $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $jadwal);
+        $this->guard->ensureNotLocked($jadwal);
+        $portalPrefix = $this->resolvePortalPrefix($request);
 
         $validated = $request->validate([
             'tujuan_coaching' => ['required', 'string'],
@@ -107,7 +114,14 @@ class TindakLanjutController extends Controller
             $validated
         );
 
-        return redirect()->route('supervisi.supervisor.tindak-lanjut.show', $jadwal)
+        return redirect()->route("supervisi.{$portalPrefix}.tindak-lanjut.show", $jadwal)
             ->with('success', 'Catatan Coaching TIRTA Pasca-Observasi berhasil disimpan.');
+    }
+
+    private function resolvePortalPrefix(Request $request): string
+    {
+        return str_starts_with((string) $request->route()?->getName(), 'supervisi.kepala.')
+            ? 'kepala'
+            : 'supervisor';
     }
 }

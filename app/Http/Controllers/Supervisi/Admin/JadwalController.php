@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Supervisi\Admin;
 
 use App\Enums\SupervisiStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Supervisi\DeleteSupervisiJadwalRequest;
 use App\Http\Requests\Supervisi\GenerateJadwalRequest;
 use App\Http\Requests\Supervisi\StoreJadwalRequest;
 use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Subject;
-use App\Models\Supervisi\SupervisiHasil;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiJenisPenilaian;
 use App\Models\Supervisi\SupervisiSupervisor;
@@ -19,6 +19,8 @@ use App\Services\Supervisi\SupervisiJadwalGeneratorService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class JadwalController extends Controller
@@ -56,12 +58,22 @@ class JadwalController extends Controller
             'indikatorPmm',
             'signatures',
         ])
+            ->withCount('hasils')
             ->when($selectedYearId !== 'all' && $selectedYearId !== '', fn ($q) => $q->where('academic_year_id', (int) $selectedYearId))
             ->when($request->filled('status') && $request->query('status') !== 'all', fn ($q) => $q->where('status', $request->query('status')))
             ->orderBy('tanggal')
             ->get();
 
-        return view('supervisi.admin.jadwal.index', compact('jadwals', 'academicYears', 'selectedYearId', 'activeYear'));
+        $deleteConfirmToken = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $request->session()->put('supervisi_admin_delete_token', $deleteConfirmToken);
+
+        return view('supervisi.admin.jadwal.index', compact(
+            'jadwals',
+            'academicYears',
+            'selectedYearId',
+            'activeYear',
+            'deleteConfirmToken'
+        ));
     }
 
     public function create(): View
@@ -106,49 +118,82 @@ class JadwalController extends Controller
             ->with('success', 'Jadwal supervisi berhasil diperbarui.');
     }
 
-    public function destroy(SupervisiJadwal $jadwal): RedirectResponse
+    public function destroy(DeleteSupervisiJadwalRequest $request, SupervisiJadwal $jadwal): RedirectResponse
     {
-        if ($jadwal->hasils()->exists()) {
-            return redirect()->route('supervisi.admin.jadwal.index')
-                ->with('error', 'Jadwal tidak dapat dihapus karena sudah memiliki data hasil supervisi.');
-        }
+        abort_unless($request->user()?->isAdmin(), 403);
 
-        $jadwal->delete();
+        $result = $this->deleteJadwalsWithAssets([$jadwal->id]);
+        $request->session()->forget('supervisi_admin_delete_token');
+
+        $message = $result['with_results'] > 0
+            ? 'Jadwal supervisi beserta data hasil penilaian terkait berhasil dihapus permanen.'
+            : 'Jadwal supervisi berhasil dihapus.';
 
         return redirect()->route('supervisi.admin.jadwal.index')
-            ->with('success', 'Jadwal supervisi berhasil dihapus.');
+            ->with('success', $message);
     }
 
-    public function bulkDestroy(Request $request): RedirectResponse
+    public function bulkDestroy(DeleteSupervisiJadwalRequest $request): RedirectResponse
     {
-        $ids = array_map('intval', (array) $request->input('selected_ids', []));
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $ids = array_values(array_unique(array_map('intval', (array) $request->validated('selected_ids', []))));
         if (empty($ids)) {
             return redirect()->route('supervisi.admin.jadwal.index')
                 ->with('error', 'Pilih minimal satu jadwal yang ingin dihapus.');
         }
 
-        $usedIds = SupervisiHasil::query()
-            ->whereIn('jadwal_id', $ids)
-            ->pluck('jadwal_id')
-            ->unique()
-            ->all();
+        $result = $this->deleteJadwalsWithAssets($ids);
+        $request->session()->forget('supervisi_admin_delete_token');
 
-        $deletableIds = array_values(array_diff($ids, $usedIds));
-
-        if (empty($deletableIds)) {
-            return redirect()->route('supervisi.admin.jadwal.index')
-                ->with('error', 'Seluruh jadwal yang dipilih sudah memiliki hasil penilaian dan tidak dapat dihapus.');
-        }
-
-        SupervisiJadwal::whereIn('id', $deletableIds)->delete();
-        $deletedCount = count($deletableIds);
-        $skippedCount = count($usedIds);
-
-        $msg = $skippedCount > 0
-            ? "Berhasil menghapus {$deletedCount} jadwal. {$skippedCount} jadwal dilewati karena sudah memiliki hasil penilaian."
-            : "Berhasil menghapus {$deletedCount} jadwal supervisi.";
+        $msg = $result['with_results'] > 0
+            ? "Berhasil menghapus permanen {$result['deleted']} jadwal supervisi ({$result['with_results']} di antaranya beserta hasil penilaian terkait)."
+            : "Berhasil menghapus {$result['deleted']} jadwal supervisi.";
 
         return redirect()->route('supervisi.admin.jadwal.index')->with('success', $msg);
+    }
+
+    /**
+     * Hapus jadwal beserta seluruh relasi dan file unggahan fisiknya.
+     *
+     * @param  array<int, int>  $ids
+     * @return array{deleted: int, with_results: int}
+     */
+    private function deleteJadwalsWithAssets(array $ids): array
+    {
+        $jadwals = SupervisiJadwal::with(['dokumenAjars', 'fotoBuktis'])
+            ->withCount('hasils')
+            ->whereIn('id', $ids)
+            ->get();
+
+        $filePaths = [];
+        foreach ($jadwals as $jadwal) {
+            foreach ($jadwal->dokumenAjars as $dok) {
+                if ($dok->file_path) {
+                    $filePaths[] = $dok->file_path;
+                }
+            }
+            foreach ($jadwal->fotoBuktis as $foto) {
+                if ($foto->file_path) {
+                    $filePaths[] = $foto->file_path;
+                }
+            }
+        }
+
+        DB::transaction(function () use ($ids): void {
+            SupervisiJadwal::whereIn('id', $ids)->delete();
+        });
+
+        foreach (array_unique($filePaths) as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+
+        return [
+            'deleted' => $jadwals->count(),
+            'with_results' => $jadwals->filter(fn (SupervisiJadwal $j): bool => $j->hasils_count > 0)->count(),
+        ];
     }
 
     public function generateForm(): View
@@ -217,11 +262,16 @@ class JadwalController extends Controller
                 ->with('error', 'Data pratinjau jadwal tidak valid atau kosong.');
         }
 
-        $count = $this->generatorService->storeBatch(
-            $items,
-            (array) $request->input('overrides', []),
-            (array) $request->input('exclude_indices', [])
-        );
+        try {
+            $count = $this->generatorService->storeBatch(
+                $items,
+                (array) $request->input('overrides', []),
+                (array) $request->input('exclude_indices', [])
+            );
+        } catch (\DomainException $e) {
+            return redirect()->route('supervisi.admin.jadwal.generate')
+                ->with('error', $e->getMessage());
+        }
 
         return redirect()->route('supervisi.admin.jadwal.index')
             ->with('success', "Berhasil menyimpan {$count} jadwal supervisi otomatis.");

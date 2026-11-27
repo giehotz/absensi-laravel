@@ -30,14 +30,16 @@ class PraObservasiController extends Controller
             : collect();
 
         $coachingPra = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PRA);
+        $portalPrefix = $this->resolvePortalPrefix($request);
 
-        return view('supervisi.supervisor.pra_observasi', compact('jadwal', 'fokusDipilihList', 'coachingPra'));
+        return view('supervisi.supervisor.pra_observasi', compact('jadwal', 'fokusDipilihList', 'coachingPra', 'portalPrefix'));
     }
 
     public function agree(Request $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $jadwal);
         $this->guard->ensureNotLocked($jadwal);
+        $portalPrefix = $this->resolvePortalPrefix($request);
 
         $pra = $jadwal->praObservasi;
         if (! $pra) {
@@ -80,7 +82,14 @@ class PraObservasiController extends Controller
             }
         });
 
-        return redirect()->route('supervisi.supervisor.penilaian.edit', $jadwal)
+        return redirect()->route("supervisi.{$portalPrefix}.penilaian.edit", $jadwal)
             ->with('success', 'Formulir A & Coaching TIRTA Pra-Observasi disepakati. Lanjutkan ke observasi kelas.');
+    }
+
+    private function resolvePortalPrefix(Request $request): string
+    {
+        return str_starts_with((string) $request->route()?->getName(), 'supervisi.kepala.')
+            ? 'kepala'
+            : 'supervisor';
     }
 }

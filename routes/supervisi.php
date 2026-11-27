@@ -13,6 +13,7 @@ use App\Http\Controllers\Supervisi\Guru\DokumenAjarController as GuruDokumenAjar
 use App\Http\Controllers\Supervisi\Guru\HasilController as GuruHasilController;
 use App\Http\Controllers\Supervisi\Guru\JadwalController as GuruJadwalController;
 use App\Http\Controllers\Supervisi\Guru\PraObservasiController as GuruPraObservasiController;
+use App\Http\Controllers\Supervisi\Guru\SiklusController as GuruSiklusController;
 use App\Http\Controllers\Supervisi\Guru\TindakLanjutController as GuruTindakLanjutController;
 use App\Http\Controllers\Supervisi\Kepala\DashboardController as KepalaDashboardController;
 use App\Http\Controllers\Supervisi\Kepala\DokumenAjarController as KepalaDokumenAjarController;
@@ -144,6 +145,9 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::put('/jadwal/{jadwal}', [KepalaJadwalController::class, 'update'])->name('jadwal.update');
                 Route::delete('/jadwal/{jadwal}', [KepalaJadwalController::class, 'destroy'])->name('jadwal.destroy');
 
+                Route::get('/pra-observasi/{jadwal}', [SupervisorPraObservasiController::class, 'show'])->name('pra-observasi.show');
+                Route::post('/pra-observasi/{jadwal}/agree', [SupervisorPraObservasiController::class, 'agree'])->name('pra-observasi.agree');
+
                 Route::get('/dokumen-ajar/{jadwal}', [KepalaDokumenAjarController::class, 'index'])->name('dokumen-ajar.index');
                 Route::post('/dokumen-ajar/{dokumen}/verify', [KepalaDokumenAjarController::class, 'verify'])->name('dokumen-ajar.verify');
 
@@ -152,6 +156,11 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::post('/penilaian/{jadwal}/complete', [KepalaPenilaianController::class, 'complete'])->name('penilaian.complete');
                 Route::post('/penilaian/{jadwal}/foto', [KepalaPenilaianController::class, 'uploadFoto'])->name('penilaian.foto.upload');
                 Route::delete('/penilaian/foto/{foto}', [KepalaPenilaianController::class, 'deleteFoto'])->name('penilaian.foto.delete');
+
+                Route::get('/tindak-lanjut/{jadwal}', [SupervisorTindakLanjutController::class, 'show'])->name('tindak-lanjut.show');
+                Route::post('/tindak-lanjut/{jadwal}/feedback-c', [SupervisorTindakLanjutController::class, 'feedbackC'])->name('tindak-lanjut.feedback-c');
+                Route::post('/tindak-lanjut/{jadwal}/evaluate-d', [SupervisorTindakLanjutController::class, 'evaluateD'])->name('tindak-lanjut.evaluate-d');
+                Route::post('/tindak-lanjut/{jadwal}/coaching', [SupervisorTindakLanjutController::class, 'storeCoachingPasca'])->name('tindak-lanjut.coaching');
 
                 Route::get('/hasil', [KepalaHasilController::class, 'index'])->name('hasil.index');
                 Route::get('/hasil-print/instrumen', [KepalaHasilController::class, 'printByInstrument'])->name('hasil.print-instrumen');
@@ -165,6 +174,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
             ->group(function (): void {
                 Route::get('/dashboard', [GuruDashboardController::class, 'index'])->name('dashboard');
                 Route::get('/jadwal', [GuruJadwalController::class, 'index'])->name('jadwal.index');
+                Route::get('/siklus/{jadwal}', [GuruSiklusController::class, 'show'])->name('siklus.show');
 
                 Route::get('/dokumen-ajar', [GuruDokumenAjarController::class, 'index'])->name('dokumen-ajar.index');
                 Route::get('/dokumen-ajar/{jadwal}', [GuruDokumenAjarController::class, 'manage'])->name('dokumen-ajar.manage');

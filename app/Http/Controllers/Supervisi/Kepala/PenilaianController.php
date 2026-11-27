@@ -42,11 +42,11 @@ class PenilaianController extends Controller
 
     public function uploadFoto(Request $request, SupervisiJadwal $jadwal): JsonResponse|RedirectResponse
     {
-        return $this->handleUploadFoto($request, $jadwal, $this->imageUploadService);
+        return $this->handleUploadFoto($request, $jadwal, $this->imageUploadService, $this->guard);
     }
 
     public function deleteFoto(SupervisiFotoBukti $foto): JsonResponse|RedirectResponse
     {
-        return $this->handleDeleteFoto($foto, $this->imageUploadService);
+        return $this->handleDeleteFoto($foto, $this->imageUploadService, $this->guard);
     }
 }

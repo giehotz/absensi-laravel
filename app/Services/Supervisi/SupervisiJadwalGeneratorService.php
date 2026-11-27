@@ -97,20 +97,30 @@ class SupervisiJadwalGeneratorService
             ->get()
             ->groupBy('day_of_week');
 
-        // Ambil jadwal supervisi yang sudah ada di DB agar bebas bentrok
+        // Ambil jadwal supervisi yang sudah ada di DB agar bebas bentrok (baik sisi supervisor maupun guru)
         $existingBusy = [];
-        $existingSupervisorRows = SupervisiJadwal::query()
-            ->whereIn('supervisor_teacher_id', $supervisorIds)
+        $teacherBusy = [];
+        $existingJadwalRows = SupervisiJadwal::query()
+            ->where(function ($query) use ($supervisorIds, $teacherIds): void {
+                $query->whereIn('supervisor_teacher_id', $supervisorIds)
+                    ->orWhereIn('teacher_id', $teacherIds);
+            })
             ->whereBetween('tanggal', [$params['tanggal_mulai'], $params['tanggal_selesai']])
             ->where('status', '!=', SupervisiStatus::Batal->value)
             ->get();
 
-        foreach ($existingSupervisorRows as $row) {
+        foreach ($existingJadwalRows as $row) {
             $dateKey = $row->tanggal->toDateString();
-            $existingBusy[$row->supervisor_teacher_id][$dateKey][] = [
+            $slotRange = [
                 'start' => $row->jam_mulai ?: '07:30:00',
                 'end' => $row->jam_selesai ?: '08:05:00',
             ];
+            if ($row->supervisor_teacher_id) {
+                $existingBusy[$row->supervisor_teacher_id][$dateKey][] = $slotRange;
+            }
+            if ($row->teacher_id) {
+                $teacherBusy[$row->teacher_id][$dateKey][] = $slotRange;
+            }
         }
 
         $generated = [];
@@ -146,7 +156,10 @@ class SupervisiJadwalGeneratorService
                     }
 
                     foreach ($candidateSlots as $slot) {
-                        if ($this->hasTimeOverlap($busyToday, $slot['jam_mulai'], $slot['jam_selesai'])) {
+                        if (
+                            $this->hasTimeOverlap($busyToday, $slot['jam_mulai'], $slot['jam_selesai'])
+                            || $this->hasTimeOverlap($teacherBusy[$teacher->id][$dateStr] ?? [], $slot['jam_mulai'], $slot['jam_selesai'])
+                        ) {
                             continue;
                         }
 
@@ -171,10 +184,12 @@ class SupervisiJadwalGeneratorService
                             'materi' => 'Supervisi Akademik Proses Pembelajaran',
                         ];
 
-                        $existingBusy[$supId][$dateStr][] = [
+                        $slotRange = [
                             'start' => $slot['jam_mulai'],
                             'end' => $slot['jam_selesai'],
                         ];
+                        $existingBusy[$supId][$dateStr][] = $slotRange;
+                        $teacherBusy[$teacher->id][$dateStr][] = $slotRange;
 
                         $supPointer = ($supPointer + $attempt + 1) % $supCount;
                         $placed = true;
@@ -206,29 +221,80 @@ class SupervisiJadwalGeneratorService
         $count = 0;
 
         DB::transaction(function () use ($items, $overrides, $excluded, &$count): void {
+            $dates = collect($items)
+                ->map(fn (array $item, int $idx): ?string => in_array($idx, $excluded, true) ? null : ($overrides[$idx]['tanggal'] ?? $item['tanggal'] ?? null))
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+
+            $supervisorBusy = [];
+            $teacherBusy = [];
+
+            if (! empty($dates)) {
+                $existingRows = SupervisiJadwal::query()
+                    ->whereIn('tanggal', $dates)
+                    ->where('status', '!=', SupervisiStatus::Batal->value)
+                    ->get();
+
+                foreach ($existingRows as $row) {
+                    $dKey = $row->tanggal->toDateString();
+                    $range = [
+                        'start' => $row->jam_mulai ?: '07:30:00',
+                        'end' => $row->jam_selesai ?: '08:05:00',
+                    ];
+                    if ($row->supervisor_teacher_id) {
+                        $supervisorBusy[$row->supervisor_teacher_id][$dKey][] = $range;
+                    }
+                    if ($row->teacher_id) {
+                        $teacherBusy[$row->teacher_id][$dKey][] = $range;
+                    }
+                }
+            }
+
             foreach ($items as $idx => $item) {
                 if (in_array((int) $idx, $excluded, true)) {
                     continue;
                 }
 
-                $tanggal = $overrides[$idx]['tanggal'] ?? $item['tanggal'];
+                $teacherId = (int) $item['teacher_id'];
+                $supervisorId = (int) ($overrides[$idx]['supervisor_teacher_id'] ?? $item['supervisor_teacher_id']);
+                if ($supervisorId === $teacherId) {
+                    throw new \DomainException('Guru yang disupervisi tidak boleh sama dengan supervisor penilai.');
+                }
+
+                $tanggal = (string) ($overrides[$idx]['tanggal'] ?? $item['tanggal']);
+                $jamMulai = (string) ($overrides[$idx]['jam_mulai'] ?? $item['jam_mulai'] ?? '07:30');
+                $jamSelesai = (string) ($overrides[$idx]['jam_selesai'] ?? $item['jam_selesai'] ?? '08:05');
+
+                if (
+                    $this->hasTimeOverlap($supervisorBusy[$supervisorId][$tanggal] ?? [], $jamMulai, $jamSelesai)
+                    || $this->hasTimeOverlap($teacherBusy[$teacherId][$tanggal] ?? [], $jamMulai, $jamSelesai)
+                ) {
+                    throw new \DomainException("Terdapat bentrok waktu jadwal supervisi pada tanggal {$tanggal} ({$jamMulai}-{$jamSelesai}).");
+                }
+
                 $dayIso = Carbon::parse($tanggal)->dayOfWeekIso;
 
                 SupervisiJadwal::create([
                     'academic_year_id' => (int) $item['academic_year_id'],
-                    'teacher_id' => (int) $item['teacher_id'],
-                    'supervisor_teacher_id' => (int) ($overrides[$idx]['supervisor_teacher_id'] ?? $item['supervisor_teacher_id']),
+                    'teacher_id' => $teacherId,
+                    'supervisor_teacher_id' => $supervisorId,
                     'school_class_id' => ! empty($overrides[$idx]['school_class_id']) ? (int) $overrides[$idx]['school_class_id'] : ($item['school_class_id'] ?: null),
                     'subject_id' => ! empty($item['subject_id']) ? (int) $item['subject_id'] : null,
                     'indikator_pmm_id' => ! empty($item['indikator_pmm_id']) ? (int) $item['indikator_pmm_id'] : null,
                     'tanggal' => $tanggal,
                     'hari' => self::HARI_INDONESIA[$dayIso] ?? ($item['hari'] ?? 'Senin'),
                     'jam_ke' => (string) ($overrides[$idx]['jam_ke'] ?? $item['jam_ke'] ?? '1'),
-                    'jam_mulai' => $overrides[$idx]['jam_mulai'] ?? $item['jam_mulai'] ?? '07:30',
-                    'jam_selesai' => $overrides[$idx]['jam_selesai'] ?? $item['jam_selesai'] ?? '08:05',
+                    'jam_mulai' => $jamMulai,
+                    'jam_selesai' => $jamSelesai,
                     'materi' => $item['materi'] ?? 'Supervisi Akademik Proses Pembelajaran',
                     'status' => SupervisiStatus::Terjadwal->value,
                 ]);
+
+                $slotRange = ['start' => $jamMulai, 'end' => $jamSelesai];
+                $supervisorBusy[$supervisorId][$tanggal][] = $slotRange;
+                $teacherBusy[$teacherId][$tanggal][] = $slotRange;
 
                 $count++;
             }

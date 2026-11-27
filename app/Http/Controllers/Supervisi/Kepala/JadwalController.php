@@ -99,11 +99,11 @@ class JadwalController extends Controller
             ->with('success', 'Jadwal supervisi berhasil diperbarui.');
     }
 
-    public function destroy(SupervisiJadwal $jadwal): RedirectResponse
+    public function destroy(Request $request, SupervisiJadwal $jadwal): RedirectResponse
     {
-        if ($jadwal->hasils()->exists()) {
+        if (! $request->user()?->isAdmin() && $jadwal->hasils()->exists()) {
             return redirect()->route('supervisi.kepala.jadwal.index')
-                ->with('error', 'Jadwal yang sudah memiliki hasil supervisi tidak dapat dihapus.');
+                ->with('error', 'Hanya Admin yang dapat menghapus jadwal yang sudah memiliki hasil penilaian.');
         }
 
         $jadwal->delete();

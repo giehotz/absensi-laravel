@@ -80,15 +80,16 @@ class SupervisiScoringService
             $now = now();
 
             foreach ($aspeks as $aspek) {
+                $maxAspect = $this->aspectMaxScore($aspek, $jenis);
+                $skorMaksimal += $maxAspect;
+
                 $rawSkor = $scores[$aspek->id] ?? null;
                 if ($rawSkor === null || $rawSkor === '') {
                     continue;
                 }
 
-                $maxAspect = $this->aspectMaxScore($aspek, $jenis);
                 $skor = max(1, min($maxAspect, (int) $rawSkor));
                 $totalSkor += $skor;
-                $skorMaksimal += $maxAspect;
 
                 $rows[] = [
                     'hasil_id' => $hasil->id,
@@ -127,7 +128,7 @@ class SupervisiScoringService
      */
     public function recalculateJadwalSummary(SupervisiJadwal $jadwal): array
     {
-        $hasils = $jadwal->hasils()->with(['detailHasils.aspek', 'jenisPenilaian'])->get();
+        $hasils = $jadwal->hasils()->with(['detailHasils.aspek', 'jenisPenilaian.aspekPenilaians'])->get();
 
         $grandTotalSkor = 0;
         $grandSkorMaks = 0;
@@ -137,14 +138,20 @@ class SupervisiScoringService
                 continue;
             }
 
-            $jenisTotal = 0;
-            $jenisMax = 0;
+            $jenisTotal = (int) $hasil->detailHasils->sum('skor');
+            $masterAspeks = $hasil->jenisPenilaian?->aspekPenilaians ?? collect();
 
-            foreach ($hasil->detailHasils as $detail) {
-                $jenisTotal += (int) $detail->skor;
-                $jenisMax += $detail->aspek
-                    ? $this->aspectMaxScore($detail->aspek, $hasil->jenisPenilaian)
-                    : (($hasil->jenisPenilaian?->skor_maksimal ?? 4) === 3 ? 3 : 4);
+            if ($masterAspeks->isNotEmpty()) {
+                $jenisMax = (int) $masterAspeks->sum(
+                    fn (SupervisiAspekPenilaian $aspek): int => $this->aspectMaxScore($aspek, $hasil->jenisPenilaian)
+                );
+            } else {
+                $jenisMax = 0;
+                foreach ($hasil->detailHasils as $detail) {
+                    $jenisMax += $detail->aspek
+                        ? $this->aspectMaxScore($detail->aspek, $hasil->jenisPenilaian)
+                        : (($hasil->jenisPenilaian?->skor_maksimal ?? 4) === 3 ? 3 : 4);
+                }
             }
 
             $jenisNilai = $jenisMax > 0 ? round(($jenisTotal / $jenisMax) * 100, 2) : 0.0;

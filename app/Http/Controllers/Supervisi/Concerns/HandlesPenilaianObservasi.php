@@ -24,9 +24,9 @@ trait HandlesPenilaianObservasi
     ): View|RedirectResponse {
         $jadwal->loadMissing(['teacher.user', 'schoolClass', 'subject', 'academicYear', 'indikatorPmm', 'praObservasi', 'hasils.detailHasils', 'fotoBuktis', 'signatures']);
 
-        if ($portalPrefix === 'supervisor' && ! $guard->canAccessObservasi($jadwal)) {
+        if (in_array($portalPrefix, ['supervisor', 'kepala'], true) && ! $guard->canAccessObservasi($jadwal)) {
             return redirect()
-                ->route('supervisi.supervisor.pra-observasi.show', $jadwal)
+                ->route("supervisi.{$portalPrefix}.pra-observasi.show", $jadwal)
                 ->with('error', 'Observasi kelas belum dapat dinilai sebelum Formulir A (Pra-Observasi) disepakati.');
         }
 
@@ -149,6 +149,28 @@ trait HandlesPenilaianObservasi
             }
         }
 
+        $scoredHasils = $jadwal->hasils()->with(['detailHasils', 'jenisPenilaian.aspekPenilaians'])->get()
+            ->filter(fn ($hasil): bool => $hasil->detailHasils->isNotEmpty());
+
+        if ($scoredHasils->isEmpty()) {
+            $msg = 'Minimal satu komponen penilaian harus diisi sebelum menyelesaikan observasi.';
+
+            return $request->expectsJson()
+                ? response()->json(['status' => 'error', 'message' => $msg], 422)
+                : redirect()->back()->with('error', $msg);
+        }
+
+        foreach ($scoredHasils as $hasil) {
+            $requiredCount = $hasil->jenisPenilaian?->aspekPenilaians->count() ?? 0;
+            if ($requiredCount > 0 && $hasil->detailHasils->count() < $requiredCount) {
+                $msg = "Seluruh {$requiredCount} aspek pada komponen {$hasil->jenisPenilaian->nama} wajib dinilai sebelum menyelesaikan observasi.";
+
+                return $request->expectsJson()
+                    ? response()->json(['status' => 'error', 'message' => $msg], 422)
+                    : redirect()->back()->with('error', $msg);
+            }
+        }
+
         $summary = $scoring->recalculateJadwalSummary($jadwal);
 
         $nextStatus = SupervisiStatus::Selesai->value;
@@ -187,8 +209,17 @@ trait HandlesPenilaianObservasi
     protected function handleUploadFoto(
         Request $request,
         SupervisiJadwal $jadwal,
-        ImageUploadService $imageUploadService
+        ImageUploadService $imageUploadService,
+        SupervisiCycleGuardService $guard
     ): JsonResponse|RedirectResponse {
+        if ($guard->isLocked($jadwal)) {
+            $message = 'Dokumen supervisi terkunci karena sudah ditandatangani digital.';
+
+            return $request->expectsJson()
+                ? response()->json(['status' => 'error', 'message' => $message], 403)
+                : redirect()->back()->with('error', $message);
+        }
+
         $request->validate([
             'photos' => ['required', 'array', 'min:1'],
             'photos.*' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -247,8 +278,18 @@ trait HandlesPenilaianObservasi
 
     protected function handleDeleteFoto(
         SupervisiFotoBukti $foto,
-        ImageUploadService $imageUploadService
+        ImageUploadService $imageUploadService,
+        SupervisiCycleGuardService $guard
     ): JsonResponse|RedirectResponse {
+        $jadwal = $foto->jadwal;
+        if ($jadwal && $guard->isLocked($jadwal)) {
+            $message = 'Foto bukti terkunci karena dokumen sudah ditandatangani digital.';
+
+            return request()->expectsJson()
+                ? response()->json(['status' => 'error', 'message' => $message], 403)
+                : redirect()->back()->with('error', $message);
+        }
+
         $jadwalId = $foto->jadwal_id;
         $deletedId = $foto->id;
         $imageUploadService->deleteOldFile($foto->file_path);

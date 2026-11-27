@@ -26,7 +26,7 @@ class StoreDokumenAjarRequest extends FormRequest
             'strategi_diferensiasi.*' => ['string', 'max:50'],
             'link_drive' => ['nullable', 'url', 'max:500'],
             'link_eksternal' => ['nullable', 'url', 'max:500'],
-            'file' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:10240'],
+            'file' => ['nullable', 'file', 'mimes:pdf,doc,docx', 'max:5120'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ];
     }

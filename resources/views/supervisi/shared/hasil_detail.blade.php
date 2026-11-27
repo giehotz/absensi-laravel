@@ -32,7 +32,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
         <div>
             <h3 class="font-heading font-black text-sm">✍️ Tanda Tangan Digital Sekuensial (QR Code)</h3>
-            <p class="text-xs text-slate-600">Urutan wajib: 1. Guru → 2. Supervisor → 3. Kepala Madrasah</p>
+            <p class="text-xs text-slate-600">Urutan wajib: 1. Supervisor → 2. Guru → 3. Kepala Madrasah</p>
         </div>
         <span class="px-3 py-1 rounded-full border-2 border-black text-xs font-black {{ $isFullySigned ? 'bg-emerald-200' : 'bg-amber-100' }}">
             {{ $isFullySigned ? 'Disahkan Lengkap' : 'Menunggu Pengesahan' }}
@@ -40,7 +40,7 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        @foreach(['guru' => '1. Guru', 'supervisor' => '2. Supervisor', 'kepala' => '3. Kepala Madrasah'] as $rKey => $rLabel)
+        @foreach(['supervisor' => '1. Supervisor', 'guru' => '2. Guru', 'kepala' => '3. Kepala Madrasah'] as $rKey => $rLabel)
             @php $sig = $signatures[$rKey] ?? null; @endphp
             <div class="p-3.5 rounded-lg border-2 border-black {{ $sig ? 'bg-emerald-50' : 'bg-slate-50' }}">
                 <div class="text-[11px] font-black uppercase text-slate-600">{{ $rLabel }}</div>

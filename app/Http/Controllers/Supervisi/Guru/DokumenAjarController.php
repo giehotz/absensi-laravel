@@ -45,6 +45,7 @@ class DokumenAjarController extends Controller
     public function store(StoreDokumenAjarRequest $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureGuruOwnsJadwal($request->user(), $jadwal);
+        $this->guard->ensureNotLocked($jadwal);
 
         $data = $request->validated();
         $filePath = null;
@@ -69,13 +70,18 @@ class DokumenAjarController extends Controller
             'status' => SupervisiDokumenAjar::STATUS_PENDING,
         ]);
 
-        return redirect()->route('supervisi.guru.dokumen-ajar.manage', $jadwal)
+        $route = $request->input('redirect_to') === 'siklus'
+            ? route('supervisi.guru.siklus.show', ['jadwal' => $jadwal, 'step' => 1])
+            : route('supervisi.guru.dokumen-ajar.manage', $jadwal);
+
+        return redirect()->to($route)
             ->with('success', 'Perangkat ajar berhasil disimpan dan menunggu telaah Supervisor.');
     }
 
     public function destroy(Request $request, SupervisiDokumenAjar $dokumen): RedirectResponse
     {
         $this->guard->ensureGuruOwnsJadwal($request->user(), $dokumen->jadwal);
+        $this->guard->ensureNotLocked($dokumen->jadwal);
 
         if ($dokumen->file_path && Storage::disk('public')->exists($dokumen->file_path)) {
             Storage::disk('public')->delete($dokumen->file_path);
@@ -84,7 +90,11 @@ class DokumenAjarController extends Controller
         $jadwalId = $dokumen->jadwal_id;
         $dokumen->delete();
 
-        return redirect()->route('supervisi.guru.dokumen-ajar.manage', $jadwalId)
+        $route = $request->input('redirect_to') === 'siklus'
+            ? route('supervisi.guru.siklus.show', ['jadwal' => $jadwalId, 'step' => 1])
+            : route('supervisi.guru.dokumen-ajar.manage', $jadwalId);
+
+        return redirect()->to($route)
             ->with('success', 'Perangkat ajar berhasil dihapus.');
     }
 }

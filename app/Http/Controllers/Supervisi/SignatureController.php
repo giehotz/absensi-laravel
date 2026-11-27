@@ -33,9 +33,16 @@ class SignatureController extends Controller
 
             $message = 'Dokumen berhasil ditandatangani secara digital.';
 
-            return $request->expectsJson()
-                ? response()->json(['status' => 'success', 'message' => $message, 'token' => $signature->token_verifikasi])
-                : redirect()->back()->with('success', $message);
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $message, 'token' => $signature->token_verifikasi]);
+            }
+
+            if ($request->input('redirect_to') === 'siklus') {
+                return redirect()->route('supervisi.guru.siklus.show', ['jadwal' => $jadwal, 'step' => 4])
+                    ->with('success', $message);
+            }
+
+            return redirect()->back()->with('success', $message);
         } catch (AuthorizationException $e) {
             return $request->expectsJson()
                 ? response()->json(['status' => 'error', 'message' => $e->getMessage()], 403)

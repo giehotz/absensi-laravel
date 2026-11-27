@@ -35,6 +35,7 @@ class TindakLanjutController extends Controller
     public function saveFormC(SaveTindakLanjutCRequest $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureGuruOwnsJadwal($request->user(), $jadwal);
+        $this->guard->ensureNotLocked($jadwal);
 
         if (! $this->guard->canAccessPascaObservasi($jadwal)) {
             return redirect()->route('supervisi.guru.jadwal.index')
@@ -49,13 +50,18 @@ class TindakLanjutController extends Controller
             ]
         );
 
-        return redirect()->route('supervisi.guru.tindak-lanjut.edit', $jadwal)
+        $route = $request->input('redirect_to') === 'siklus'
+            ? route('supervisi.guru.siklus.show', ['jadwal' => $jadwal, 'step' => 3])
+            : route('supervisi.guru.tindak-lanjut.edit', $jadwal);
+
+        return redirect()->to($route)
             ->with('success', 'Formulir C (Rencana Tindak Lanjut) berhasil disimpan dan diajukan ke Supervisor.');
     }
 
     public function saveFormD(SaveTindakLanjutDRequest $request, SupervisiJadwal $jadwal): RedirectResponse
     {
         $this->guard->ensureGuruOwnsJadwal($request->user(), $jadwal);
+        $this->guard->ensureNotLocked($jadwal);
 
         $tindakLanjut = $jadwal->tindakLanjut;
         if (! $tindakLanjut) {
@@ -67,7 +73,11 @@ class TindakLanjutController extends Controller
             'status_tindak_lanjut' => 'form_d_diisi',
         ]);
 
-        return redirect()->route('supervisi.guru.tindak-lanjut.edit', $jadwal)
+        $route = $request->input('redirect_to') === 'siklus'
+            ? route('supervisi.guru.siklus.show', ['jadwal' => $jadwal, 'step' => 3])
+            : route('supervisi.guru.tindak-lanjut.edit', $jadwal);
+
+        return redirect()->to($route)
             ->with('success', 'Formulir D (Refleksi Tindak Lanjut) berhasil disimpan dan diajukan ke Supervisor.');
     }
 }

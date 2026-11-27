@@ -25,7 +25,13 @@
             </tr>
         </thead>
         <tbody>
+            @php $kepalaTeacherId = auth()->user()?->teacher?->id; @endphp
             @forelse($jadwals as $j)
+                @php
+                    $isAssignedToKepala = ($kepalaTeacherId && (int) $j->supervisor_teacher_id === (int) $kepalaTeacherId)
+                        || (int) $j->supervisor_user_id === (int) auth()->id()
+                        || (! $j->supervisor_teacher_id && ! $j->supervisor_user_id);
+                @endphp
                 <tr class="odd:bg-white even:bg-slate-50">
                     <td class="p-2 border border-black font-bold">{{ $j->tanggal?->format('d/m/Y') }}</td>
                     <td class="p-2 border border-black font-black">{{ $j->teacher?->user?->name }}</td>
@@ -33,8 +39,18 @@
                     <td class="p-2 border border-black">{{ $j->schoolClass?->name ?? '-' }} / {{ $j->subject?->name ?? '-' }}</td>
                     <td class="p-2 border border-black"><span class="px-2 py-0.5 rounded border text-[11px] font-black {{ $j->statusEnum()->badgeClass() }}">{{ $j->statusEnum()->label() }}</span></td>
                     <td class="p-2 border border-black text-center">
-                        <div class="inline-flex gap-1">
-                            <a href="{{ route('supervisi.kepala.penilaian.edit', $j) }}" class="px-2 py-1 bg-sky-100 border border-black rounded font-bold">Nilai Langsung</a>
+                        <div class="inline-flex flex-wrap justify-center gap-1">
+                            @if($j->isKurmer())
+                                <a href="{{ route('supervisi.kepala.pra-observasi.show', $j) }}" class="px-2 py-1 bg-purple-100 border border-black rounded font-bold">Form A</a>
+                            @endif
+                            @if($isAssignedToKepala)
+                                <a href="{{ route('supervisi.kepala.penilaian.edit', $j) }}" class="px-2 py-1 bg-sky-100 border border-black rounded font-bold">Nilai Langsung</a>
+                            @else
+                                <a href="{{ route('supervisi.kepala.penilaian.edit', $j) }}" title="Jadwal ini ditugaskan ke {{ $j->supervisor_display_name }}" class="px-2 py-1 bg-slate-100 text-slate-700 border border-black rounded font-bold">Nilai (Sup. Lain)</a>
+                            @endif
+                            @if($j->isKurmer() && $j->statusEnum()->canAccessPascaObservasi(true))
+                                <a href="{{ route('supervisi.kepala.tindak-lanjut.show', $j) }}" class="px-2 py-1 bg-emerald-100 border border-black rounded font-bold">Form C/D</a>
+                            @endif
                             <a href="{{ route('supervisi.kepala.jadwal.show', $j) }}" class="px-2 py-1 bg-amber-100 border border-black rounded font-bold">Detail</a>
                             <a href="{{ route('supervisi.kepala.jadwal.edit', $j) }}" class="px-2 py-1 bg-white border border-black rounded font-bold">Edit</a>
                         </div>

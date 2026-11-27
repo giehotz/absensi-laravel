@@ -26,7 +26,7 @@
             </div>
         </div>
 
-        <form action="{{ route('supervisi.supervisor.pra-observasi.agree', $jadwal) }}" method="POST" class="pt-4 border-t-2 border-black space-y-4">
+        <form action="{{ route('supervisi.' . ($portalPrefix ?? 'supervisor') . '.pra-observasi.agree', $jadwal) }}" method="POST" class="pt-4 border-t-2 border-black space-y-4">
             @csrf
             <h3 class="font-heading font-black text-sm">Catatan Coaching Alur TIRTA Pra-Observasi</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">

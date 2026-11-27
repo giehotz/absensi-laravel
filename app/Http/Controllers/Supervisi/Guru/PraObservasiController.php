@@ -80,7 +80,11 @@ class PraObservasiController extends Controller
             ? 'Formulir A berhasil diajukan ke Supervisor untuk disepakati.'
             : 'Draft Formulir A berhasil disimpan.';
 
-        return redirect()->route('supervisi.guru.pra-observasi.edit', $jadwal)->with('success', $msg);
+        $route = $request->input('redirect_to') === 'siklus'
+            ? route('supervisi.guru.siklus.show', ['jadwal' => $jadwal, 'step' => 2])
+            : route('supervisi.guru.pra-observasi.edit', $jadwal);
+
+        return redirect()->to($route)->with('success', $msg);
     }
 
     public function tarik(Request $request, SupervisiJadwal $jadwal): RedirectResponse
@@ -99,7 +103,11 @@ class PraObservasiController extends Controller
 
         $pra->update(['status_kesepakatan' => SupervisiPraObservasi::STATUS_DRAFT]);
 
-        return redirect()->route('supervisi.guru.pra-observasi.edit', $jadwal)
+        $route = $request->input('redirect_to') === 'siklus'
+            ? route('supervisi.guru.siklus.show', ['jadwal' => $jadwal, 'step' => 2])
+            : route('supervisi.guru.pra-observasi.edit', $jadwal);
+
+        return redirect()->to($route)
             ->with('success', 'Pengajuan Formulir A berhasil ditarik kembali ke mode draf.');
     }
 }

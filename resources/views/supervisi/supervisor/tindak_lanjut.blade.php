@@ -3,7 +3,10 @@
 @section('page_title', 'Review Tindak Lanjut & Evaluasi Refleksi Guru')
 
 @section('content')
-@php $tl = $jadwal->tindakLanjut; @endphp
+@php
+    $tl = $jadwal->tindakLanjut;
+    $routePrefix = $portalPrefix ?? 'supervisor';
+@endphp
 
 <div class="bg-white border-2 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#000] space-y-4">
     <h2 class="font-heading font-black text-base">{{ $jadwal->teacher?->user?->name }} — Nilai Observasi: {{ $jadwal->nilai_akhir ?? '-' }} ({{ $jadwal->ketercapaian ?? '-' }})</h2>
@@ -18,7 +21,7 @@
             <div><strong>Kebutuhan Dukungan:</strong> {{ $tl->kebutuhan_dukungan ?: '-' }} ({{ $tl->detail_dukungan ?: '-' }})</div>
         </div>
 
-        <form action="{{ route('supervisi.supervisor.tindak-lanjut.feedback-c', $jadwal) }}" method="POST" class="space-y-3 border-t-2 border-slate-200 pt-3">
+        <form action="{{ route("supervisi.{$routePrefix}.tindak-lanjut.feedback-c", $jadwal) }}" method="POST" class="space-y-3 border-t-2 border-slate-200 pt-3">
             @csrf
             <h4 class="font-black text-xs">Umpan Balik Supervisor untuk Formulir C</h4>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -36,7 +39,7 @@
                 <div><strong>Kendala & Perbaikan Berkelanjutan:</strong> {{ $tl->kendala_tindak_lanjut ?: '-' }} / {{ $tl->rencana_perbaikan_berkelanjutan ?: '-' }}</div>
             </div>
 
-            <form action="{{ route('supervisi.supervisor.tindak-lanjut.evaluate-d', $jadwal) }}" method="POST" class="space-y-3 border-t-2 border-slate-200 pt-3">
+            <form action="{{ route("supervisi.{$routePrefix}.tindak-lanjut.evaluate-d", $jadwal) }}" method="POST" class="space-y-3 border-t-2 border-slate-200 pt-3">
                 @csrf
                 <h4 class="font-black text-xs">Evaluasi Akhir Supervisor untuk Formulir D</h4>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -51,7 +54,7 @@
 
 <div class="bg-white border-2 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#000] space-y-3">
     <h3 class="font-heading font-black text-sm">Coaching Alur TIRTA Pasca-Observasi</h3>
-    <form action="{{ route('supervisi.supervisor.tindak-lanjut.coaching', $jadwal) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <form action="{{ route("supervisi.{$routePrefix}.tindak-lanjut.coaching", $jadwal) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         @csrf
         <textarea name="tujuan_coaching" rows="2" required placeholder="Tujuan Coaching Pasca" class="px-3 py-2 text-xs border-2 border-black rounded-lg">{{ old('tujuan_coaching', $coachingPasca?->tujuan_coaching) }}</textarea>
         <textarea name="identifikasi_kondisi" rows="2" placeholder="Identifikasi Kondisi" class="px-3 py-2 text-xs border-2 border-black rounded-lg">{{ old('identifikasi_kondisi', $coachingPasca?->identifikasi_kondisi) }}</textarea>

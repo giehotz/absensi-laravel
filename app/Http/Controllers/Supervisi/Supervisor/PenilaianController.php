@@ -50,13 +50,13 @@ class PenilaianController extends Controller
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $jadwal);
 
-        return $this->handleUploadFoto($request, $jadwal, $this->imageUploadService);
+        return $this->handleUploadFoto($request, $jadwal, $this->imageUploadService, $this->guard);
     }
 
     public function deleteFoto(Request $request, SupervisiFotoBukti $foto): JsonResponse|RedirectResponse
     {
         $this->guard->ensureSupervisorOwnsJadwal($request->user(), $foto->jadwal);
 
-        return $this->handleDeleteFoto($foto, $this->imageUploadService);
+        return $this->handleDeleteFoto($foto, $this->imageUploadService, $this->guard);
     }
 }
