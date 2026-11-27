@@ -13,6 +13,7 @@ use App\Services\Supervisi\SupervisiScoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 trait HandlesPenilaianObservasi
@@ -36,23 +37,7 @@ trait HandlesPenilaianObservasi
                 ->with('error', 'Penilaian terkunci karena dokumen sudah ditandatangani digital. Hubungi Admin untuk reset.');
         }
 
-        $jenisList = SupervisiJenisPenilaian::with('aspekPenilaians')
-            ->active()
-            ->orderByRaw("CASE kategori_supervisi WHEN 'observasi_kelas_pmm' THEN 1 WHEN 'perangkat_ajar' THEN 2 ELSE 3 END")
-            ->orderBy('id')
-            ->get();
-
-        // Filter relevan: jika jadwal Kurmer, tampilkan indikator PMM terpilih + perangkat ajar; jika Reguler, tampilkan instrumen Reguler
-        if ($jadwal->isKurmer()) {
-            $jenisList = $jenisList->filter(
-                fn (SupervisiJenisPenilaian $j) => (int) $j->id === (int) $jadwal->indikator_pmm_id
-                    || $j->kategori_supervisi === SupervisiJenisPenilaian::KATEGORI_PERANGKAT_AJAR
-            )->values();
-        } else {
-            $jenisList = $jenisList->filter(
-                fn (SupervisiJenisPenilaian $j) => $j->kategori_supervisi === SupervisiJenisPenilaian::KATEGORI_REGULER
-            )->values();
-        }
+        $jenisList = $this->loadOrderedActiveJenis(withAspects: true);
 
         $existingHasils = $jadwal->hasils->keyBy('jenis_penilaian_id');
         $existingDetails = [];
@@ -64,14 +49,84 @@ trait HandlesPenilaianObservasi
             ->map(fn (mixed $id): int => (int) $id)
             ->all();
 
+        $semesterFormsMap = [];
+        if ($jadwal->teacher && $jadwal->academicYear) {
+            $portfolio = app(SupervisiScoringService::class)
+                ->buildTeacherSemesterPortfolio($jadwal->teacher, $jadwal->academicYear, 'semester');
+            $semesterFormsMap = $portfolio['forms']->keyBy(fn (array $item): int => (int) $item['jenis']->id)->all();
+        }
+
         return view('supervisi.shared.penilaian_form', [
             'jadwal' => $jadwal,
             'jenisList' => $jenisList,
             'existingHasils' => $existingHasils,
             'existingDetails' => $existingDetails,
             'fokusDipilihIds' => $fokusDipilihIds,
+            'semesterFormsMap' => $semesterFormsMap,
             'portalPrefix' => $portalPrefix,
         ]);
+    }
+
+    protected function renderSingleInstrumentForm(
+        SupervisiJadwal $jadwal,
+        SupervisiJenisPenilaian $jenis,
+        string $portalPrefix,
+        SupervisiCycleGuardService $guard
+    ): View|RedirectResponse {
+        $jadwal->loadMissing(['teacher.user', 'schoolClass', 'subject', 'academicYear', 'indikatorPmm', 'praObservasi', 'hasils.detailHasils', 'signatures']);
+
+        if (in_array($portalPrefix, ['supervisor', 'kepala'], true) && ! $guard->canAccessObservasi($jadwal)) {
+            return redirect()
+                ->route("supervisi.{$portalPrefix}.pra-observasi.show", $jadwal)
+                ->with('error', 'Observasi kelas belum dapat dinilai sebelum Formulir A (Pra-Observasi) disepakati.');
+        }
+
+        if ($guard->isLocked($jadwal)) {
+            return redirect()
+                ->route("supervisi.{$portalPrefix}.".($portalPrefix === 'admin' ? 'laporan.detail' : 'hasil.show'), $jadwal)
+                ->with('error', 'Penilaian terkunci karena dokumen sudah ditandatangani digital. Hubungi Admin untuk reset.');
+        }
+
+        $jenis->loadMissing('aspekPenilaians');
+        $allJenis = $this->loadOrderedActiveJenis(withAspects: false);
+        $currentIndex = $allJenis->search(fn (SupervisiJenisPenilaian $item): bool => (int) $item->id === (int) $jenis->id);
+        $prevJenis = ($currentIndex !== false && $currentIndex > 0) ? $allJenis->get($currentIndex - 1) : null;
+        $nextJenis = ($currentIndex !== false && $currentIndex + 1 < $allJenis->count()) ? $allJenis->get($currentIndex + 1) : null;
+
+        $hasil = $jadwal->hasils->firstWhere('jenis_penilaian_id', $jenis->id);
+        $detailsMap = $hasil ? $hasil->detailHasils->keyBy('aspek_id') : collect();
+        $fokusDipilihIds = collect($jadwal->praObservasi?->fokus_perilaku_dipilih ?? [])
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
+
+        return view('supervisi.shared.penilaian_single_form', [
+            'jadwal' => $jadwal,
+            'jenis' => $jenis,
+            'allJenis' => $allJenis,
+            'prevJenis' => $prevJenis,
+            'nextJenis' => $nextJenis,
+            'currentNumber' => $currentIndex !== false ? $currentIndex + 1 : 1,
+            'hasil' => $hasil,
+            'detailsMap' => $detailsMap,
+            'fokusDipilihIds' => $fokusDipilihIds,
+            'portalPrefix' => $portalPrefix,
+        ]);
+    }
+
+    /**
+     * Muat seluruh jenis penilaian aktif dalam urutan 3 kelompok step standar.
+     *
+     * @return Collection<int, SupervisiJenisPenilaian>
+     */
+    private function loadOrderedActiveJenis(bool $withAspects = true)
+    {
+        return SupervisiJenisPenilaian::query()
+            ->when($withAspects, fn ($q) => $q->with('aspekPenilaians'))
+            ->withCount('aspekPenilaians')
+            ->active()
+            ->orderByRaw("CASE WHEN kode = 'REG-ADM' THEN 1 WHEN kategori_supervisi = 'perangkat_ajar' THEN 2 WHEN kategori_supervisi = 'reguler' THEN 3 ELSE 4 END")
+            ->orderBy('id')
+            ->get();
     }
 
     protected function handleSaveKomponen(
@@ -116,6 +171,15 @@ trait HandlesPenilaianObservasi
                     'ketercapaian' => $hasil->ketercapaian,
                 ],
             ]);
+        }
+
+        if ($request->filled('next_jenis_id')) {
+            $routeName = (string) ($request->route()?->getName() ?? '');
+            $portal = str_contains($routeName, '.admin.') ? 'admin' : (str_contains($routeName, '.kepala.') ? 'kepala' : 'supervisor');
+
+            return redirect()
+                ->route("supervisi.{$portal}.penilaian.form", ['jadwal' => $jadwal, 'jenis' => $request->integer('next_jenis_id')])
+                ->with('success', "Form {$jenis->nama} berhasil disimpan. Lanjutkan ke form berikutnya.");
         }
 
         return redirect()->back()->with('success', "Penilaian komponen {$jenis->nama} berhasil disimpan.");

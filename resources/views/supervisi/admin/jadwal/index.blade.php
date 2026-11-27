@@ -27,10 +27,16 @@
             <h2 class="font-heading font-black text-sm">Daftar Jadwal ({{ $jadwals->count() }})</h2>
             <p class="text-[11px] font-semibold text-slate-600">Penghapusan data (termasuk jadwal bernilai) hanya dapat dilakukan oleh Admin dengan konfirmasi token 6 digit.</p>
         </div>
-        <button type="button" id="btn-open-bulk-delete"
-            class="px-3 py-1.5 bg-rose-200 hover:bg-rose-300 text-rose-950 text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
-            🗑️ Hapus Terpilih (<span id="selected-jadwal-count">0</span>)
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <label class="sm:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 text-xs font-black rounded-lg border-2 border-black cursor-pointer">
+                <input type="checkbox" id="select-all-jadwal-mobile" class="cursor-pointer">
+                <span>Pilih Semua</span>
+            </label>
+            <button type="button" id="btn-open-bulk-delete"
+                class="px-3 py-1.5 bg-rose-200 hover:bg-rose-300 text-rose-950 text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                🗑️ Hapus Terpilih (<span id="selected-jadwal-count">0</span>)
+            </button>
+        </div>
     </div>
 
     <div id="jadwal-selection-alert" role="status" aria-live="polite" hidden
@@ -175,6 +181,7 @@
     const tokenValue = @json($deleteConfirmToken);
 
     const selectAllCheckbox = document.getElementById('select-all-jadwal');
+    const selectAllMobileCheckbox = document.getElementById('select-all-jadwal-mobile');
     const rowCheckboxes = Array.from(document.querySelectorAll('.jadwal-select-checkbox'));
     const countBadge = document.getElementById('selected-jadwal-count');
     const selectionAlert = document.getElementById('jadwal-selection-alert');
@@ -190,23 +197,30 @@
 
     function updateSelectedCount() {
         const checkedCount = rowCheckboxes.filter((cb) => cb.checked).length;
+        const allChecked = rowCheckboxes.length > 0 && checkedCount === rowCheckboxes.length;
         if (countBadge) {
             countBadge.textContent = String(checkedCount);
         }
         if (selectAllCheckbox) {
-            selectAllCheckbox.checked = rowCheckboxes.length > 0 && checkedCount === rowCheckboxes.length;
+            selectAllCheckbox.checked = allChecked;
+        }
+        if (selectAllMobileCheckbox) {
+            selectAllMobileCheckbox.checked = allChecked;
         }
     }
 
-    selectAllCheckbox?.addEventListener('change', () => {
+    function applySelectAll(checked) {
         rowCheckboxes.forEach((cb) => {
-            cb.checked = selectAllCheckbox.checked;
+            cb.checked = checked;
         });
         updateSelectedCount();
         if (selectionAlert) {
             selectionAlert.hidden = true;
         }
-    });
+    }
+
+    selectAllCheckbox?.addEventListener('change', () => applySelectAll(selectAllCheckbox.checked));
+    selectAllMobileCheckbox?.addEventListener('change', () => applySelectAll(selectAllMobileCheckbox.checked));
 
     rowCheckboxes.forEach((cb) => {
         cb.addEventListener('change', () => {

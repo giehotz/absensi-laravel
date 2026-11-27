@@ -8,6 +8,7 @@ use App\Models\AttendanceSetting;
 use App\Models\Supervisi\SupervisiAspekPenilaian;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiJenisPenilaian;
+use App\Models\Teacher;
 use App\Services\QrCodeService;
 use Illuminate\Support\Collection;
 
@@ -120,10 +121,9 @@ class SupervisiPrintService
             )->values();
         }
 
-        // Sertakan komponen hasil historis jika instrumen dinonaktifkan setelah penilaian
         $coveredIds = $filteredJenis->pluck('id')->all();
         foreach ($jadwal->hasils as $hasil) {
-            if ($hasil->jenisPenilaian && ! in_array($hasil->jenis_penilaian_id, $coveredIds, true)) {
+            if ($hasil->jenisPenilaian && ! in_array($hasil->jenis_penilaian_id, $coveredIds, true) && $hasil->detailHasils->isNotEmpty()) {
                 $hasil->jenisPenilaian->loadMissing('aspekPenilaians');
                 $filteredJenis->push($hasil->jenisPenilaian);
                 $coveredIds[] = $hasil->jenis_penilaian_id;
@@ -357,6 +357,86 @@ class SupervisiPrintService
                 ?? $setting?->card_principal_nip
                 ?? '-',
             'backUrl' => $backUrl,
+        ];
+    }
+
+    /**
+     * Siapkan payload PDF Level 1: Rincian lengkap 1 Form/Instrumen pada 1 jadwal.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildSingleInstrumentPrintPayload(
+        SupervisiJadwal $jadwal,
+        SupervisiJenisPenilaian $jenis,
+        bool $isPolos = false
+    ): array {
+        $payload = $this->buildJadwalPrintPayload($jadwal, $isPolos);
+        $jenis->loadMissing('aspekPenilaians');
+        $hasil = $jadwal->hasils->firstWhere('jenis_penilaian_id', $jenis->id);
+        $detailsByAspek = $hasil ? $hasil->detailHasils->keyBy('aspek_id') : collect();
+
+        $skorMaksimal = (int) $jenis->aspekPenilaians->sum(
+            fn (SupervisiAspekPenilaian $aspek): int => $this->scoringService->aspectMaxScore($aspek, $jenis)
+        );
+        $totalSkor = $hasil ? (int) $hasil->total_skor : 0;
+        $nilaiAkhir = $skorMaksimal > 0 ? round(($totalSkor / $skorMaksimal) * 100, 2) : 0.0;
+
+        return [
+            ...$payload,
+            'jenis' => $jenis,
+            'hasil' => $hasil,
+            'detailsByAspek' => $detailsByAspek,
+            'instrumentSkor' => $totalSkor,
+            'instrumentMaks' => $skorMaksimal,
+            'instrumentNilai' => $nilaiAkhir,
+            'instrumentPredikat' => $hasil && $skorMaksimal > 0 ? $this->scoringService->predikat($nilaiAkhir) : 'Belum Dinilai',
+        ];
+    }
+
+    /**
+     * Siapkan payload PDF Level 3: Portofolio Lengkap 14 Form (81 aspek) untuk 1 Guru dalam 1 Semester / 1 Tahun Pelajaran.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildTeacherPortfolioPrintPayload(
+        Teacher $teacher,
+        ?AcademicYear $referenceYear,
+        string $scope = 'semester',
+        bool $isPolos = false
+    ): array {
+        $teacher->loadMissing('user');
+        $academicYears = AcademicYear::query()->orderByDesc('start_date')->get();
+        $setting = AttendanceSetting::query()->with('headmasterTeacher.user')->first();
+
+        $portfolio = $referenceYear
+            ? $this->scoringService->buildTeacherSemesterPortfolio($teacher, $referenceYear, $scope)
+            : [
+                'teacher' => $teacher,
+                'referenceYear' => null,
+                'scope' => $scope,
+                'periodLabel' => '-',
+                'forms' => collect(),
+                'doneCount' => 0,
+                'partialCount' => 0,
+                'totalForms' => 0,
+                'totalSkor' => 0,
+                'skorMaksimal' => 0,
+                'nilaiAkhir' => 0.0,
+                'ketercapaian' => 'Belum Dinilai',
+            ];
+
+        return [
+            ...$portfolio,
+            'academicYears' => $academicYears,
+            'setting' => $setting,
+            'isPolos' => $isPolos,
+            'kotaMadrasah' => $setting?->school_district ?: ($setting?->school_city ?: 'Madrasah'),
+            'namaKepala' => $setting?->headmasterTeacher?->user?->name
+                ?? $setting?->card_principal_name
+                ?? 'Kepala Madrasah',
+            'nipKepala' => $setting?->headmasterTeacher?->nip
+                ?? $setting?->card_principal_nip
+                ?? '-',
         ];
     }
 }

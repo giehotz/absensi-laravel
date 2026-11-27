@@ -10,6 +10,7 @@ use App\Models\Supervisi\SupervisiAspekPenilaian;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Services\Supervisi\SupervisiExcelExportService;
 use App\Services\Supervisi\SupervisiPrintService;
+use App\Services\Supervisi\SupervisiScoringService;
 use App\Services\Supervisi\SupervisiSignatureService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class LaporanController extends Controller
         private readonly SupervisiExcelExportService $excelService,
         private readonly SupervisiSignatureService $signatureService,
         private readonly SupervisiPrintService $printService,
+        private readonly SupervisiScoringService $scoringService,
     ) {}
 
     public function index(Request $request): View
@@ -30,10 +32,29 @@ class LaporanController extends Controller
         $activeYear = AcademicYear::activeSemester();
         $selectedYearId = $request->query('academic_year_id', $activeYear?->id ? (string) $activeYear->id : 'all');
         $selectedStatus = $request->query('status', 'all');
+        $selectedScope = $request->query('scope', 'semester') === 'tahun' ? 'tahun' : 'semester';
 
         $jadwals = $this->filteredJadwals($selectedYearId, $selectedStatus);
+        $referenceYear = $selectedYearId !== 'all' && $selectedYearId !== ''
+            ? $academicYears->firstWhere('id', (int) $selectedYearId)
+            : ($activeYear ?? $academicYears->first());
 
-        return view('supervisi.admin.laporan.index', compact('jadwals', 'academicYears', 'selectedYearId', 'selectedStatus', 'activeYear'));
+        $portfolioProgressMap = $this->scoringService->buildPortfolioProgressMap(
+            $jadwals->pluck('teacher_id')->filter()->unique()->values()->all(),
+            $referenceYear,
+            $selectedScope
+        );
+
+        return view('supervisi.admin.laporan.index', compact(
+            'jadwals',
+            'academicYears',
+            'selectedYearId',
+            'selectedStatus',
+            'selectedScope',
+            'activeYear',
+            'referenceYear',
+            'portfolioProgressMap'
+        ));
     }
 
     public function detail(SupervisiJadwal $jadwal): View

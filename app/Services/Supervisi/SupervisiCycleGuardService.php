@@ -6,6 +6,7 @@ use App\Enums\SupervisiStatus;
 use App\Http\Middleware\EnsureSupervisiRole;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiPraObservasi;
+use App\Models\Teacher;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 
@@ -100,6 +101,43 @@ class SupervisiCycleGuardService
         if (! $isGuruOwner && ! $isSupOwner) {
             throw new AuthorizationException('Anda tidak memiliki akses ke jadwal supervisi ini.');
         }
+    }
+
+    /**
+     * Verifikasi hak akses melihat / mencetak portofolio 14 form milik guru.
+     *
+     * @throws AuthorizationException
+     */
+    public function ensureCanViewTeacherPortfolio(User $user, Teacher $teacher): void
+    {
+        $roles = EnsureSupervisiRole::resolveRoles($user);
+        if (in_array('admin', $roles, true) || in_array('kepala', $roles, true)) {
+            return;
+        }
+
+        if ($user->teacher && (int) $user->teacher->id === (int) $teacher->id) {
+            return;
+        }
+
+        if (in_array('supervisor', $roles, true)) {
+            $isBinaan = SupervisiJadwal::query()
+                ->where('teacher_id', $teacher->id)
+                ->where(function ($query) use ($user): void {
+                    if ($user->teacher) {
+                        $query->where('supervisor_teacher_id', $user->teacher->id)
+                            ->orWhere('supervisor_user_id', $user->id);
+                    } else {
+                        $query->where('supervisor_user_id', $user->id);
+                    }
+                })
+                ->exists();
+
+            if ($isBinaan) {
+                return;
+            }
+        }
+
+        throw new AuthorizationException('Anda tidak memiliki akses ke portofolio supervisi guru ini.');
     }
 
     /**

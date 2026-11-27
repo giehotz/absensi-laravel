@@ -15,6 +15,7 @@ class InstrumenController extends Controller
     public function index(Request $request): View
     {
         $tab = in_array($request->query('tab'), ['jenis', 'aspek'], true) ? $request->query('tab') : 'jenis';
+        $selectedJenisId = $request->query('jenis_id', 'all');
 
         $jenisList = SupervisiJenisPenilaian::withCount('aspekPenilaians')
             ->orderBy('kategori_supervisi')
@@ -22,11 +23,12 @@ class InstrumenController extends Controller
             ->get();
 
         $aspekList = SupervisiAspekPenilaian::with('jenisPenilaian')
+            ->when($selectedJenisId !== 'all' && $selectedJenisId !== '', fn ($q) => $q->where('jenis_penilaian_id', (int) $selectedJenisId))
             ->orderBy('jenis_penilaian_id')
             ->orderBy('urutan')
             ->get();
 
-        return view('supervisi.admin.instrumen.index', compact('tab', 'jenisList', 'aspekList'));
+        return view('supervisi.admin.instrumen.index', compact('tab', 'jenisList', 'aspekList', 'selectedJenisId'));
     }
 
     public function storeJenis(Request $request): RedirectResponse
@@ -83,7 +85,7 @@ class InstrumenController extends Controller
         $validated = $request->validate([
             'jenis_penilaian_id' => ['required', 'exists:supervisi_jenis_penilaian,id'],
             'nama_aspek' => ['required', 'string', 'max:255'],
-            'fokus_perilaku' => ['nullable', 'string', 'max:255'],
+            'fokus_perilaku' => ['nullable', 'string', 'max:500'],
             'perilaku_dianjurkan' => ['nullable', 'string'],
             'perilaku_dihindari' => ['nullable', 'string'],
             'tipe_skala' => ['required', 'in:skor_1_4,perilaku_pmm_1_3'],
@@ -92,8 +94,8 @@ class InstrumenController extends Controller
 
         SupervisiAspekPenilaian::create($validated);
 
-        return redirect()->route('supervisi.admin.instrumen.index', ['tab' => 'aspek'])
-            ->with('success', 'Aspek / fokus perilaku berhasil ditambahkan.');
+        return redirect()->route('supervisi.admin.instrumen.index', ['tab' => 'aspek', 'jenis_id' => $validated['jenis_penilaian_id']])
+            ->with('success', 'Aspek / keterangan indikator berhasil ditambahkan.');
     }
 
     public function updateAspek(Request $request, SupervisiAspekPenilaian $aspek): RedirectResponse
@@ -101,7 +103,7 @@ class InstrumenController extends Controller
         $validated = $request->validate([
             'jenis_penilaian_id' => ['required', 'exists:supervisi_jenis_penilaian,id'],
             'nama_aspek' => ['required', 'string', 'max:255'],
-            'fokus_perilaku' => ['nullable', 'string', 'max:255'],
+            'fokus_perilaku' => ['nullable', 'string', 'max:500'],
             'perilaku_dianjurkan' => ['nullable', 'string'],
             'perilaku_dihindari' => ['nullable', 'string'],
             'tipe_skala' => ['required', 'in:skor_1_4,perilaku_pmm_1_3'],
@@ -110,8 +112,8 @@ class InstrumenController extends Controller
 
         $aspek->update($validated);
 
-        return redirect()->route('supervisi.admin.instrumen.index', ['tab' => 'aspek'])
-            ->with('success', 'Aspek penilaian berhasil diperbarui.');
+        return redirect()->route('supervisi.admin.instrumen.index', ['tab' => 'aspek', 'jenis_id' => $validated['jenis_penilaian_id']])
+            ->with('success', 'Aspek & keterangan indikator berhasil diperbarui.');
     }
 
     public function destroyAspek(SupervisiAspekPenilaian $aspek): RedirectResponse

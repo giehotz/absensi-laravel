@@ -11,6 +11,7 @@ use App\Models\Supervisi\SupervisiJenisPenilaian;
 use App\Models\Supervisi\SupervisiSupervisor;
 use App\Models\Supervisi\SupervisiTindakLanjut;
 use App\Models\Teacher;
+use App\Services\Supervisi\SupervisiScoringService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -73,16 +74,27 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function performance(Request $request): View
+    public function performance(Request $request, SupervisiScoringService $scoringService): View
     {
         $academicYears = AcademicYear::query()->orderByDesc('start_date')->get();
         $activeYear = AcademicYear::activeSemester();
         $selectedYearId = $request->query('academic_year_id', $activeYear?->id ? (string) $activeYear->id : 'all');
+        $selectedScope = $request->query('scope', 'semester') === 'tahun' ? 'tahun' : 'semester';
 
         $teachers = Teacher::with('user')
             ->excludeKepala()
             ->whereHas('user', fn ($q) => $q->where('is_active', true))
             ->get();
+
+        $referenceYear = ($selectedYearId !== 'all' && $selectedYearId !== '')
+            ? $academicYears->firstWhere('id', (int) $selectedYearId)
+            : ($activeYear ?? $academicYears->first());
+
+        $portfolioProgressMap = $scoringService->buildPortfolioProgressMap(
+            $teachers->pluck('id')->all(),
+            $referenceYear,
+            $selectedScope
+        );
 
         $completedQuery = SupervisiJadwal::with(['subject', 'schoolClass'])
             ->where('status', SupervisiStatus::Selesai->value)
@@ -90,7 +102,7 @@ class DashboardController extends Controller
             ->get()
             ->groupBy('teacher_id');
 
-        $performanceData = $teachers->map(function (Teacher $teacher) use ($completedQuery): array {
+        $performanceData = $teachers->map(function (Teacher $teacher) use ($completedQuery, $portfolioProgressMap): array {
             $items = $completedQuery->get($teacher->id, collect());
             $scored = $items->whereNotNull('nilai_akhir');
             $avg = $scored->isNotEmpty() ? round((float) $scored->avg('nilai_akhir'), 2) : 0.0;
@@ -109,9 +121,16 @@ class DashboardController extends Controller
                 'kategori' => $kategori,
                 'jumlah_supervisi' => $items->count(),
                 'subjects' => $items->pluck('subject.name')->filter()->unique()->values()->all(),
+                'progress' => $portfolioProgressMap[$teacher->id] ?? null,
             ];
         })->sortByDesc('rata_rata')->values();
 
-        return view('supervisi.kepala.performance', compact('performanceData', 'academicYears', 'selectedYearId'));
+        return view('supervisi.kepala.performance', compact(
+            'performanceData',
+            'academicYears',
+            'selectedYearId',
+            'selectedScope',
+            'referenceYear'
+        ));
     }
 }

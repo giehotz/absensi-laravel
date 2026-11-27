@@ -140,10 +140,15 @@
                     <tbody>
                         @foreach($hasil->detailHasils as $idx => $detail)
                             <tr>
-                                <td style="border: 1px solid #000; padding: 4px; text-align: center;">{{ $idx + 1 }}</td>
-                                <td style="border: 1px solid #000; padding: 4px;">{{ $detail->aspek?->nama_aspek }}</td>
-                                <td style="border: 1px solid #000; padding: 4px; text-align: center; font-weight: bold;">{{ $detail->skor }}</td>
-                                <td style="border: 1px solid #000; padding: 4px;">{{ $detail->catatan ?: '-' }}</td>
+                                <td style="border: 1px solid #000; padding: 4px; text-align: center; vertical-align: top;">{{ $idx + 1 }}</td>
+                                <td style="border: 1px solid #000; padding: 4px; vertical-align: top;">
+                                    <div style="font-weight: bold;">{{ $detail->aspek?->nama_aspek }}</div>
+                                    @if($detail->aspek?->fokus_perilaku)
+                                        <div style="font-size: 8pt; color: #475569; margin-top: 1px;">{{ $detail->aspek->fokus_perilaku }}</div>
+                                    @endif
+                                </td>
+                                <td style="border: 1px solid #000; padding: 4px; text-align: center; font-weight: bold; vertical-align: top;">{{ $detail->skor }}</td>
+                                <td style="border: 1px solid #000; padding: 4px; vertical-align: top;">{{ $detail->catatan ?: '-' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

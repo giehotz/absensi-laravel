@@ -7,6 +7,7 @@ use App\Http\Controllers\Supervisi\Concerns\HandlesPenilaianObservasi;
 use App\Http\Requests\Supervisi\SavePenilaianRequest;
 use App\Models\Supervisi\SupervisiFotoBukti;
 use App\Models\Supervisi\SupervisiJadwal;
+use App\Models\Supervisi\SupervisiJenisPenilaian;
 use App\Services\ImageUploadService;
 use App\Services\Supervisi\SupervisiCycleGuardService;
 use App\Services\Supervisi\SupervisiScoringService;
@@ -28,6 +29,11 @@ class PenilaianController extends Controller
     public function edit(SupervisiJadwal $jadwal): View|RedirectResponse
     {
         return $this->renderPenilaianForm($jadwal, 'kepala', $this->guard);
+    }
+
+    public function showForm(SupervisiJadwal $jadwal, SupervisiJenisPenilaian $jenis): View|RedirectResponse
+    {
+        return $this->renderSingleInstrumentForm($jadwal, $jenis, 'kepala', $this->guard);
     }
 
     public function saveKomponen(SavePenilaianRequest $request, SupervisiJadwal $jadwal): JsonResponse|RedirectResponse

@@ -44,6 +44,8 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
         Route::post('/switch-role/{role}', [DashboardController::class, 'switchRole'])->name('switch-role');
         Route::post('/signature/{jadwal}/sign', [SignatureController::class, 'sign'])->name('signature.sign');
         Route::get('/cetak/{jadwal}/{type?}', [CetakController::class, 'show'])->name('cetak');
+        Route::get('/cetak/{jadwal}/instrumen/{jenis}', [CetakController::class, 'showInstrument'])->name('cetak.instrumen');
+        Route::get('/cetak-portofolio/{teacher}', [CetakController::class, 'portfolio'])->name('cetak.portofolio');
 
         // Panel Admin Supervisi
         Route::middleware('supervisi.role:admin')
@@ -78,6 +80,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::delete('/jadwal/{jadwal}', [AdminJadwalController::class, 'destroy'])->name('jadwal.destroy');
 
                 Route::get('/penilaian/{jadwal}/edit', [AdminPenilaianController::class, 'edit'])->name('penilaian.edit');
+                Route::get('/penilaian/{jadwal}/form/{jenis}', [AdminPenilaianController::class, 'showForm'])->name('penilaian.form');
                 Route::post('/penilaian/{jadwal}/save', [AdminPenilaianController::class, 'saveKomponen'])->name('penilaian.save');
                 Route::post('/penilaian/{jadwal}/complete', [AdminPenilaianController::class, 'complete'])->name('penilaian.complete');
                 Route::post('/penilaian/{jadwal}/foto', [AdminPenilaianController::class, 'uploadFoto'])->name('penilaian.foto.upload');
@@ -113,6 +116,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::post('/dokumen-ajar/{dokumen}/verify', [SupervisorDokumenAjarController::class, 'verify'])->name('dokumen-ajar.verify');
 
                 Route::get('/penilaian/{jadwal}/edit', [SupervisorPenilaianController::class, 'edit'])->name('penilaian.edit');
+                Route::get('/penilaian/{jadwal}/form/{jenis}', [SupervisorPenilaianController::class, 'showForm'])->name('penilaian.form');
                 Route::post('/penilaian/{jadwal}/save', [SupervisorPenilaianController::class, 'saveKomponen'])->name('penilaian.save');
                 Route::post('/penilaian/{jadwal}/complete', [SupervisorPenilaianController::class, 'complete'])->name('penilaian.complete');
                 Route::post('/penilaian/{jadwal}/foto', [SupervisorPenilaianController::class, 'uploadFoto'])->name('penilaian.foto.upload');
@@ -152,6 +156,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::post('/dokumen-ajar/{dokumen}/verify', [KepalaDokumenAjarController::class, 'verify'])->name('dokumen-ajar.verify');
 
                 Route::get('/penilaian/{jadwal}/edit', [KepalaPenilaianController::class, 'edit'])->name('penilaian.edit');
+                Route::get('/penilaian/{jadwal}/form/{jenis}', [KepalaPenilaianController::class, 'showForm'])->name('penilaian.form');
                 Route::post('/penilaian/{jadwal}/save', [KepalaPenilaianController::class, 'saveKomponen'])->name('penilaian.save');
                 Route::post('/penilaian/{jadwal}/complete', [KepalaPenilaianController::class, 'complete'])->name('penilaian.complete');
                 Route::post('/penilaian/{jadwal}/foto', [KepalaPenilaianController::class, 'uploadFoto'])->name('penilaian.foto.upload');

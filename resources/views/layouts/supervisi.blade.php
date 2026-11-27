@@ -190,7 +190,7 @@
             </div>
         </header>
 
-        <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-5">
+        <main class="supervisi-portal flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-5">
             @if(session('success'))
                 <div role="status" aria-live="polite" class="p-3.5 bg-emerald-100 border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_#000] text-sm font-bold text-emerald-950 flex items-center justify-between">
                     <span>✅ {{ session('success') }}</span>
@@ -223,6 +223,51 @@
             sidebar.classList.toggle('-translate-x-full');
             backdrop.classList.toggle('hidden');
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.supervisi-portal table').forEach((table, tableIdx) => {
+                if (table.classList.contains('no-responsive-table')) {
+                    return;
+                }
+
+                const headers = Array.from(table.querySelectorAll('thead tr th'));
+                if (headers.length === 0) {
+                    return;
+                }
+
+                headers.forEach((th, idx) => {
+                    const hasCheckbox = th.querySelector('input[type="checkbox"]') !== null;
+                    const rawText = (th.textContent || '').replace(/\s+/g, ' ').trim();
+                    const label = hasCheckbox || rawText === '' || rawText === '✓' ? 'Pilih' : rawText;
+                    table.style.setProperty(`--label-${idx + 1}`, JSON.stringify(label));
+                });
+
+                const parent = table.parentElement;
+                let wrap = parent;
+                const needsInnerWrap = !parent
+                    || (!parent.classList.contains('overflow-x-auto') && !parent.classList.contains('supervisi-table-wrap'))
+                    || parent.children.length > 1;
+
+                if (needsInnerWrap) {
+                    wrap = document.createElement('div');
+                    parent?.insertBefore(wrap, table);
+                    wrap.appendChild(table);
+                }
+
+                wrap.classList.add('supervisi-table-wrap');
+                if (!wrap.hasAttribute('tabindex')) {
+                    wrap.setAttribute('tabindex', '0');
+                }
+                if (!wrap.hasAttribute('role')) {
+                    wrap.setAttribute('role', 'region');
+                }
+                if (!wrap.hasAttribute('aria-label') && !wrap.hasAttribute('aria-labelledby')) {
+                    const captionText = table.querySelector('caption')?.textContent?.trim();
+                    const nearestHeading = table.closest('.bg-white')?.querySelector('h1, h2, h3')?.textContent?.trim();
+                    wrap.setAttribute('aria-label', captionText || nearestHeading || `Tabel Data ${tableIdx + 1}`);
+                }
+            });
+        });
     </script>
     @stack('scripts')
 </body>
