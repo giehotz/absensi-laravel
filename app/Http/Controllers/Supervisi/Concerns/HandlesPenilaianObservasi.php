@@ -124,7 +124,7 @@ trait HandlesPenilaianObservasi
             ->when($withAspects, fn ($q) => $q->with('aspekPenilaians'))
             ->withCount('aspekPenilaians')
             ->active()
-            ->orderByRaw("CASE WHEN kode = 'REG-ADM' THEN 1 WHEN kategori_supervisi = 'perangkat_ajar' THEN 2 WHEN kategori_supervisi = 'reguler' THEN 3 ELSE 4 END")
+            ->orderByRaw("CASE WHEN kode = 'REG-ADM' THEN 1 WHEN kategori_supervisi = 'perangkat_ajar' THEN 2 WHEN kategori_supervisi = 'reguler' THEN 3 WHEN kategori_supervisi = 'observasi_kelas_pmm' THEN 4 ELSE 5 END")
             ->orderBy('id')
             ->get();
     }
@@ -157,7 +157,8 @@ trait HandlesPenilaianObservasi
             $jenis,
             (array) $request->input('skor', []),
             (array) $request->input('catatan', []),
-            $request->input('rekomendasi')
+            $request->input('rekomendasi'),
+            (array) $request->input('rekomendasi_aspek', [])
         );
 
         if ($request->expectsJson()) {
@@ -208,7 +209,8 @@ trait HandlesPenilaianObservasi
                     $jenis,
                     (array) $request->input('skor', []),
                     (array) $request->input('catatan', []),
-                    $request->input('rekomendasi')
+                    $request->input('rekomendasi'),
+                    (array) $request->input('rekomendasi_aspek', [])
                 );
             }
         }

@@ -14,6 +14,8 @@ class SupervisiJenisPenilaian extends Model
 
     public const KATEGORI_PERANGKAT_AJAR = 'perangkat_ajar';
 
+    public const KATEGORI_KMA_6334 = 'kma_6334';
+
     protected $table = 'supervisi_jenis_penilaian';
 
     protected $fillable = [

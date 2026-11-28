@@ -4,6 +4,7 @@ namespace App\Services\Supervisi;
 
 use App\Enums\SupervisiStatus;
 use App\Http\Middleware\EnsureSupervisiRole;
+use App\Models\Supervisi\SupervisiCoachingTirta;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiPraObservasi;
 use App\Models\Teacher;
@@ -182,12 +183,15 @@ class SupervisiCycleGuardService
         }
 
         $tl = $jadwal->tindakLanjut;
+        $coachingPasca = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PASCA);
         if (! $tl) {
             $formCDState = ['empty', '✕', 'Belum Diisi', 'Formulir C & D belum diisi.'];
         } elseif (blank($tl->inspirasi_baru)) {
             $formCDState = ['partial', '⏳', 'Belum Lengkap', 'Formulir C sudah diisi; Formulir D (Refleksi) belum dilengkapi.'];
+        } elseif ($coachingPasca && $coachingPasca->status === SupervisiCoachingTirta::STATUS_SUBMITTED) {
+            $formCDState = ['partial', '⏳', 'Konfirmasi TIRTA', 'Supervisor telah mengirim catatan Coaching TIRTA; silakan beri komitmen & konfirmasi Guru.'];
         } else {
-            $formCDState = ['done', '✓', 'Selesai Diisi', 'Formulir C dan Formulir D telah lengkap diisi.'];
+            $formCDState = ['done', '✓', 'Selesai Diisi', 'Formulir C, Formulir D, dan Coaching TIRTA telah lengkap.'];
         }
 
         $guruSigned = $jadwal->signatures->firstWhere('signer_role', 'guru') !== null;

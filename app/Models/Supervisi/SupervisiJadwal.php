@@ -16,6 +16,19 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class SupervisiJadwal extends Model
 {
+    public const PENDEKATAN_OPTIONS = [
+        'direktif' => 'Direktif (Pembinaan Langsung)',
+        'non_direktif' => 'Non-Direktif (Mandiri Reflektif)',
+        'kolaboratif' => 'Kolaboratif (Kemitrakerjaan)',
+    ];
+
+    public const TEKNIK_OPTIONS = [
+        'kunjungan_kelas' => 'Kunjungan Kelas',
+        'observasi_kelas' => 'Observasi Kelas',
+        'pertemuan_individual' => 'Pertemuan Individual',
+        'kkg' => 'KKG / Forum Sejawat',
+    ];
+
     protected $table = 'supervisi_jadwal';
 
     protected $fillable = [
@@ -32,6 +45,9 @@ class SupervisiJadwal extends Model
         'jam_mulai',
         'jam_selesai',
         'materi',
+        'pendekatan',
+        'teknik_supervisi',
+        'sumber_slot',
         'status',
         'nilai_akhir',
         'ketercapaian',

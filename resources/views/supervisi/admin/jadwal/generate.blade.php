@@ -35,6 +35,22 @@
                 @endforeach
             </select>
         </div>
+        <div>
+            <label for="pendekatan" class="block text-xs font-black mb-1">Pendekatan Default</label>
+            <select id="pendekatan" name="pendekatan" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">
+                @foreach(\App\Models\Supervisi\SupervisiJadwal::PENDEKATAN_OPTIONS as $pKey => $pLabel)
+                    <option value="{{ $pKey }}" {{ $pKey === 'kolaboratif' ? 'selected' : '' }}>{{ $pLabel }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <label for="teknik_supervisi" class="block text-xs font-black mb-1">Teknik Supervisi Default</label>
+            <select id="teknik_supervisi" name="teknik_supervisi" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">
+                @foreach(\App\Models\Supervisi\SupervisiJadwal::TEKNIK_OPTIONS as $tKey => $tLabel)
+                    <option value="{{ $tKey }}" {{ $tKey === 'kunjungan_kelas' ? 'selected' : '' }}>{{ $tLabel }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
 
     <div>

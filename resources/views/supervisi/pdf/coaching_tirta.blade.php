@@ -20,6 +20,9 @@
                 <tr><td style="border: 1px solid #000; padding: 5px; font-weight: bold;">I — Identifikasi</td><td style="border: 1px solid #000; padding: 5px;">{{ $log->identifikasi_kondisi ?: '-' }}</td></tr>
                 <tr><td style="border: 1px solid #000; padding: 5px; font-weight: bold;">R — Rencana Aksi</td><td style="border: 1px solid #000; padding: 5px;">{{ $log->rencana_aksi ?: '-' }}</td></tr>
                 <tr><td style="border: 1px solid #000; padding: 5px; font-weight: bold;">TA — Tanggung Jawab</td><td style="border: 1px solid #000; padding: 5px;">{{ $log->tanggung_jawab ?: '-' }}</td></tr>
+                <tr><td style="border: 1px solid #000; padding: 5px; font-weight: bold;">Catatan Penguatan Coach</td><td style="border: 1px solid #000; padding: 5px;">{{ $log->catatan_coach ?: '-' }}</td></tr>
+                <tr><td style="border: 1px solid #000; padding: 5px; font-weight: bold;">Komitmen &amp; Refleksi Coachee (Guru)</td><td style="border: 1px solid #000; padding: 5px;">{{ $log->catatan_guru ?: '-' }}</td></tr>
+                <tr><td style="border: 1px solid #000; padding: 5px; font-weight: bold;">Status Coaching</td><td style="border: 1px solid #000; padding: 5px;">{{ strtoupper((string) ($log->status ?? 'draft')) }}@if($log->guru_confirmed_at) (Dikonfirmasi Guru: {{ $log->guru_confirmed_at->format('d/m/Y H:i') }})@endif</td></tr>
             </table>
         </div>
     @empty

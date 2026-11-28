@@ -35,6 +35,7 @@ class EnsureSupervisiRole
         $headmasterTeacherId = AttendanceSetting::query()->value('headmaster_teacher_id');
         if ($user->isKepala() || ($user->teacher && $headmasterTeacherId && (int) $user->teacher->id === (int) $headmasterTeacherId)) {
             $roles[] = 'kepala';
+            $roles[] = 'supervisor';
         }
 
         if ($user->teacher && SupervisiSupervisor::query()->where('teacher_id', $user->teacher->id)->where('is_active', true)->exists()) {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Supervisi\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceSetting;
 use App\Models\Supervisi\SupervisiSupervisor;
 use App\Models\Teacher;
 use Illuminate\Http\RedirectResponse;
@@ -13,6 +14,9 @@ class SupervisorController extends Controller
 {
     public function index(): View
     {
+        SupervisiSupervisor::ensureHeadmastersSynced();
+
+        $headmasterTeacherId = AttendanceSetting::query()->value('headmaster_teacher_id');
         $supervisors = SupervisiSupervisor::with(['teacher.user'])
             ->withCount('jadwals')
             ->latest('id')
@@ -27,7 +31,7 @@ class SupervisorController extends Controller
             ->sortBy(fn (Teacher $t) => $t->user?->name ?? '')
             ->values();
 
-        return view('supervisi.admin.supervisors.index', compact('supervisors', 'availableTeachers'));
+        return view('supervisi.admin.supervisors.index', compact('supervisors', 'availableTeachers', 'headmasterTeacherId'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -35,12 +39,14 @@ class SupervisorController extends Controller
         $validated = $request->validate([
             'teacher_id' => ['required', 'exists:teachers,id', 'unique:supervisi_supervisors,teacher_id'],
             'jabatan' => ['nullable', 'string', 'max:100'],
+            'nomor_sk' => ['nullable', 'string', 'max:100'],
             'tanggal_penugasan' => ['nullable', 'date'],
         ]);
 
         SupervisiSupervisor::create([
             'teacher_id' => $validated['teacher_id'],
             'jabatan' => $validated['jabatan'] ?? 'Tim Supervisor',
+            'nomor_sk' => $validated['nomor_sk'] ?? null,
             'tanggal_penugasan' => $validated['tanggal_penugasan'] ?? now()->toDateString(),
             'is_active' => true,
         ]);
@@ -59,6 +65,12 @@ class SupervisorController extends Controller
 
     public function destroy(SupervisiSupervisor $supervisor): RedirectResponse
     {
+        $supervisor->loadMissing('teacher');
+        if ($supervisor->isHeadmaster()) {
+            return redirect()->route('supervisi.admin.supervisors.index')
+                ->with('error', 'Kepala Madrasah berstatus supervisor otomatis (ex-officio) dan tidak dapat dihapus selama menjabat.');
+        }
+
         if ($supervisor->jadwals()->exists()) {
             return redirect()->route('supervisi.admin.supervisors.index')
                 ->with('error', 'Supervisor sudah memiliki riwayat jadwal supervisi; nonaktifkan saja statusnya.');

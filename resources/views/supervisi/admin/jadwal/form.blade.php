@@ -80,6 +80,30 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label for="pendekatan" class="block text-xs font-black mb-1">Pendekatan Supervisi (SK 6334/2021)</label>
+            <select id="pendekatan" name="pendekatan" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">
+                @foreach(\App\Models\Supervisi\SupervisiJadwal::PENDEKATAN_OPTIONS as $pKey => $pLabel)
+                    <option value="{{ $pKey }}" {{ old('pendekatan', $jadwal->pendekatan ?? 'kolaboratif') === $pKey ? 'selected' : '' }}>{{ $pLabel }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label for="teknik_supervisi" class="block text-xs font-black mb-1">Teknik Supervisi</label>
+            <select id="teknik_supervisi" name="teknik_supervisi" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">
+                @foreach(\App\Models\Supervisi\SupervisiJadwal::TEKNIK_OPTIONS as $tKey => $tLabel)
+                    <option value="{{ $tKey }}" {{ old('teknik_supervisi', $jadwal->teknik_supervisi ?? 'kunjungan_kelas') === $tKey ? 'selected' : '' }}>{{ $tLabel }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+
+    <div id="guru-teaching-panel" class="p-3.5 rounded-xl border-2 border-black bg-[#FFF9DB] space-y-2 text-xs" hidden>
+        <div class="font-black text-slate-900">💡 Jadwal KBM &amp; Mapel Ampuan Guru Terpilih</div>
+        <div id="guru-teaching-list" class="flex flex-wrap gap-1.5"></div>
+    </div>
+
     <div>
         <label for="materi" class="block text-xs font-black mb-1">Materi / Topik Pembelajaran</label>
         <input id="materi" type="text" name="materi" value="{{ old('materi', $jadwal->materi ?? '') }}" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg">
@@ -90,4 +114,67 @@
         <button type="submit" class="px-5 py-2 bg-[#FFD43B] text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">Simpan Jadwal</button>
     </div>
 </form>
+
+@push('scripts')
+<script>
+(() => {
+    const teacherSelect = document.getElementById('teacher_id');
+    const yearSelect = document.getElementById('academic_year_id');
+    const classSelect = document.getElementById('school_class_id');
+    const subjectSelect = document.getElementById('subject_id');
+    const startInput = document.getElementById('jam_mulai');
+    const endInput = document.getElementById('jam_selesai');
+    const panel = document.getElementById('guru-teaching-panel');
+    const list = document.getElementById('guru-teaching-list');
+
+    async function loadTeacherTeaching() {
+        const teacherId = teacherSelect?.value;
+        if (!teacherId || !panel || !list) {
+            return;
+        }
+
+        const yearId = yearSelect?.value || '';
+        const res = await fetch(`/supervisi/admin/jadwal/guru-mengajar/${teacherId}?academic_year_id=${encodeURIComponent(yearId)}`, {
+            headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) {
+            return;
+        }
+        const data = await res.json();
+        list.replaceChildren();
+
+        const items = data.has_schedules ? data.schedules : data.assignments;
+        if (!items || items.length === 0) {
+            panel.hidden = false;
+            const span = document.createElement('span');
+            span.className = 'text-[11px] font-bold text-rose-800';
+            span.textContent = 'Guru ini belum memiliki data jadwal KBM (/admin/schedules) maupun mapel ampuan (teacher_assignments).';
+            list.appendChild(span);
+            return;
+        }
+
+        panel.hidden = false;
+        items.forEach((item) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'px-2.5 py-1 rounded border border-black bg-white hover:bg-[#20C997] text-[11px] font-black cursor-pointer';
+            btn.textContent = data.has_schedules
+                ? `${item.hari} ${item.jam_mulai}-${item.jam_selesai} · ${item.kelas} / ${item.mapel}`
+                : `${item.kelas} / ${item.mapel}${item.is_wali_kelas ? ' (Wali Kelas)' : ''}`;
+            btn.addEventListener('click', () => {
+                if (classSelect && item.school_class_id) classSelect.value = String(item.school_class_id);
+                if (subjectSelect && item.subject_id) subjectSelect.value = String(item.subject_id);
+                if (startInput && item.jam_mulai) startInput.value = item.jam_mulai;
+                if (endInput && item.jam_selesai) endInput.value = item.jam_selesai;
+            });
+            list.appendChild(btn);
+        });
+    }
+
+    teacherSelect?.addEventListener('change', loadTeacherTeaching);
+    yearSelect?.addEventListener('change', loadTeacherTeaching);
+    loadTeacherTeaching();
+})();
+</script>
+@endpush
 @endsection

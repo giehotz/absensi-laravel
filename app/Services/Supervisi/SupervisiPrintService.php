@@ -8,6 +8,7 @@ use App\Models\AttendanceSetting;
 use App\Models\Supervisi\SupervisiAspekPenilaian;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiJenisPenilaian;
+use App\Models\Supervisi\SupervisiSupervisor;
 use App\Models\Teacher;
 use App\Services\QrCodeService;
 use Illuminate\Support\Collection;
@@ -430,6 +431,65 @@ class SupervisiPrintService
             'academicYears' => $academicYears,
             'setting' => $setting,
             'isPolos' => $isPolos,
+            'kotaMadrasah' => $setting?->school_district ?: ($setting?->school_city ?: 'Madrasah'),
+            'namaKepala' => $setting?->headmasterTeacher?->user?->name
+                ?? $setting?->card_principal_name
+                ?? 'Kepala Madrasah',
+            'nipKepala' => $setting?->headmasterTeacher?->nip
+                ?? $setting?->card_principal_nip
+                ?? '-',
+        ];
+    }
+
+    /**
+     * Siapkan payload Level 4 (Kemenag): Dokumen Program Perencanaan & Laporan Supervisi Format Bab III C SK 6334/2021.
+     *
+     * @return array<string, mixed>
+     */
+    public function buildBab3cReportPayload(string $selectedYearId, string $backUrl, bool $isPolos = false): array
+    {
+        $academicYear = ($selectedYearId !== 'all' && $selectedYearId !== '')
+            ? AcademicYear::find((int) $selectedYearId)
+            : (AcademicYear::activeSemester() ?? AcademicYear::query()->orderByDesc('start_date')->first());
+
+        $jadwals = SupervisiJadwal::with([
+            'academicYear',
+            'teacher.user',
+            'supervisorTeacher.user',
+            'supervisorUser',
+            'schoolClass',
+            'subject',
+            'tindakLanjut',
+            'coachingTirtas',
+            'fotoBuktis',
+            'signatures',
+        ])
+            ->when($selectedYearId !== 'all' && $selectedYearId !== '', fn ($q) => $q->where('academic_year_id', (int) $selectedYearId))
+            ->where('status', '!=', SupervisiStatus::Batal->value)
+            ->orderBy('tanggal')
+            ->get();
+
+        $supervisors = SupervisiSupervisor::with('teacher.user')
+            ->active()
+            ->orderBy('id')
+            ->get();
+
+        $setting = AttendanceSetting::query()->with('headmasterTeacher.user')->first();
+        $scoredJadwals = $jadwals->whereNotNull('nilai_akhir');
+
+        return [
+            'academicYear' => $academicYear,
+            'jadwals' => $jadwals,
+            'supervisors' => $supervisors,
+            'setting' => $setting,
+            'backUrl' => $backUrl,
+            'isPolos' => $isPolos,
+            'stats' => [
+                'total_jadwal' => $jadwals->count(),
+                'selesai' => $jadwals->where('status', SupervisiStatus::Selesai->value)->count(),
+                'rata_nilai' => $scoredJadwals->isNotEmpty() ? round((float) $scoredJadwals->avg('nilai_akhir'), 2) : 0.0,
+                'coaching_count' => $jadwals->filter(fn (SupervisiJadwal $j): bool => $j->coachingTirtas->isNotEmpty())->count(),
+            ],
             'kotaMadrasah' => $setting?->school_district ?: ($setting?->school_city ?: 'Madrasah'),
             'namaKepala' => $setting?->headmasterTeacher?->user?->name
                 ?? $setting?->card_principal_name

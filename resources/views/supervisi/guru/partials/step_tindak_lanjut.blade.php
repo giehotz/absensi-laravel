@@ -1,7 +1,10 @@
 @php
+    use App\Models\Supervisi\SupervisiCoachingTirta;
+
     $redirectTo = $redirectTo ?? null;
     $canAccessPasca = $canAccessPasca ?? true;
     $tl = $jadwal->tindakLanjut;
+    $coachingPasca = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PASCA);
 @endphp
 
 @if(!$canAccessPasca)
@@ -87,6 +90,49 @@
     @else
         <div class="p-4 rounded-xl border-2 border-black bg-slate-50 text-xs font-bold text-slate-700">
             Isi dan simpan Formulir C di atas terlebih dahulu untuk membuka Formulir D (Refleksi Tindak Lanjut).
+        </div>
+    @endif
+
+    @if($coachingPasca && $coachingPasca->status !== SupervisiCoachingTirta::STATUS_DRAFT)
+        <div class="bg-white border-2 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#000] space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h2 class="font-heading font-black text-base">💬 Coaching TIRTA Pasca-Observasi (Konfirmasi Guru)</h2>
+                <span class="px-2.5 py-1 rounded border border-black text-[11px] font-black {{ $coachingPasca->status === SupervisiCoachingTirta::STATUS_CONFIRMED ? 'bg-emerald-200 text-emerald-950' : 'bg-[#FFD43B] text-black' }}">
+                    {{ $coachingPasca->status === SupervisiCoachingTirta::STATUS_CONFIRMED ? '✓ Dikonfirmasi Guru' : '⏳ Menunggu Konfirmasi Anda' }}
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>T — Tujuan:</strong> {{ $coachingPasca->tujuan_coaching ?: '-' }}</div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>I — Identifikasi:</strong> {{ $coachingPasca->identifikasi_kondisi ?: '-' }}</div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>R — Rencana Aksi:</strong> {{ $coachingPasca->rencana_aksi ?: '-' }}</div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>TA — Tanggung Jawab:</strong> {{ $coachingPasca->tanggung_jawab ?: '-' }}</div>
+            </div>
+
+            @if($coachingPasca->catatan_coach)
+                <div class="p-3 bg-sky-50 border border-black rounded-lg text-xs">
+                    <strong>Catatan Penguatan Supervisor:</strong> {{ $coachingPasca->catatan_coach }}
+                </div>
+            @endif
+
+            <form action="{{ route('supervisi.guru.tindak-lanjut.coaching-confirm', $jadwal) }}" method="POST" class="space-y-3 border-t-2 border-slate-200 pt-3">
+                @csrf
+                @if($redirectTo)
+                    <input type="hidden" name="redirect_to" value="{{ $redirectTo }}">
+                @endif
+                <div>
+                    <label for="catatan_guru_tirta" class="block text-xs font-black mb-1">Komitmen &amp; Refleksi Pribadi Guru</label>
+                    <textarea id="catatan_guru_tirta" name="catatan_guru" rows="2" required placeholder="Tuliskan komitmen pelaksanaan tindak lanjut hasil coaching TIRTA..." class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">{{ old('catatan_guru', $coachingPasca->catatan_guru) }}</textarea>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <a href="{{ route('supervisi.cetak', ['jadwal' => $jadwal, 'type' => 'coaching']) }}" target="_blank" class="px-3 py-1.5 bg-white border-2 border-black rounded-lg text-xs font-black">
+                        🖨️ Cetak Lembar TIRTA
+                    </a>
+                    <button type="submit" class="px-4 py-2 bg-[#20C997] hover:bg-emerald-400 text-black text-xs font-black rounded-lg border-2 border-black cursor-pointer">
+                        ✅ Setujui Hasil Coaching TIRTA
+                    </button>
+                </div>
+            </form>
         </div>
     @endif
 @endif

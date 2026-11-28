@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
 use App\Models\Subject;
+use App\Models\Supervisi\SupervisiSupervisor;
 use App\Models\Teacher;
 use App\Models\TeacherAssignment;
 use App\Models\User;
@@ -870,11 +871,17 @@ class TeacherController extends Controller
                 $setting->save();
             }
 
+            SupervisiSupervisor::syncKepala($teacher);
+
             return;
         }
 
         if ($previousStaffType === Teacher::STAFF_TYPE_KEPALA && $setting && (int) $setting->headmaster_teacher_id === (int) $teacher->id) {
             $setting->update(['headmaster_teacher_id' => null]);
+        }
+
+        if ($previousStaffType === Teacher::STAFF_TYPE_KEPALA) {
+            SupervisiSupervisor::deactivateExKepala((int) $teacher->id);
         }
     }
 }

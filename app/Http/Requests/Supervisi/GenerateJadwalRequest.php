@@ -28,6 +28,8 @@ class GenerateJadwalRequest extends FormRequest
             'hari_aktif.*' => ['integer', 'between:1,6'],
             'max_per_day' => ['nullable', 'integer', 'between:1,6'],
             'indikator_pmm_id' => ['nullable', 'exists:supervisi_jenis_penilaian,id'],
+            'pendekatan' => ['nullable', 'in:direktif,non_direktif,kolaboratif'],
+            'teknik_supervisi' => ['nullable', 'in:kunjungan_kelas,observasi_kelas,pertemuan_individual,kkg'],
         ];
     }
 }

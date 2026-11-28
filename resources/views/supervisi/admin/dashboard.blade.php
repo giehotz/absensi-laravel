@@ -3,7 +3,7 @@
 @section('page_title', 'Dashboard Administrator Supervisi')
 
 @section('content')
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="grid grid-cols-2 lg:grid-cols-6 gap-3">
     <div class="bg-white border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000]">
         <div class="text-[11px] font-black uppercase text-slate-500">Total Guru</div>
         <div class="text-2xl font-black mt-1 tabular-nums">{{ $totalGuru }}</div>
@@ -19,6 +19,34 @@
     <div class="bg-[#20C997] border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000]">
         <div class="text-[11px] font-black uppercase text-slate-900">Keterlaksanaan</div>
         <div class="text-2xl font-black mt-1 tabular-nums">{{ $completionRate }}% ({{ $jadwalSelesai }})</div>
+    </div>
+    <div class="bg-sky-100 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000]">
+        <div class="text-[11px] font-black uppercase text-sky-950">Coaching TIRTA</div>
+        <div class="text-2xl font-black mt-1 tabular-nums">{{ $tirtaSelesaiCount }}</div>
+    </div>
+    <div class="bg-violet-100 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000]">
+        <div class="text-[11px] font-black uppercase text-violet-950">Rata-Rata Nilai</div>
+        <div class="text-2xl font-black mt-1 tabular-nums">{{ number_format((float) $avgNilaiAkhir, 1) }}%</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-amber-50 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000] space-y-1">
+        <div class="text-[11px] font-black uppercase text-amber-950">⚠️ Guru Belum Dijadwalkan</div>
+        <div class="text-lg font-black tabular-nums">{{ $unscheduledTeachersCount }} Guru</div>
+        <a href="{{ route('supervisi.admin.jadwal.generate') }}" class="text-[11px] font-black text-blue-700 underline inline-block">Buka Auto-Generate Jadwal →</a>
+    </div>
+    <div class="bg-rose-50 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000] space-y-1">
+        <div class="text-[11px] font-black uppercase text-rose-950">✍️ Selesai Belum Lengkap TIRTA / TTD</div>
+        <div class="text-lg font-black tabular-nums">{{ $pendingTirtaOrTtdCount }} Jadwal</div>
+        <a href="{{ route('supervisi.admin.laporan.index') }}" class="text-[11px] font-black text-blue-700 underline inline-block">Tinjau di Laporan →</a>
+    </div>
+    <div class="bg-white border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000] space-y-1">
+        <div class="text-[11px] font-black uppercase text-slate-600">📌 Ketuntasan Portofolio (14 / 3 KMA)</div>
+        <div class="text-xs font-bold text-slate-900">
+            14 Form Standar: <strong>{{ $completed14TeachersCount }}/{{ $totalGuru }}</strong> guru<br>
+            3 Form KMA 6334: <strong>{{ $completedKmaTeachersCount }}/{{ $totalGuru }}</strong> guru · Fallback Ampuan: <strong>{{ $fallbackSlotCount }}</strong> jadwal
+        </div>
     </div>
 </div>
 

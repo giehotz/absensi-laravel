@@ -55,9 +55,10 @@ class SupervisiScoringService
         SupervisiJenisPenilaian $jenis,
         array $scores,
         array $notes = [],
-        ?string $rekomendasi = null
+        ?string $rekomendasi = null,
+        array $aspectRecommendations = []
     ): SupervisiHasil {
-        return DB::transaction(function () use ($jadwal, $jenis, $scores, $notes, $rekomendasi): SupervisiHasil {
+        return DB::transaction(function () use ($jadwal, $jenis, $scores, $notes, $rekomendasi, $aspectRecommendations): SupervisiHasil {
             $aspeks = $jenis->aspekPenilaians()->get();
 
             $hasil = SupervisiHasil::firstOrCreate(
@@ -99,6 +100,7 @@ class SupervisiScoringService
                     'aspek_id' => $aspek->id,
                     'skor' => $skor,
                     'catatan' => $notes[$aspek->id] ?? null,
+                    'rekomendasi' => $aspectRecommendations[$aspek->id] ?? null,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -209,15 +211,44 @@ class SupervisiScoringService
     }
 
     /**
-     * Hitung ringkasan progres 14 form seluruh guru dalam 2 query batch (tanpa N+1).
+     * Hitung ringkasan progres 14 form standar seluruh guru dalam 2 query batch (tanpa N+1).
      *
      * @param  array<int, int>  $teacherIds
      * @return array<int, array{done_count: int, partial_count: int, total_forms: int, avg_nilai: float, badge_class: string, label: string}>
      */
     public function buildPortfolioProgressMap(array $teacherIds, ?AcademicYear $referenceYear, string $scope = 'semester'): array
     {
+        return $this->buildProgressMapByScope($teacherIds, $referenceYear, $scope, kmaOnly: false);
+    }
+
+    /**
+     * Hitung ringkasan progres 3 instrumen resmi SK 6334/2021 dalam 2 query batch (terpisah dari 14 form).
+     *
+     * @param  array<int, int>  $teacherIds
+     * @return array<int, array{done_count: int, partial_count: int, total_forms: int, avg_nilai: float, badge_class: string, label: string}>
+     */
+    public function buildKmaProgressMap(array $teacherIds, ?AcademicYear $referenceYear, string $scope = 'semester'): array
+    {
+        return $this->buildProgressMapByScope($teacherIds, $referenceYear, $scope, kmaOnly: true);
+    }
+
+    /**
+     * @param  array<int, int>  $teacherIds
+     * @return array<int, array{done_count: int, partial_count: int, total_forms: int, avg_nilai: float, badge_class: string, label: string}>
+     */
+    private function buildProgressMapByScope(
+        array $teacherIds,
+        ?AcademicYear $referenceYear,
+        string $scope,
+        bool $kmaOnly
+    ): array {
         $activeJenis = SupervisiJenisPenilaian::withCount('aspekPenilaians')
             ->active()
+            ->when(
+                $kmaOnly,
+                fn ($q) => $q->where('kategori_supervisi', SupervisiJenisPenilaian::KATEGORI_KMA_6334),
+                fn ($q) => $q->where('kategori_supervisi', '!=', SupervisiJenisPenilaian::KATEGORI_KMA_6334)
+            )
             ->orderBy('id')
             ->get();
 
@@ -331,6 +362,7 @@ class SupervisiScoringService
 
         $activeJenisList = SupervisiJenisPenilaian::with('aspekPenilaians')
             ->active()
+            ->where('kategori_supervisi', '!=', SupervisiJenisPenilaian::KATEGORI_KMA_6334)
             ->orderByRaw("CASE kategori_supervisi WHEN 'perangkat_ajar' THEN 1 WHEN 'reguler' THEN 2 ELSE 3 END")
             ->orderBy('id')
             ->get();

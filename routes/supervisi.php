@@ -69,6 +69,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
 
                 Route::get('/jadwal', [AdminJadwalController::class, 'index'])->name('jadwal.index');
                 Route::get('/jadwal/create', [AdminJadwalController::class, 'create'])->name('jadwal.create');
+                Route::get('/jadwal/guru-mengajar/{teacher}', [AdminJadwalController::class, 'teacherTeachingOptions'])->name('jadwal.guru-mengajar');
                 Route::post('/jadwal', [AdminJadwalController::class, 'store'])->name('jadwal.store');
                 Route::get('/jadwal/generate', [AdminJadwalController::class, 'generateForm'])->name('jadwal.generate');
                 Route::post('/jadwal/generate/preview', [AdminJadwalController::class, 'generatePreview'])->name('jadwal.generate.preview');
@@ -90,6 +91,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::get('/laporan/{jadwal}', [AdminLaporanController::class, 'detail'])->name('laporan.detail');
                 Route::get('/laporan-print/rekap', [AdminLaporanController::class, 'printRekap'])->name('laporan.print-rekap');
                 Route::get('/laporan-print/instrumen', [AdminLaporanController::class, 'printByInstrument'])->name('laporan.print-instrumen');
+                Route::get('/laporan-print/bab-3c', [AdminLaporanController::class, 'printBab3c'])->name('laporan.print-bab-3c');
                 Route::get('/laporan-export/excel', [AdminLaporanController::class, 'exportExcel'])->name('laporan.export-excel');
                 Route::get('/laporan-export/{jadwal}/excel', [AdminLaporanController::class, 'exportDetailExcel'])->name('laporan.export-detail-excel');
                 Route::post('/laporan-export/batch-excel', [AdminLaporanController::class, 'batchExcel'])->name('laporan.batch-excel');
@@ -193,6 +195,7 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::get('/tindak-lanjut/{jadwal}', [GuruTindakLanjutController::class, 'edit'])->name('tindak-lanjut.edit');
                 Route::post('/tindak-lanjut/{jadwal}/form-c', [GuruTindakLanjutController::class, 'saveFormC'])->name('tindak-lanjut.save-c');
                 Route::post('/tindak-lanjut/{jadwal}/form-d', [GuruTindakLanjutController::class, 'saveFormD'])->name('tindak-lanjut.save-d');
+                Route::post('/tindak-lanjut/{jadwal}/coaching-confirm', [GuruTindakLanjutController::class, 'confirmCoaching'])->name('tindak-lanjut.coaching-confirm');
 
                 Route::get('/hasil', [GuruHasilController::class, 'index'])->name('hasil.index');
                 Route::get('/hasil/{jadwal}', [GuruHasilController::class, 'show'])->name('hasil.show');

@@ -9,14 +9,17 @@ use App\Http\Requests\Supervisi\GenerateJadwalRequest;
 use App\Http\Requests\Supervisi\StoreJadwalRequest;
 use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
+use App\Models\Schedule;
 use App\Models\SchoolClass;
 use App\Models\Subject;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiJenisPenilaian;
 use App\Models\Supervisi\SupervisiSupervisor;
 use App\Models\Teacher;
+use App\Models\TeacherAssignment;
 use App\Services\Supervisi\SupervisiJadwalGeneratorService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -198,6 +201,8 @@ class JadwalController extends Controller
 
     public function generateForm(): View
     {
+        SupervisiSupervisor::ensureHeadmastersSynced();
+
         $activeYear = AcademicYear::activeSemester() ?? AcademicYear::query()->latest('id')->first();
         $academicYears = AcademicYear::query()->orderByDesc('start_date')->get();
 
@@ -297,11 +302,64 @@ class JadwalController extends Controller
         ]);
     }
 
+    public function teacherTeachingOptions(Request $request, Teacher $teacher): JsonResponse
+    {
+        $academicYearId = $request->integer('academic_year_id');
+
+        $schedules = Schedule::with(['schoolClass', 'subject'])
+            ->where('teacher_id', $teacher->id)
+            ->when(
+                $academicYearId > 0,
+                fn ($q) => $q->whereHas('schoolClass', fn ($cq) => $cq->where('academic_year_id', $academicYearId))
+            )
+            ->orderBy('day_of_week')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (Schedule $s): array => [
+                'school_class_id' => $s->school_class_id,
+                'kelas' => $s->schoolClass?->name ?? '-',
+                'subject_id' => $s->subject_id,
+                'mapel' => $s->subject?->name ?? '-',
+                'hari' => SupervisiJadwalGeneratorService::HARI_INDONESIA[$s->day_of_week] ?? '-',
+                'jam_mulai' => substr((string) $s->start_time, 0, 5),
+                'jam_selesai' => substr((string) $s->end_time, 0, 5),
+            ])
+            ->values();
+
+        $assignments = TeacherAssignment::with(['schoolClass', 'subject'])
+            ->where('teacher_id', $teacher->id)
+            ->when(
+                $academicYearId > 0,
+                fn ($q) => $q->whereHas('schoolClass', fn ($cq) => $cq->where('academic_year_id', $academicYearId))
+            )
+            ->get()
+            ->map(fn (TeacherAssignment $a): array => [
+                'school_class_id' => $a->school_class_id,
+                'kelas' => $a->schoolClass?->name ?? '-',
+                'subject_id' => $a->subject_id,
+                'mapel' => $a->subject?->name ?? '-',
+                'is_wali_kelas' => (int) $a->schoolClass?->homeroom_teacher_id === (int) $teacher->id,
+            ])
+            ->values();
+
+        $firstOption = $schedules->first() ?? $assignments->first();
+
+        return response()->json([
+            'has_schedules' => $schedules->isNotEmpty(),
+            'schedules' => $schedules,
+            'assignments' => $assignments,
+            'default_class_id' => $firstOption['school_class_id'] ?? null,
+            'default_subject_id' => $firstOption['subject_id'] ?? null,
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
     private function formOptions(): array
     {
+        SupervisiSupervisor::ensureHeadmastersSynced();
+
         $activeYear = AcademicYear::activeSemester();
         $academicYears = AcademicYear::query()->orderByDesc('start_date')->get();
         $teachers = Teacher::with('user')->excludeKepala()->get()->sortBy(fn (Teacher $t) => $t->user?->name ?? '')->values();

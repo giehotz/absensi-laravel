@@ -93,6 +93,9 @@
         </div>
     </div>
 
+    @php
+        $isKma6334 = $jenis->kategori_supervisi === \App\Models\Supervisi\SupervisiJenisPenilaian::KATEGORI_KMA_6334;
+    @endphp
     <!-- Daftar Aspek beserta Keterangan -->
     <div class="space-y-3">
         @foreach($jenis->aspekPenilaians as $aspek)
@@ -101,6 +104,7 @@
                 $detail = $detailsMap->get($aspek->id);
                 $selectedSkor = $detail?->skor;
                 $selectedCatatan = $detail?->catatan;
+                $selectedRekomendasiAspek = $detail?->rekomendasi;
                 $isFokusUtama = in_array((int) $aspek->id, $fokusDipilihIds, true);
             @endphp
             <fieldset data-aspek-card="{{ $aspek->id }}"
@@ -177,7 +181,9 @@
 
                         <div class="space-y-1">
                             <div class="flex items-center justify-between gap-2">
-                                <label for="catatan_single_{{ $aspek->id }}" class="text-[11px] font-black text-slate-700">Catatan Aspek</label>
+                                <label for="catatan_single_{{ $aspek->id }}" class="text-[11px] font-black text-slate-700">
+                                    {{ $isKma6334 ? 'Hasil Pengamatan' : 'Catatan Aspek' }}
+                                </label>
                                 <div class="flex items-center gap-1.5">
                                     <span data-note-mode class="px-1.5 py-0.5 rounded border border-black bg-white text-[10px] font-bold">
                                         {{ filled($selectedCatatan) ? 'Tersimpan' : 'Siap Auto' }}
@@ -190,9 +196,22 @@
                                 name="catatan[{{ $aspek->id }}]"
                                 rows="2"
                                 data-note-input
-                                placeholder="Catatan otomatis muncul saat skor dipilih, atau ketik manual..."
+                                placeholder="{{ $isKma6334 ? 'Catat hasil pengamatan nyata di kelas / dokumen...' : 'Catatan otomatis muncul saat skor dipilih, atau ketik manual...' }}"
                                 class="w-full px-2.5 py-1.5 text-xs border-2 border-black rounded-lg bg-white">{{ $selectedCatatan }}</textarea>
                         </div>
+
+                        @if($isKma6334)
+                            <div class="space-y-1">
+                                <label for="rekomendasi_aspek_{{ $aspek->id }}" class="block text-[11px] font-black text-slate-700">
+                                    Rekomendasi Aspek (Format SK 6334)
+                                </label>
+                                <textarea id="rekomendasi_aspek_{{ $aspek->id }}"
+                                    name="rekomendasi_aspek[{{ $aspek->id }}]"
+                                    rows="2"
+                                    placeholder="Saran perbaikan / penguatan spesifik untuk aspek ini..."
+                                    class="w-full px-2.5 py-1.5 text-xs border-2 border-black rounded-lg bg-white">{{ $selectedRekomendasiAspek }}</textarea>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </fieldset>

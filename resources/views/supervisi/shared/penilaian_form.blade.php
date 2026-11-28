@@ -24,10 +24,19 @@
         fn (SupervisiJenisPenilaian $j): bool => $j->kategori_supervisi === SupervisiJenisPenilaian::KATEGORI_OBSERVASI_PMM
     )->values();
 
+    $groupD = $jenisList->filter(
+        fn (SupervisiJenisPenilaian $j): bool => $j->kategori_supervisi === SupervisiJenisPenilaian::KATEGORI_KMA_6334
+    )->values();
+
+    $standardJenisList = $jenisList->filter(
+        fn (SupervisiJenisPenilaian $j): bool => $j->kategori_supervisi !== SupervisiJenisPenilaian::KATEGORI_KMA_6334
+    )->values();
+
     $groups = [
         ['title' => 'A. Administrasi & Telaah Perangkat Ajar', 'items' => $groupA],
         ['title' => 'B. Proses, Evaluasi & Pengembangan Diri', 'items' => $groupB],
         ['title' => 'C. Observasi Praktik Kinerja PMM', 'items' => $groupC],
+        ['title' => 'D. Instrumen Juknis SK 6334/2021 (MI)', 'items' => $groupD],
     ];
 
     $completedOnJadwal = 0;
@@ -37,7 +46,7 @@
     $grandTotalSkor = 0;
     $grandMaxSkor = 0;
 
-    foreach ($jenisList as $jItem) {
+    foreach ($standardJenisList as $jItem) {
         $reqCount = $jItem->aspek_penilaians_count ?? $jItem->aspekPenilaians->count();
         $hItem = $existingHasils->get($jItem->id);
         $detCount = $hItem ? $hItem->detailHasils->count() : 0;
@@ -53,6 +62,14 @@
             } else {
                 $partialOnJadwal++;
             }
+        }
+    }
+
+    foreach ($groupD as $kmaItem) {
+        $hKma = $existingHasils->get($kmaItem->id);
+        if ($hKma && $hKma->detailHasils->isNotEmpty()) {
+            $grandTotalSkor += (int) $hKma->total_skor;
+            $grandMaxSkor += (int) $hKma->skor_maksimal;
         }
     }
 
@@ -84,8 +101,8 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full lg:w-auto">
             <div class="px-3 py-2 rounded-lg border-2 border-black bg-slate-50">
-                <div class="text-[10px] font-bold text-slate-500 uppercase">Form Lengkap</div>
-                <div class="text-sm font-black tabular-nums">{{ $completedOnJadwal }} / {{ $jenisList->count() }}</div>
+                <div class="text-[10px] font-bold text-slate-500 uppercase">Form Standar</div>
+                <div class="text-sm font-black tabular-nums">{{ $completedOnJadwal }} / {{ $standardJenisList->count() }}</div>
             </div>
             <div class="px-3 py-2 rounded-lg border-2 border-black bg-slate-50">
                 <div class="text-[10px] font-bold text-slate-500 uppercase">Aspek Dinilai</div>
@@ -117,7 +134,7 @@
                 <button type="button" data-hub-nav="1" aria-current="{{ $initialStep === 1 ? 'step' : 'false' }}"
                     class="w-full text-left px-3.5 py-2.5 rounded-lg border-2 border-black transition-all cursor-pointer flex items-center justify-between gap-2 shadow-[2px_2px_0px_0px_#000] {{ $initialStep === 1 ? 'bg-[#FFD43B]' : 'bg-white' }}">
                     <span class="text-xs font-black">1. Checklist 14 Form Penilaian</span>
-                    <span class="px-2 py-0.5 rounded border border-black bg-white text-[11px] font-black tabular-nums">{{ $completedOnJadwal }}/{{ $jenisList->count() }}</span>
+                    <span class="px-2 py-0.5 rounded border border-black bg-white text-[11px] font-black tabular-nums">{{ $completedOnJadwal }}/{{ $standardJenisList->count() }}</span>
                 </button>
             </li>
             <li>
@@ -146,7 +163,7 @@
     <div class="bg-white border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000] flex flex-wrap items-center justify-between gap-3">
         <div>
             <h3 id="hub-heading-1" tabindex="-1" class="font-heading font-black text-base focus:outline-none">
-                Pilih Form Penilaian (14 Jenis Instrumen · {{ $totalAspectsAll }} Aspek)
+                Pilih Form Penilaian ({{ $standardJenisList->count() }} Form Standar + {{ $groupD->count() }} Form SK 6334)
             </h3>
             <p class="text-xs text-slate-600">Setiap instrumen memiliki halaman form tersendiri lengkap dengan keterangan aspek, Bulk-Skor, dan catatan otomatis. Dapat diisi sekaligus atau bertahap dalam 1 semester.</p>
         </div>
