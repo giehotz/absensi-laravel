@@ -243,9 +243,10 @@
                     💾 Simpan &amp; Lanjut ({{ $nextJenis->kode }}) →
                 </button>
             @else
-                <a href="{{ $hubRoute }}" class="px-5 py-2 bg-[#20C997] text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000]">
-                    Selesai &amp; Kembali ke Hub →
-                </a>
+                <button type="submit" name="redirect_to" value="hub"
+                    class="px-5 py-2 bg-[#20C997] hover:bg-emerald-400 text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000] cursor-pointer">
+                    💾 Selesai &amp; Kembali ke Hub →
+                </button>
             @endif
         </div>
     </div>

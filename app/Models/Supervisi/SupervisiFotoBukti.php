@@ -5,6 +5,7 @@ namespace App\Models\Supervisi;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class SupervisiFotoBukti extends Model
 {
@@ -30,5 +31,28 @@ class SupervisiFotoBukti extends Model
     public function getUrlAttribute(): string
     {
         return asset('storage/'.$this->file_path);
+    }
+
+    public function toBase64DataUri(): string
+    {
+        $disk = Storage::disk('public');
+        if (! $this->file_path || ! $disk->exists($this->file_path)) {
+            return $this->url;
+        }
+
+        $content = $disk->get($this->file_path);
+        if ($content === null || $content === '') {
+            return $this->url;
+        }
+
+        $ext = strtolower(pathinfo($this->file_path, PATHINFO_EXTENSION));
+        $mime = match ($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            default => 'image/webp',
+        };
+
+        return "data:{$mime};base64,".base64_encode($content);
     }
 }

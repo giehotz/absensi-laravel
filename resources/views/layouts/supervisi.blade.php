@@ -89,6 +89,7 @@
                             ['route' => 'supervisi.admin.supervisors.index', 'match' => 'supervisi.admin.supervisors.*', 'icon' => '🧑‍🏫', 'label' => 'Tim Supervisor'],
                             ['route' => 'supervisi.admin.instrumen.index', 'match' => 'supervisi.admin.instrumen.*', 'icon' => '📐', 'label' => 'Instrumen & Aspek'],
                             ['route' => 'supervisi.admin.jadwal.index', 'match' => 'supervisi.admin.jadwal.*', 'icon' => '📅', 'label' => 'Jadwal Supervisi'],
+                            ['route' => 'supervisi.admin.coaching.index', 'match' => 'supervisi.admin.coaching.*', 'icon' => '💬', 'label' => 'Coaching TIRTA'],
                             ['route' => 'supervisi.admin.laporan.index', 'match' => 'supervisi.admin.laporan.*', 'icon' => '📁', 'label' => 'Hasil & Laporan'],
                         ];
                     @endphp
@@ -104,6 +105,7 @@
                             ['route' => 'supervisi.supervisor.dashboard', 'match' => 'supervisi.supervisor.dashboard', 'icon' => '📊', 'label' => 'Dashboard'],
                             ['route' => 'supervisi.supervisor.guru-binaan', 'match' => 'supervisi.supervisor.guru-binaan', 'icon' => '👥', 'label' => 'Guru Binaan'],
                             ['route' => 'supervisi.supervisor.jadwal.index', 'match' => 'supervisi.supervisor.jadwal.*', 'icon' => '📅', 'label' => 'Jadwal Observasi'],
+                            ['route' => 'supervisi.supervisor.coaching.index', 'match' => 'supervisi.supervisor.coaching.*', 'icon' => '💬', 'label' => 'Coaching TIRTA'],
                             ['route' => 'supervisi.supervisor.hasil.index', 'match' => 'supervisi.supervisor.hasil.*', 'icon' => '✅', 'label' => 'Hasil & Cetak'],
                         ];
                     @endphp

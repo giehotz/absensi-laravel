@@ -174,13 +174,19 @@ trait HandlesPenilaianObservasi
             ]);
         }
 
-        if ($request->filled('next_jenis_id')) {
-            $routeName = (string) ($request->route()?->getName() ?? '');
-            $portal = str_contains($routeName, '.admin.') ? 'admin' : (str_contains($routeName, '.kepala.') ? 'kepala' : 'supervisor');
+        $routeName = (string) ($request->route()?->getName() ?? '');
+        $portal = str_contains($routeName, '.admin.') ? 'admin' : (str_contains($routeName, '.kepala.') ? 'kepala' : 'supervisor');
 
+        if ($request->filled('next_jenis_id')) {
             return redirect()
                 ->route("supervisi.{$portal}.penilaian.form", ['jadwal' => $jadwal, 'jenis' => $request->integer('next_jenis_id')])
                 ->with('success', "Form {$jenis->nama} berhasil disimpan. Lanjutkan ke form berikutnya.");
+        }
+
+        if ($request->input('redirect_to') === 'hub') {
+            return redirect()
+                ->route("supervisi.{$portal}.penilaian.edit", $jadwal)
+                ->with('success', "Penilaian komponen {$jenis->nama} berhasil disimpan.");
         }
 
         return redirect()->back()->with('success', "Penilaian komponen {$jenis->nama} berhasil disimpan.");

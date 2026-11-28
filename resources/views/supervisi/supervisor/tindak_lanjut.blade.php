@@ -4,11 +4,20 @@
 
 @section('content')
 @php
+    use App\Models\Supervisi\SupervisiCoachingTemplate;
     use App\Models\Supervisi\SupervisiCoachingTirta;
 
     $tl = $jadwal->tindakLanjut;
     $routePrefix = $portalPrefix ?? 'supervisor';
     $scoredComponents = $jadwal->hasils->filter(fn ($h): bool => $h->detailHasils->isNotEmpty());
+    $tplPasca = ($tirtaTemplates ?? SupervisiCoachingTemplate::forAllStages())->get(SupervisiCoachingTirta::TAHAP_PASCA);
+    $tplPascaPayload = [
+        'tujuan_coaching' => (string) ($tplPasca?->template_tujuan ?? ''),
+        'identifikasi_kondisi' => (string) ($tplPasca?->template_identifikasi ?? ''),
+        'rencana_aksi' => (string) ($tplPasca?->template_rencana ?? ''),
+        'tanggung_jawab' => (string) ($tplPasca?->template_tanggung_jawab ?? ''),
+        'catatan_coach' => (string) ($tplPasca?->template_catatan_coach ?? ''),
+    ];
     $tirtaStatus = $coachingPasca?->status ?? SupervisiCoachingTirta::STATUS_DRAFT;
     $tirtaBadge = match ($tirtaStatus) {
         SupervisiCoachingTirta::STATUS_CONFIRMED => ['bg-emerald-200 text-emerald-950', '✓ Dikonfirmasi Guru'],
@@ -68,6 +77,11 @@
             <p class="text-[11px] text-slate-600">Tahap Feedback Conference (Bab III B.3 Juknis SK 6334/2021): isi percakapan T-I-R-TA bersama Guru lalu kirim untuk konfirmasi.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+            <button type="button" id="btn-fill-tirta-tl"
+                data-template-payload='@json($tplPascaPayload)'
+                class="px-3 py-1 bg-[#FFF9DB] hover:bg-[#FFD43B] text-black text-xs font-black rounded-lg border-2 border-black cursor-pointer">
+                ⚡ Isi dari Template Sistem
+            </button>
             <span class="px-2.5 py-1 rounded border border-black text-[11px] font-black {{ $tirtaBadge[0] }}">
                 {{ $tirtaBadge[1] }}
             </span>
@@ -97,26 +111,26 @@
         </div>
     @endif
 
-    <form action="{{ route("supervisi.{$routePrefix}.tindak-lanjut.coaching", $jadwal) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <form id="form-tirta-tindak-lanjut" action="{{ route("supervisi.{$routePrefix}.tindak-lanjut.coaching", $jadwal) }}" method="POST" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         @csrf
         <div>
             <label for="tirta_tujuan" class="block text-xs font-black mb-1">T — Tujuan Wawancara</label>
-            <p class="text-[10px] text-slate-600 mb-1 italic">"Apa tujuan yang ingin Bapak/Ibu capai dan kompetensi apa yang ingin ditingkatkan?"</p>
+            <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPasca?->pertanyaan_tujuan }}"</p>
             <textarea id="tirta_tujuan" name="tujuan_coaching" rows="2" required class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">{{ old('tujuan_coaching', $coachingPasca?->tujuan_coaching) }}</textarea>
         </div>
         <div>
             <label for="tirta_identifikasi" class="block text-xs font-black mb-1">I — Identifikasi Kondisi &amp; Kendala</label>
-            <p class="text-[10px] text-slate-600 mb-1 italic">"Berdasarkan observasi kelas, bagian mana yang berjalan baik dan kendala apa yang masih muncul?"</p>
+            <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPasca?->pertanyaan_identifikasi }}"</p>
             <textarea id="tirta_identifikasi" name="identifikasi_kondisi" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">{{ old('identifikasi_kondisi', $coachingPasca?->identifikasi_kondisi) }}</textarea>
         </div>
         <div>
             <label for="tirta_rencana" class="block text-xs font-black mb-1">R — Rencana Aksi Konkret</label>
-            <p class="text-[10px] text-slate-600 mb-1 italic">"Langkah konkret dan sumber daya apa yang akan dijalankan untuk perbaikan?"</p>
+            <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPasca?->pertanyaan_rencana }}"</p>
             <textarea id="tirta_rencana" name="rencana_aksi" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">{{ old('rencana_aksi', $coachingPasca?->rencana_aksi) }}</textarea>
         </div>
         <div>
             <label for="tirta_tanggung_jawab" class="block text-xs font-black mb-1">TA — Tanggung Jawab &amp; Jadwal</label>
-            <p class="text-[10px] text-slate-600 mb-1 italic">"Kapan rencana mulai dijalankan dan bagaimana indikator keberhasilannya?"</p>
+            <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPasca?->pertanyaan_tanggung_jawab }}"</p>
             <textarea id="tirta_tanggung_jawab" name="tanggung_jawab" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg bg-white">{{ old('tanggung_jawab', $coachingPasca?->tanggung_jawab) }}</textarea>
         </div>
         <div class="md:col-span-2">
@@ -142,3 +156,19 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('btn-fill-tirta-tl')?.addEventListener('click', (e) => {
+    const form = document.getElementById('form-tirta-tindak-lanjut');
+    if (!form) return;
+    try {
+        const payload = JSON.parse(e.currentTarget.dataset.templatePayload || '{}');
+        Object.entries(payload).forEach(([field, val]) => {
+            const el = form.querySelector(`[name="${field}"]`);
+            if (el && typeof val === 'string') el.value = val;
+        });
+    } catch (_) {}
+});
+</script>
+@endpush

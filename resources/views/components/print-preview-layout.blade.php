@@ -13,7 +13,7 @@
     $isLandscape = strtolower($orientation) === 'landscape';
     $paperWidthMm = $isLandscape ? '297mm' : '210mm';
     $paperMinHeightMm = $isLandscape ? '210mm' : '297mm';
-    $effectivePageMargin = $pageMargin ?: ($isLandscape ? '5mm 8mm' : '10mm 12mm');
+    $effectivePageMargin = $pageMargin ?: ($isLandscape ? '8mm 10mm' : '12mm 12mm');
 @endphp
 
 <!DOCTYPE html>
@@ -126,6 +126,15 @@
             }
             .page-break::after {
                 display: none !important;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
         }
 

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Supervisi\Supervisor;
 
 use App\Enums\SupervisiStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Supervisi\Concerns\HandlesCoachingTirta;
+use App\Models\Supervisi\SupervisiCoachingTemplate;
 use App\Models\Supervisi\SupervisiCoachingTirta;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Services\Supervisi\SupervisiCycleGuardService;
@@ -14,6 +16,8 @@ use Illuminate\View\View;
 
 class TindakLanjutController extends Controller
 {
+    use HandlesCoachingTirta;
+
     public function __construct(
         private readonly SupervisiCycleGuardService $guard,
     ) {}
@@ -30,8 +34,9 @@ class TindakLanjutController extends Controller
 
         $jadwal->load(['academicYear', 'teacher.user', 'schoolClass', 'subject', 'hasils.jenisPenilaian', 'hasils.detailHasils', 'tindakLanjut', 'coachingTirtas']);
         $coachingPasca = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PASCA);
+        $tirtaTemplates = SupervisiCoachingTemplate::forAllStages();
 
-        return view('supervisi.supervisor.tindak_lanjut', compact('jadwal', 'coachingPasca', 'portalPrefix'));
+        return view('supervisi.supervisor.tindak_lanjut', compact('jadwal', 'coachingPasca', 'tirtaTemplates', 'portalPrefix'));
     }
 
     public function feedbackC(Request $request, SupervisiJadwal $jadwal): RedirectResponse
@@ -113,38 +118,9 @@ class TindakLanjutController extends Controller
             'aksi' => ['nullable', 'in:draft,submitted'],
         ]);
 
-        $aksi = ($validated['aksi'] ?? 'submitted') === 'draft'
-            ? SupervisiCoachingTirta::STATUS_DRAFT
-            : SupervisiCoachingTirta::STATUS_SUBMITTED;
+        $coaching = $this->upsertCoachingStage($jadwal, SupervisiCoachingTirta::TAHAP_PASCA, $validated);
 
-        $existing = SupervisiCoachingTirta::where('jadwal_id', $jadwal->id)
-            ->where('tahap', SupervisiCoachingTirta::TAHAP_PASCA)
-            ->first();
-
-        $nextStatus = $aksi;
-        if ($existing && $existing->status === SupervisiCoachingTirta::STATUS_CONFIRMED && $aksi === SupervisiCoachingTirta::STATUS_SUBMITTED) {
-            $nextStatus = SupervisiCoachingTirta::STATUS_CONFIRMED;
-        }
-
-        SupervisiCoachingTirta::updateOrCreate(
-            [
-                'jadwal_id' => $jadwal->id,
-                'tahap' => SupervisiCoachingTirta::TAHAP_PASCA,
-            ],
-            [
-                'tujuan_coaching' => $validated['tujuan_coaching'],
-                'identifikasi_kondisi' => $validated['identifikasi_kondisi'] ?? null,
-                'rencana_aksi' => $validated['rencana_aksi'] ?? null,
-                'tanggung_jawab' => $validated['tanggung_jawab'] ?? null,
-                'catatan_coach' => $validated['catatan_coach'] ?? null,
-                'status' => $nextStatus,
-                'submitted_at' => $nextStatus !== SupervisiCoachingTirta::STATUS_DRAFT
-                    ? ($existing?->submitted_at ?? now())
-                    : $existing?->submitted_at,
-            ]
-        );
-
-        $msg = $nextStatus === SupervisiCoachingTirta::STATUS_DRAFT
+        $msg = $coaching->status === SupervisiCoachingTirta::STATUS_DRAFT
             ? 'Draf Coaching TIRTA Pasca-Observasi disimpan.'
             : 'Hasil wawancara Coaching TIRTA berhasil disimpan dan dikirim untuk konfirmasi Guru.';
 

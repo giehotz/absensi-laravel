@@ -6,6 +6,7 @@ use App\Enums\SupervisiStatus;
 use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
 use App\Models\Supervisi\SupervisiAspekPenilaian;
+use App\Models\Supervisi\SupervisiCoachingTemplate;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiJenisPenilaian;
 use App\Models\Supervisi\SupervisiSupervisor;
@@ -84,6 +85,7 @@ class SupervisiPrintService
             'ringkasanKomponen' => $ringkasanKomponen,
             'ringkasanSummary' => $ringkasanSummary,
             'kategoriSkorLegend' => $kategoriSkorLegend,
+            'tirtaTemplates' => SupervisiCoachingTemplate::forAllStages(),
             'kotaMadrasah' => $setting?->school_district ?: ($setting?->school_city ?: 'Madrasah'),
             'namaKepala' => $setting?->headmasterTeacher?->user?->name
                 ?? $setting?->card_principal_name
