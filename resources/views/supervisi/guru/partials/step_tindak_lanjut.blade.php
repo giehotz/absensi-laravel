@@ -1,10 +1,12 @@
 @php
+    use App\Models\Supervisi\SupervisiCoachingTemplate;
     use App\Models\Supervisi\SupervisiCoachingTirta;
 
     $redirectTo = $redirectTo ?? null;
     $canAccessPasca = $canAccessPasca ?? true;
     $tl = $jadwal->tindakLanjut;
     $coachingPasca = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PASCA);
+    $tplPascaGuru = ($tirtaTemplates ?? SupervisiCoachingTemplate::forAllStages())->get(SupervisiCoachingTirta::TAHAP_PASCA);
 @endphp
 
 @if(!$canAccessPasca)
@@ -103,10 +105,26 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>T — Tujuan:</strong> {{ $coachingPasca->tujuan_coaching ?: '-' }}</div>
-                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>I — Identifikasi:</strong> {{ $coachingPasca->identifikasi_kondisi ?: '-' }}</div>
-                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>R — Rencana Aksi:</strong> {{ $coachingPasca->rencana_aksi ?: '-' }}</div>
-                <div class="p-3 bg-slate-50 border border-black rounded-lg"><strong>TA — Tanggung Jawab:</strong> {{ $coachingPasca->tanggung_jawab ?: '-' }}</div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg space-y-1">
+                    <div class="font-black">T — Tujuan:</div>
+                    <div class="text-[10px] text-slate-600 italic">"{{ $tplPascaGuru?->pertanyaan_tujuan }}"</div>
+                    <div>{{ $coachingPasca->tujuan_coaching ?: '-' }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg space-y-1">
+                    <div class="font-black">I — Identifikasi:</div>
+                    <div class="text-[10px] text-slate-600 italic">"{{ $tplPascaGuru?->pertanyaan_identifikasi }}"</div>
+                    <div>{{ $coachingPasca->identifikasi_kondisi ?: '-' }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg space-y-1">
+                    <div class="font-black">R — Rencana Aksi:</div>
+                    <div class="text-[10px] text-slate-600 italic">"{{ $tplPascaGuru?->pertanyaan_rencana }}"</div>
+                    <div>{{ $coachingPasca->rencana_aksi ?: '-' }}</div>
+                </div>
+                <div class="p-3 bg-slate-50 border border-black rounded-lg space-y-1">
+                    <div class="font-black">TA — Tanggung Jawab:</div>
+                    <div class="text-[10px] text-slate-600 italic">"{{ $tplPascaGuru?->pertanyaan_tanggung_jawab }}"</div>
+                    <div>{{ $coachingPasca->tanggung_jawab ?: '-' }}</div>
+                </div>
             </div>
 
             @if($coachingPasca->catatan_coach)

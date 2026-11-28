@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Supervisi\Admin\CoachingController as AdminCoachingController;
 use App\Http\Controllers\Supervisi\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Supervisi\Admin\InstrumenController as AdminInstrumenController;
 use App\Http\Controllers\Supervisi\Admin\JadwalController as AdminJadwalController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Supervisi\Kepala\HasilController as KepalaHasilControll
 use App\Http\Controllers\Supervisi\Kepala\JadwalController as KepalaJadwalController;
 use App\Http\Controllers\Supervisi\Kepala\PenilaianController as KepalaPenilaianController;
 use App\Http\Controllers\Supervisi\SignatureController;
+use App\Http\Controllers\Supervisi\Supervisor\CoachingController as SupervisorCoachingController;
 use App\Http\Controllers\Supervisi\Supervisor\DashboardController as SupervisorDashboardController;
 use App\Http\Controllers\Supervisi\Supervisor\DokumenAjarController as SupervisorDokumenAjarController;
 use App\Http\Controllers\Supervisi\Supervisor\GuruBinaanController as SupervisorGuruBinaanController;
@@ -87,6 +89,12 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::post('/penilaian/{jadwal}/foto', [AdminPenilaianController::class, 'uploadFoto'])->name('penilaian.foto.upload');
                 Route::delete('/penilaian/foto/{foto}', [AdminPenilaianController::class, 'deleteFoto'])->name('penilaian.foto.delete');
 
+                Route::get('/coaching', [AdminCoachingController::class, 'index'])->name('coaching.index');
+                Route::put('/coaching/template', [AdminCoachingController::class, 'updateTemplate'])->name('coaching.template.update');
+                Route::post('/coaching/template/apply', [AdminCoachingController::class, 'applyTemplate'])->name('coaching.template.apply');
+                Route::get('/coaching/{jadwal}/edit', [AdminCoachingController::class, 'edit'])->name('coaching.edit');
+                Route::put('/coaching/{jadwal}', [AdminCoachingController::class, 'update'])->name('coaching.update');
+
                 Route::get('/laporan', [AdminLaporanController::class, 'index'])->name('laporan.index');
                 Route::get('/laporan/{jadwal}', [AdminLaporanController::class, 'detail'])->name('laporan.detail');
                 Route::get('/laporan-print/rekap', [AdminLaporanController::class, 'printRekap'])->name('laporan.print-rekap');
@@ -128,6 +136,12 @@ Route::middleware(['web', 'auth', 'supervisi.role:admin,kepala,supervisor,guru']
                 Route::post('/tindak-lanjut/{jadwal}/feedback-c', [SupervisorTindakLanjutController::class, 'feedbackC'])->name('tindak-lanjut.feedback-c');
                 Route::post('/tindak-lanjut/{jadwal}/evaluate-d', [SupervisorTindakLanjutController::class, 'evaluateD'])->name('tindak-lanjut.evaluate-d');
                 Route::post('/tindak-lanjut/{jadwal}/coaching', [SupervisorTindakLanjutController::class, 'storeCoachingPasca'])->name('tindak-lanjut.coaching');
+
+                Route::get('/coaching', [SupervisorCoachingController::class, 'index'])->name('coaching.index');
+                Route::put('/coaching/template', [SupervisorCoachingController::class, 'updateTemplate'])->name('coaching.template.update');
+                Route::post('/coaching/template/apply', [SupervisorCoachingController::class, 'applyTemplate'])->name('coaching.template.apply');
+                Route::get('/coaching/{jadwal}/edit', [SupervisorCoachingController::class, 'edit'])->name('coaching.edit');
+                Route::put('/coaching/{jadwal}', [SupervisorCoachingController::class, 'update'])->name('coaching.update');
 
                 Route::get('/hasil', [SupervisorHasilController::class, 'index'])->name('hasil.index');
                 Route::get('/hasil/{jadwal}', [SupervisorHasilController::class, 'show'])->name('hasil.show');

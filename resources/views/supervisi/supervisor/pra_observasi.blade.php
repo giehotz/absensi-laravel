@@ -26,24 +26,44 @@
             </div>
         </div>
 
-        <form action="{{ route('supervisi.' . ($portalPrefix ?? 'supervisor') . '.pra-observasi.agree', $jadwal) }}" method="POST" class="pt-4 border-t-2 border-black space-y-4">
+        @php
+            $tplPra = ($tirtaTemplates ?? \App\Models\Supervisi\SupervisiCoachingTemplate::forAllStages())->get(\App\Models\Supervisi\SupervisiCoachingTirta::TAHAP_PRA);
+            $tplPraPayload = [
+                'tujuan_coaching' => (string) ($tplPra?->template_tujuan ?? ''),
+                'identifikasi_kondisi' => (string) ($tplPra?->template_identifikasi ?? ''),
+                'rencana_aksi' => (string) ($tplPra?->template_rencana ?? ''),
+                'tanggung_jawab' => (string) ($tplPra?->template_tanggung_jawab ?? ''),
+            ];
+        @endphp
+        <form id="form-pra-observasi-tirta" action="{{ route('supervisi.' . ($portalPrefix ?? 'supervisor') . '.pra-observasi.agree', $jadwal) }}" method="POST" class="pt-4 border-t-2 border-black space-y-4">
             @csrf
-            <h3 class="font-heading font-black text-sm">Catatan Coaching Alur TIRTA Pra-Observasi</h3>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="font-heading font-black text-sm">Catatan Coaching Alur TIRTA Pra-Observasi</h3>
+                <button type="button" id="btn-fill-tirta-pra"
+                    data-template-payload='@json($tplPraPayload)'
+                    class="px-3 py-1 bg-[#FFF9DB] hover:bg-[#FFD43B] text-black text-xs font-black rounded-lg border-2 border-black cursor-pointer">
+                    ⚡ Isi dari Template Sistem
+                </button>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-xs font-black mb-1">T — Tujuan Coaching</label>
+                    <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPra?->pertanyaan_tujuan }}"</p>
                     <textarea name="tujuan_coaching" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg">{{ old('tujuan_coaching', $coachingPra?->tujuan_coaching) }}</textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-black mb-1">I — Identifikasi Kondisi</label>
+                    <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPra?->pertanyaan_identifikasi }}"</p>
                     <textarea name="identifikasi_kondisi" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg">{{ old('identifikasi_kondisi', $coachingPra?->identifikasi_kondisi) }}</textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-black mb-1">R — Rencana Aksi</label>
+                    <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPra?->pertanyaan_rencana }}"</p>
                     <textarea name="rencana_aksi" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg">{{ old('rencana_aksi', $coachingPra?->rencana_aksi) }}</textarea>
                 </div>
                 <div>
                     <label class="block text-xs font-black mb-1">TA — Tanggung Jawab</label>
+                    <p class="text-[10px] text-slate-600 mb-1 italic">"{{ $tplPra?->pertanyaan_tanggung_jawab }}"</p>
                     <textarea name="tanggung_jawab" rows="2" class="w-full px-3 py-2 text-xs border-2 border-black rounded-lg">{{ old('tanggung_jawab', $coachingPra?->tanggung_jawab) }}</textarea>
                 </div>
             </div>
@@ -60,3 +80,19 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('btn-fill-tirta-pra')?.addEventListener('click', (e) => {
+    const form = document.getElementById('form-pra-observasi-tirta');
+    if (!form) return;
+    try {
+        const payload = JSON.parse(e.currentTarget.dataset.templatePayload || '{}');
+        Object.entries(payload).forEach(([field, val]) => {
+            const el = form.querySelector(`[name="${field}"]`);
+            if (el && typeof val === 'string') el.value = val;
+        });
+    } catch (_) {}
+});
+</script>
+@endpush

@@ -43,4 +43,5 @@
     </table>
 
     @include('supervisi.pdf.partials.signature_blocks')
+    @include('supervisi.pdf.partials.foto_bukti')
 </x-print-preview-layout>

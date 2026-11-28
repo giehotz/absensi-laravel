@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Supervisi\Supervisor;
 use App\Enums\SupervisiStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Supervisi\SupervisiAspekPenilaian;
+use App\Models\Supervisi\SupervisiCoachingTemplate;
 use App\Models\Supervisi\SupervisiCoachingTirta;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Supervisi\SupervisiPraObservasi;
@@ -30,9 +31,10 @@ class PraObservasiController extends Controller
             : collect();
 
         $coachingPra = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PRA);
+        $tirtaTemplates = SupervisiCoachingTemplate::forAllStages();
         $portalPrefix = $this->resolvePortalPrefix($request);
 
-        return view('supervisi.supervisor.pra_observasi', compact('jadwal', 'fokusDipilihList', 'coachingPra', 'portalPrefix'));
+        return view('supervisi.supervisor.pra_observasi', compact('jadwal', 'fokusDipilihList', 'coachingPra', 'tirtaTemplates', 'portalPrefix'));
     }
 
     public function agree(Request $request, SupervisiJadwal $jadwal): RedirectResponse
