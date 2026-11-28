@@ -8,6 +8,8 @@ use App\Models\AcademicYear;
 use App\Models\AttendanceSetting;
 use App\Models\Supervisi\SupervisiAspekPenilaian;
 use App\Models\Supervisi\SupervisiJadwal;
+use App\Models\Supervisi\SupervisiJenisPenilaian;
+use App\Models\Supervisi\SupervisiSupervisor;
 use App\Services\Supervisi\SupervisiExcelExportService;
 use App\Services\Supervisi\SupervisiPrintService;
 use App\Services\Supervisi\SupervisiScoringService;
@@ -33,27 +35,40 @@ class LaporanController extends Controller
         $selectedYearId = $request->query('academic_year_id', $activeYear?->id ? (string) $activeYear->id : 'all');
         $selectedStatus = $request->query('status', 'all');
         $selectedScope = $request->query('scope', 'semester') === 'tahun' ? 'tahun' : 'semester';
+        $selectedSupervisorId = (string) $request->query('supervisor_teacher_id', 'all');
+        $selectedKategori = (string) $request->query('kategori', 'all');
+        $selectedKetercapaian = (string) $request->query('ketercapaian', 'all');
 
-        $jadwals = $this->filteredJadwals($selectedYearId, $selectedStatus);
+        $jadwals = $this->filteredJadwals(
+            $selectedYearId,
+            $selectedStatus,
+            $selectedSupervisorId,
+            $selectedKategori,
+            $selectedKetercapaian
+        );
         $referenceYear = $selectedYearId !== 'all' && $selectedYearId !== ''
             ? $academicYears->firstWhere('id', (int) $selectedYearId)
             : ($activeYear ?? $academicYears->first());
 
-        $portfolioProgressMap = $this->scoringService->buildPortfolioProgressMap(
-            $jadwals->pluck('teacher_id')->filter()->unique()->values()->all(),
-            $referenceYear,
-            $selectedScope
-        );
+        $teacherIds = $jadwals->pluck('teacher_id')->filter()->unique()->values()->all();
+        $portfolioProgressMap = $this->scoringService->buildPortfolioProgressMap($teacherIds, $referenceYear, $selectedScope);
+        $kmaProgressMap = $this->scoringService->buildKmaProgressMap($teacherIds, $referenceYear, $selectedScope);
+        $supervisors = SupervisiSupervisor::with('teacher.user')->get();
 
         return view('supervisi.admin.laporan.index', compact(
             'jadwals',
             'academicYears',
+            'supervisors',
             'selectedYearId',
             'selectedStatus',
             'selectedScope',
+            'selectedSupervisorId',
+            'selectedKategori',
+            'selectedKetercapaian',
             'activeYear',
             'referenceYear',
-            'portfolioProgressMap'
+            'portfolioProgressMap',
+            'kmaProgressMap'
         ));
     }
 
@@ -129,6 +144,19 @@ class LaporanController extends Controller
         return view('supervisi.pdf.rekap_per_instrumen', $payload);
     }
 
+    public function printBab3c(Request $request): View
+    {
+        $activeYear = AcademicYear::activeSemester();
+        $selectedYearId = (string) $request->query('academic_year_id', $activeYear?->id ? (string) $activeYear->id : 'all');
+        $payload = $this->printService->buildBab3cReportPayload(
+            $selectedYearId,
+            route('supervisi.admin.laporan.index'),
+            $request->boolean('polos')
+        );
+
+        return view('supervisi.pdf.laporan_bab_3c', $payload);
+    }
+
     public function exportExcel(Request $request): StreamedResponse
     {
         $activeYear = AcademicYear::activeSemester();
@@ -171,8 +199,13 @@ class LaporanController extends Controller
         return $this->excelService->exportBatchMultiSheetPerGuru($jadwals, 'rekap-supervisi-per-guru-'.now()->format('Y-m-d').'.xlsx');
     }
 
-    private function filteredJadwals(string $selectedYearId, string $selectedStatus)
-    {
+    private function filteredJadwals(
+        string $selectedYearId,
+        string $selectedStatus,
+        string $selectedSupervisorId = 'all',
+        string $selectedKategori = 'all',
+        string $selectedKetercapaian = 'all'
+    ) {
         return SupervisiJadwal::with([
             'academicYear',
             'teacher.user',
@@ -184,6 +217,10 @@ class LaporanController extends Controller
         ])
             ->when($selectedYearId !== 'all' && $selectedYearId !== '', fn ($q) => $q->where('academic_year_id', (int) $selectedYearId))
             ->when($selectedStatus !== 'all' && $selectedStatus !== '', fn ($q) => $q->where('status', $selectedStatus))
+            ->when($selectedSupervisorId !== 'all' && $selectedSupervisorId !== '', fn ($q) => $q->where('supervisor_teacher_id', (int) $selectedSupervisorId))
+            ->when($selectedKetercapaian !== 'all' && $selectedKetercapaian !== '', fn ($q) => $q->where('ketercapaian', $selectedKetercapaian))
+            ->when($selectedKategori === 'kma_6334', fn ($q) => $q->whereHas('hasils.jenisPenilaian', fn ($jq) => $jq->where('kategori_supervisi', SupervisiJenisPenilaian::KATEGORI_KMA_6334)))
+            ->when($selectedKategori === 'standar14', fn ($q) => $q->whereHas('hasils.jenisPenilaian', fn ($jq) => $jq->where('kategori_supervisi', '!=', SupervisiJenisPenilaian::KATEGORI_KMA_6334)))
             ->orderBy('tanggal')
             ->get();
     }

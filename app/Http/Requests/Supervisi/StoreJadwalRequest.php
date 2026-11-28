@@ -28,6 +28,8 @@ class StoreJadwalRequest extends FormRequest
             'jam_mulai' => ['nullable', 'date_format:H:i'],
             'jam_selesai' => ['nullable', 'date_format:H:i', 'after:jam_mulai'],
             'materi' => ['nullable', 'string', 'max:255'],
+            'pendekatan' => ['nullable', 'in:direktif,non_direktif,kolaboratif'],
+            'teknik_supervisi' => ['nullable', 'in:kunjungan_kelas,observasi_kelas,pertemuan_individual,kkg'],
             'catatan' => ['nullable', 'string', 'max:1000'],
         ];
     }

@@ -23,6 +23,8 @@ class SavePenilaianRequest extends FormRequest
             'skor.*' => ['nullable', 'integer', 'between:1,4'],
             'catatan' => ['nullable', 'array'],
             'catatan.*' => ['nullable', 'string', 'max:1000'],
+            'rekomendasi_aspek' => ['nullable', 'array'],
+            'rekomendasi_aspek.*' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

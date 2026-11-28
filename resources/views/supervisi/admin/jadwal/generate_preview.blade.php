@@ -13,6 +13,17 @@
     @endif
 </div>
 
+@if(!empty($unscheduledTeachers))
+    <div class="bg-amber-50 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_#000] space-y-1.5 text-xs">
+        <div class="font-black text-amber-950">⚠️ Guru Tidak Dapat Dijadwalkan Otomatis ({{ count($unscheduledTeachers) }})</div>
+        <ul class="list-disc list-inside text-amber-900 font-semibold space-y-0.5">
+            @foreach($unscheduledTeachers as $uLabel)
+                <li>{{ $uLabel }}</li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 <form action="{{ route('supervisi.admin.jadwal.generate.store') }}" method="POST" class="bg-white border-2 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_#000] space-y-4">
     @csrf
     <input type="hidden" name="jadwals_json" value="{{ json_encode($generatedJadwals) }}">
@@ -26,7 +37,8 @@
                     <th class="p-2 border border-black text-left">Supervisor</th>
                     <th class="p-2 border border-black text-left">Kelas</th>
                     <th class="p-2 border border-black text-left">Mapel</th>
-                    <th class="p-2 border border-black text-left">Tanggal & Jam</th>
+                    <th class="p-2 border border-black text-left">Sumber Slot</th>
+                    <th class="p-2 border border-black text-left">Tanggal &amp; Jam</th>
                 </tr>
             </thead>
             <tbody>
@@ -37,6 +49,22 @@
                         <td class="p-2 border border-black">{{ $item['nama_supervisor'] }}</td>
                         <td class="p-2 border border-black">{{ $item['nama_kelas'] }}</td>
                         <td class="p-2 border border-black">{{ $item['nama_mapel'] }}</td>
+                        <td class="p-2 border border-black">
+                            @if(($item['sumber_slot'] ?? '') === 'teacher_assignment_fallback')
+                                <span class="px-2 py-0.5 rounded border border-black bg-[#FFD43B] text-[10px] font-black inline-block">
+                                    Mapel Ampuan (Fallback)
+                                </span>
+                                @if(!empty($item['school_class_id']))
+                                    <a href="{{ route('admin.schedules.index', ['school_class_id' => $item['school_class_id']]) }}" target="_blank" class="block text-[10px] font-bold text-blue-700 underline mt-0.5">
+                                        Isi /admin/schedules →
+                                    </a>
+                                @endif
+                            @else
+                                <span class="px-2 py-0.5 rounded border border-black bg-emerald-200 text-emerald-950 text-[10px] font-black inline-block">
+                                    Jadwal Harian KBM
+                                </span>
+                            @endif
+                        </td>
                         <td class="p-2 border border-black">
                             <input type="date" name="overrides[{{ $idx }}][tanggal]" value="{{ $item['tanggal'] }}" class="px-2 py-1 border border-black rounded text-xs">
                             <span class="ml-1 text-[11px] font-mono">{{ $item['jam_mulai'] }}–{{ $item['jam_selesai'] }}</span>

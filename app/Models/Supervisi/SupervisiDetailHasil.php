@@ -14,6 +14,7 @@ class SupervisiDetailHasil extends Model
         'aspek_id',
         'skor',
         'catatan',
+        'rekomendasi',
     ];
 
     protected function casts(): array

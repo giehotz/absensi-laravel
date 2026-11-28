@@ -4,10 +4,10 @@ namespace App\Services\Supervisi;
 
 use App\Enums\SupervisiStatus;
 use App\Models\Schedule;
-use App\Models\SchoolClass;
 use App\Models\SlotTemplate;
 use App\Models\Supervisi\SupervisiJadwal;
 use App\Models\Teacher;
+use App\Models\TeacherAssignment;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class SupervisiJadwalGeneratorService
 {
-    private const HARI_INDONESIA = [
+    public const HARI_INDONESIA = [
         1 => 'Senin',
         2 => 'Selasa',
         3 => 'Rabu',
@@ -35,7 +35,8 @@ class SupervisiJadwalGeneratorService
     ];
 
     /**
-     * Hasilkan pratinjau jadwal supervisi bebas bentrok berbasis tabel schedules & slot_templates.
+     * Hasilkan pratinjau jadwal supervisi bebas bentrok berbasis 2 lapis sumber mengajar:
+     * Tier 1: schedules (KBM harian) -> Tier 2: teacher_assignments (kelas & mapel ampuan).
      *
      * @param  array{
      *     academic_year_id: int,
@@ -45,7 +46,9 @@ class SupervisiJadwalGeneratorService
      *     teacher_ids: array<int, int|string>,
      *     hari_aktif: array<int, int|string>,
      *     max_per_day?: int,
-     *     indikator_pmm_id?: int|null
+     *     indikator_pmm_id?: int|null,
+     *     pendekatan?: string|null,
+     *     teknik_supervisi?: string|null
      * }  $params
      * @return array{
      *     generated: array<int, array<string, mixed>>,
@@ -61,6 +64,8 @@ class SupervisiJadwalGeneratorService
         $activeDays = array_values(array_unique(array_map('intval', $params['hari_aktif'])));
         $maxPerDay = max(1, (int) ($params['max_per_day'] ?? 2));
         $indikatorPmmId = ! empty($params['indikator_pmm_id']) ? (int) $params['indikator_pmm_id'] : null;
+        $pendekatan = (string) ($params['pendekatan'] ?? 'kolaboratif');
+        $teknikSupervisi = (string) ($params['teknik_supervisi'] ?? 'kunjungan_kelas');
 
         $workingDates = [];
         foreach (CarbonPeriod::create($params['tanggal_mulai'], $params['tanggal_selesai']) as $date) {
@@ -74,21 +79,18 @@ class SupervisiJadwalGeneratorService
             ->get()
             ->keyBy('id');
 
-        $teachers = Teacher::with(['user', 'schedules.schoolClass', 'schedules.subject'])
+        $teachers = Teacher::with([
+            'user',
+            'schedules.schoolClass',
+            'schedules.subject',
+            'assignments.schoolClass',
+            'assignments.subject',
+        ])
             ->excludeKepala()
             ->whereIn('id', $teacherIds)
             ->get()
-            ->sortBy(fn (Teacher $t) => $t->user?->name ?? '')
+            ->sortBy(fn (Teacher $t): string => $t->user?->name ?? '')
             ->values();
-
-        $classes = SchoolClass::query()
-            ->where('academic_year_id', $academicYearId)
-            ->ordered()
-            ->get();
-
-        if ($classes->isEmpty()) {
-            $classes = SchoolClass::query()->ordered()->get();
-        }
 
         $slotTemplates = SlotTemplate::query()
             ->where('academic_year_id', $academicYearId)
@@ -97,8 +99,31 @@ class SupervisiJadwalGeneratorService
             ->get()
             ->groupBy('day_of_week');
 
-        // Ambil jadwal supervisi yang sudah ada di DB agar bebas bentrok (baik sisi supervisor maupun guru)
-        $existingBusy = [];
+        // KBM Supervisor untuk soft-constraint agar supervisor tidak ditarik saat sedang mengajar
+        $supervisorKbmSchedules = Schedule::query()
+            ->whereIn('teacher_id', $supervisorIds)
+            ->get()
+            ->groupBy('teacher_id');
+
+        $supervisorTotalWorkload = SupervisiJadwal::query()
+            ->where('academic_year_id', $academicYearId)
+            ->where('status', '!=', SupervisiStatus::Batal->value)
+            ->whereIn('supervisor_teacher_id', $supervisorIds)
+            ->selectRaw('supervisor_teacher_id, COUNT(*) as total')
+            ->groupBy('supervisor_teacher_id')
+            ->pluck('total', 'supervisor_teacher_id')
+            ->map(fn (mixed $v): int => (int) $v)
+            ->all();
+
+        $existingSupervisedSubjects = SupervisiJadwal::query()
+            ->where('academic_year_id', $academicYearId)
+            ->where('status', '!=', SupervisiStatus::Batal->value)
+            ->whereIn('teacher_id', $teacherIds)
+            ->get(['teacher_id', 'subject_id', 'school_class_id'])
+            ->groupBy('teacher_id');
+
+        // Muat jadwal supervisi aktif yang sudah ada di rentang tanggal agar bebas bentrok
+        $supervisorBusy = [];
         $teacherBusy = [];
         $existingJadwalRows = SupervisiJadwal::query()
             ->where(function ($query) use ($supervisorIds, $teacherIds): void {
@@ -116,7 +141,7 @@ class SupervisiJadwalGeneratorService
                 'end' => $row->jam_selesai ?: '08:05:00',
             ];
             if ($row->supervisor_teacher_id) {
-                $existingBusy[$row->supervisor_teacher_id][$dateKey][] = $slotRange;
+                $supervisorBusy[$row->supervisor_teacher_id][$dateKey][] = $slotRange;
             }
             if ($row->teacher_id) {
                 $teacherBusy[$row->teacher_id][$dateKey][] = $slotRange;
@@ -125,81 +150,113 @@ class SupervisiJadwalGeneratorService
 
         $generated = [];
         $unscheduled = [];
-        $supCount = count($supervisorIds);
-        $supPointer = 0;
-        $classFallbackIndex = 0;
 
-        foreach ($teachers as $teacher) {
+        // Prioritaskan guru dengan jadwal KBM tetap (dan slot paling sedikit) sebelum guru fallback mapel ampuan
+        $orderedEntries = $teachers->map(function (Teacher $teacher) use ($academicYearId, $activeDays, $existingSupervisedSubjects): array {
+            $kbmActive = $this->filterTeacherKbm($teacher, $academicYearId, $activeDays);
+            $hasTier1Kbm = $kbmActive->isNotEmpty();
+            $fallbackAssignment = $hasTier1Kbm
+                ? null
+                : $this->resolvePriorityAssignment($teacher, $academicYearId, $existingSupervisedSubjects->get($teacher->id, collect()));
+
+            return [
+                'teacher' => $teacher,
+                'has_kbm' => $hasTier1Kbm,
+                'kbm_active' => $kbmActive,
+                'fallback_assignment' => $fallbackAssignment,
+                'constraint_weight' => $hasTier1Kbm ? $kbmActive->count() : PHP_INT_MAX,
+            ];
+        })->sortBy(fn (array $entry): array => [
+            $entry['has_kbm'] ? 0 : 1,
+            $entry['constraint_weight'],
+            $entry['teacher']->user?->name ?? '',
+        ])->values();
+
+        foreach ($orderedEntries as $entry) {
+            /** @var Teacher $teacher */
+            $teacher = $entry['teacher'];
+            $kbmActive = $entry['kbm_active'];
+            $hasTier1Kbm = $entry['has_kbm'];
+            $fallbackAssignment = $entry['fallback_assignment'];
+
+            if (! $hasTier1Kbm && ! $fallbackAssignment) {
+                $unscheduled[] = ($teacher->user?->name ?? "Teacher #{$teacher->id}").' (Belum ada jadwal di /admin/schedules maupun mapel/kelas ampuan)';
+
+                continue;
+            }
+
             $placed = false;
 
             foreach ($workingDates as $date) {
                 $dateStr = $date->toDateString();
                 $dayIso = $date->dayOfWeekIso;
 
-                $candidateSlots = $this->resolveCandidateSlotsForTeacher(
-                    $teacher,
-                    $dayIso,
-                    $slotTemplates->get($dayIso, collect()),
-                    $classes,
-                    $classFallbackIndex
-                );
+                $candidateSlots = $hasTier1Kbm
+                    ? $this->buildKbmSlotsForDay($kbmActive, $dayIso, $slotTemplates->get($dayIso, collect()))
+                    : $this->buildAssignmentSlotsForDay($fallbackAssignment, $slotTemplates->get($dayIso, collect()));
 
-                for ($attempt = 0; $attempt < $supCount; $attempt++) {
-                    $supId = $supervisorIds[($supPointer + $attempt) % $supCount];
-                    if ($supId === (int) $teacher->id) {
+                if (empty($candidateSlots)) {
+                    continue;
+                }
+
+                foreach ($candidateSlots as $slot) {
+                    if ($this->hasTimeOverlap($teacherBusy[$teacher->id][$dateStr] ?? [], $slot['jam_mulai'], $slot['jam_selesai'])) {
                         continue;
                     }
 
-                    $busyToday = $existingBusy[$supId][$dateStr] ?? [];
-                    if (count($busyToday) >= $maxPerDay) {
+                    $bestSupervisorId = $this->pickBestSupervisor(
+                        $supervisorIds,
+                        (int) $teacher->id,
+                        $dateStr,
+                        $dayIso,
+                        $slot['jam_mulai'],
+                        $slot['jam_selesai'],
+                        $maxPerDay,
+                        $supervisorBusy,
+                        $supervisorTotalWorkload,
+                        $supervisorKbmSchedules
+                    );
+
+                    if ($bestSupervisorId === null) {
                         continue;
                     }
 
-                    foreach ($candidateSlots as $slot) {
-                        if (
-                            $this->hasTimeOverlap($busyToday, $slot['jam_mulai'], $slot['jam_selesai'])
-                            || $this->hasTimeOverlap($teacherBusy[$teacher->id][$dateStr] ?? [], $slot['jam_mulai'], $slot['jam_selesai'])
-                        ) {
-                            continue;
-                        }
+                    $supervisor = $supervisors->get($bestSupervisorId);
+                    $generated[] = [
+                        'academic_year_id' => $academicYearId,
+                        'teacher_id' => $teacher->id,
+                        'nama_guru' => $teacher->user?->name ?? 'Guru',
+                        'nip_guru' => $teacher->nip ?? '-',
+                        'supervisor_teacher_id' => $bestSupervisorId,
+                        'nama_supervisor' => $supervisor?->user?->name ?? 'Supervisor',
+                        'school_class_id' => $slot['school_class_id'],
+                        'nama_kelas' => $slot['nama_kelas'],
+                        'subject_id' => $slot['subject_id'],
+                        'nama_mapel' => $slot['nama_mapel'],
+                        'indikator_pmm_id' => $indikatorPmmId,
+                        'pendekatan' => $pendekatan,
+                        'teknik_supervisi' => $teknikSupervisi,
+                        'sumber_slot' => $slot['sumber_slot'],
+                        'tanggal' => $dateStr,
+                        'hari' => self::HARI_INDONESIA[$dayIso] ?? 'Senin',
+                        'jam_ke' => $slot['jam_ke'],
+                        'jam_mulai' => substr($slot['jam_mulai'], 0, 5),
+                        'jam_selesai' => substr($slot['jam_selesai'], 0, 5),
+                        'materi' => 'Supervisi Akademik Proses Pembelajaran',
+                    ];
 
-                        $supervisor = $supervisors->get($supId);
-                        $generated[] = [
-                            'academic_year_id' => $academicYearId,
-                            'teacher_id' => $teacher->id,
-                            'nama_guru' => $teacher->user?->name ?? 'Guru',
-                            'nip_guru' => $teacher->nip ?? '-',
-                            'supervisor_teacher_id' => $supId,
-                            'nama_supervisor' => $supervisor?->user?->name ?? 'Supervisor',
-                            'school_class_id' => $slot['school_class_id'],
-                            'nama_kelas' => $slot['nama_kelas'],
-                            'subject_id' => $slot['subject_id'],
-                            'nama_mapel' => $slot['nama_mapel'],
-                            'indikator_pmm_id' => $indikatorPmmId,
-                            'tanggal' => $dateStr,
-                            'hari' => self::HARI_INDONESIA[$dayIso] ?? 'Senin',
-                            'jam_ke' => $slot['jam_ke'],
-                            'jam_mulai' => substr($slot['jam_mulai'], 0, 5),
-                            'jam_selesai' => substr($slot['jam_selesai'], 0, 5),
-                            'materi' => 'Supervisi Akademik Proses Pembelajaran',
-                        ];
+                    $slotRange = ['start' => $slot['jam_mulai'], 'end' => $slot['jam_selesai']];
+                    $supervisorBusy[$bestSupervisorId][$dateStr][] = $slotRange;
+                    $teacherBusy[$teacher->id][$dateStr][] = $slotRange;
+                    $supervisorTotalWorkload[$bestSupervisorId] = ($supervisorTotalWorkload[$bestSupervisorId] ?? 0) + 1;
 
-                        $slotRange = [
-                            'start' => $slot['jam_mulai'],
-                            'end' => $slot['jam_selesai'],
-                        ];
-                        $existingBusy[$supId][$dateStr][] = $slotRange;
-                        $teacherBusy[$teacher->id][$dateStr][] = $slotRange;
-
-                        $supPointer = ($supPointer + $attempt + 1) % $supCount;
-                        $placed = true;
-                        break 3;
-                    }
+                    $placed = true;
+                    break 2;
                 }
             }
 
             if (! $placed) {
-                $unscheduled[] = $teacher->user?->name ?? "Teacher #{$teacher->id}";
+                $unscheduled[] = ($teacher->user?->name ?? "Teacher #{$teacher->id}").' (Seluruh slot bentrok dengan batas harian / jadwal lain)';
             }
         }
 
@@ -289,6 +346,9 @@ class SupervisiJadwalGeneratorService
                     'jam_mulai' => $jamMulai,
                     'jam_selesai' => $jamSelesai,
                     'materi' => $item['materi'] ?? 'Supervisi Akademik Proses Pembelajaran',
+                    'pendekatan' => (string) ($overrides[$idx]['pendekatan'] ?? $item['pendekatan'] ?? 'kolaboratif'),
+                    'teknik_supervisi' => (string) ($overrides[$idx]['teknik_supervisi'] ?? $item['teknik_supervisi'] ?? 'kunjungan_kelas'),
+                    'sumber_slot' => (string) ($item['sumber_slot'] ?? 'manual'),
                     'status' => SupervisiStatus::Terjadwal->value,
                 ]);
 
@@ -304,26 +364,68 @@ class SupervisiJadwalGeneratorService
     }
 
     /**
-     * @param  Collection<int, SlotTemplate>  $daySlotTemplates
-     * @param  Collection<int, SchoolClass>  $classes
-     * @return array<int, array<string, mixed>>
+     * @param  array<int, int>  $activeDays
+     * @return Collection<int, Schedule>
      */
-    private function resolveCandidateSlotsForTeacher(
-        Teacher $teacher,
-        int $dayIso,
-        Collection $daySlotTemplates,
-        Collection $classes,
-        int &$classFallbackIndex
-    ): array {
-        $teacherSchedules = $teacher->schedules
-            ->where('day_of_week', $dayIso)
-            ->sortBy('start_time')
+    private function filterTeacherKbm(Teacher $teacher, int $academicYearId, array $activeDays): Collection
+    {
+        $yearMatches = $teacher->schedules
+            ->whereIn('day_of_week', $activeDays)
+            ->filter(fn (Schedule $s): bool => (int) $s->schoolClass?->academic_year_id === $academicYearId)
             ->values();
 
-        if ($teacherSchedules->isNotEmpty()) {
-            return $teacherSchedules->map(function (Schedule $schedule) use ($daySlotTemplates): array {
+        if ($yearMatches->isNotEmpty()) {
+            return $yearMatches;
+        }
+
+        return $teacher->schedules
+            ->whereIn('day_of_week', $activeDays)
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, SupervisiJadwal>  $supervisedRows
+     */
+    private function resolvePriorityAssignment(Teacher $teacher, int $academicYearId, Collection $supervisedRows): ?TeacherAssignment
+    {
+        $assignments = $teacher->assignments
+            ->filter(fn (TeacherAssignment $a): bool => (int) $a->schoolClass?->academic_year_id === $academicYearId)
+            ->values();
+
+        if ($assignments->isEmpty()) {
+            $assignments = $teacher->assignments->values();
+        }
+
+        if ($assignments->isEmpty()) {
+            return null;
+        }
+
+        $supervisedSubjectIds = $supervisedRows->pluck('subject_id')->filter()->map(fn (mixed $id): int => (int) $id)->all();
+
+        return $assignments
+            ->sortBy(function (TeacherAssignment $assignment) use ($teacher, $supervisedSubjectIds): array {
+                $isHomeroom = (int) $assignment->schoolClass?->homeroom_teacher_id === (int) $teacher->id ? 0 : 1;
+                $isUnsupervised = ! in_array((int) $assignment->subject_id, $supervisedSubjectIds, true) ? 0 : 1;
+
+                return [$isHomeroom, $isUnsupervised, (string) ($assignment->schoolClass?->name ?? '')];
+            })
+            ->first();
+    }
+
+    /**
+     * @param  Collection<int, Schedule>  $kbmSchedules
+     * @param  Collection<int, SlotTemplate>  $daySlotTemplates
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildKbmSlotsForDay(Collection $kbmSchedules, int $dayIso, Collection $daySlotTemplates): array
+    {
+        return $kbmSchedules
+            ->where('day_of_week', $dayIso)
+            ->sortBy('start_time')
+            ->values()
+            ->map(function (Schedule $schedule) use ($daySlotTemplates): array {
                 $matchedSlot = $daySlotTemplates->first(
-                    fn (SlotTemplate $slot) => substr((string) $slot->start_time, 0, 5) === substr((string) $schedule->start_time, 0, 5)
+                    fn (SlotTemplate $slot): bool => substr((string) $slot->start_time, 0, 5) === substr((string) $schedule->start_time, 0, 5)
                 );
 
                 return [
@@ -334,34 +436,92 @@ class SupervisiJadwalGeneratorService
                     'jam_ke' => (string) ($matchedSlot?->jam_ke ?? '1'),
                     'jam_mulai' => (string) $schedule->start_time,
                     'jam_selesai' => (string) $schedule->end_time,
+                    'sumber_slot' => 'schedule_kbm',
                 ];
-            })->all();
-        }
+            })
+            ->all();
+    }
 
-        $fallbackClass = $classes->isNotEmpty() ? $classes[$classFallbackIndex % $classes->count()] : null;
-        $classFallbackIndex++;
-
-        if ($daySlotTemplates->isNotEmpty()) {
-            return $daySlotTemplates->map(fn (SlotTemplate $slot): array => [
-                'school_class_id' => $fallbackClass?->id,
-                'nama_kelas' => $fallbackClass?->name ?? 'Semua Kelas',
-                'subject_id' => null,
-                'nama_mapel' => 'Mata Pelajaran Umum',
+    /**
+     * @param  Collection<int, SlotTemplate>  $daySlotTemplates
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildAssignmentSlotsForDay(TeacherAssignment $assignment, Collection $daySlotTemplates): array
+    {
+        $slots = $daySlotTemplates->isNotEmpty()
+            ? $daySlotTemplates->map(fn (SlotTemplate $slot): array => [
                 'jam_ke' => (string) $slot->jam_ke,
                 'jam_mulai' => (string) $slot->start_time,
                 'jam_selesai' => (string) $slot->end_time,
-            ])->all();
-        }
+            ])->all()
+            : self::DEFAULT_SLOTS;
 
         return array_map(fn (array $slot): array => [
-            'school_class_id' => $fallbackClass?->id,
-            'nama_kelas' => $fallbackClass?->name ?? 'Semua Kelas',
-            'subject_id' => null,
-            'nama_mapel' => 'Mata Pelajaran Umum',
+            'school_class_id' => $assignment->school_class_id,
+            'nama_kelas' => $assignment->schoolClass?->name ?? '-',
+            'subject_id' => $assignment->subject_id,
+            'nama_mapel' => $assignment->subject?->name ?? '-',
             'jam_ke' => $slot['jam_ke'],
             'jam_mulai' => $slot['jam_mulai'],
             'jam_selesai' => $slot['jam_selesai'],
-        ], self::DEFAULT_SLOTS);
+            'sumber_slot' => 'teacher_assignment_fallback',
+        ], $slots);
+    }
+
+    /**
+     * @param  array<int, int>  $supervisorIds
+     * @param  array<int, array<string, array<int, array{start: string, end: string}>>>  $supervisorBusy
+     * @param  array<int, int>  $supervisorTotalWorkload
+     * @param  Collection<int, Collection<int, Schedule>>  $supervisorKbmSchedules
+     */
+    private function pickBestSupervisor(
+        array $supervisorIds,
+        int $teacherId,
+        string $dateStr,
+        int $dayIso,
+        string $start,
+        string $end,
+        int $maxPerDay,
+        array $supervisorBusy,
+        array $supervisorTotalWorkload,
+        Collection $supervisorKbmSchedules
+    ): ?int {
+        $candidates = [];
+
+        foreach ($supervisorIds as $supId) {
+            if ($supId === $teacherId) {
+                continue;
+            }
+
+            $busyToday = $supervisorBusy[$supId][$dateStr] ?? [];
+            if (count($busyToday) >= $maxPerDay || $this->hasTimeOverlap($busyToday, $start, $end)) {
+                continue;
+            }
+
+            $kbmToday = $supervisorKbmSchedules->get($supId, collect())
+                ->where('day_of_week', $dayIso)
+                ->map(fn (Schedule $s): array => ['start' => (string) $s->start_time, 'end' => (string) $s->end_time])
+                ->all();
+
+            $candidates[] = [
+                'id' => $supId,
+                'teaching_clash' => $this->hasTimeOverlap($kbmToday, $start, $end) ? 1 : 0,
+                'daily_count' => count($busyToday),
+                'total_workload' => $supervisorTotalWorkload[$supId] ?? 0,
+            ];
+        }
+
+        if (empty($candidates)) {
+            return null;
+        }
+
+        usort(
+            $candidates,
+            fn (array $a, array $b): int => [$a['teaching_clash'], $a['daily_count'], $a['total_workload'], $a['id']]
+                <=> [$b['teaching_clash'], $b['daily_count'], $b['total_workload'], $b['id']]
+        );
+
+        return $candidates[0]['id'];
     }
 
     /**

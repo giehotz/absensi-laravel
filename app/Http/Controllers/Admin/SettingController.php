@@ -8,6 +8,7 @@ use App\Models\Attendance;
 use App\Models\AttendanceArchive;
 use App\Models\AttendanceSetting;
 use App\Models\SchoolClass;
+use App\Models\Supervisi\SupervisiSupervisor;
 use App\Models\Teacher;
 use App\Services\ImageUploadService;
 use Illuminate\Http\RedirectResponse;
@@ -147,12 +148,18 @@ class SettingController extends Controller
         }
 
         // Simpan Data Kepala Madrasah (Data Guru/Kepala atau Input Manual)
+        $previousHeadmasterId = $setting->headmaster_teacher_id;
+
         if (! empty($validated['headmaster_teacher_id'])) {
             $teacher = Teacher::with('user')->find($validated['headmaster_teacher_id']);
             if ($teacher) {
+                if ($previousHeadmasterId && (int) $previousHeadmasterId !== (int) $teacher->id) {
+                    SupervisiSupervisor::deactivateExKepala((int) $previousHeadmasterId);
+                }
+
                 $setting->headmaster_teacher_id = $teacher->id;
-                $setting->card_principal_name = $teacher->user?->name ?? $validated['card_principal_name'];
-                $setting->card_principal_nip = $teacher->nip ?? $validated['card_principal_nip'];
+                $setting->card_principal_name = $teacher->user?->name ?? ($validated['card_principal_name'] ?? $setting->card_principal_name);
+                $setting->card_principal_nip = $teacher->nip ?? ($validated['card_principal_nip'] ?? $setting->card_principal_nip);
 
                 if (! $teacher->isKepala()) {
                     $teacher->assignments()->delete();
@@ -166,8 +173,14 @@ class SettingController extends Controller
                     ]);
                     $teacher->user?->update(['role' => 'kepala']);
                 }
+
+                SupervisiSupervisor::syncKepala($teacher);
             }
         } else {
+            if ($previousHeadmasterId) {
+                SupervisiSupervisor::deactivateExKepala((int) $previousHeadmasterId);
+            }
+
             $setting->headmaster_teacher_id = null;
             if (array_key_exists('card_principal_name', $validated)) {
                 $setting->card_principal_name = $validated['card_principal_name'];

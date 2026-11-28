@@ -34,6 +34,10 @@ class SupervisiInstrumenSeeder extends Seeder
         foreach ($this->perangkatAjarInstruments() as $item) {
             $this->seedInstrument($item, SupervisiJenisPenilaian::KATEGORI_PERANGKAT_AJAR, 4, $skalaReguler, SupervisiAspekPenilaian::SKALA_REGULER);
         }
+
+        foreach ($this->kma6334Instruments() as $item) {
+            $this->seedInstrument($item, SupervisiJenisPenilaian::KATEGORI_KMA_6334, 4, $skalaReguler, SupervisiAspekPenilaian::SKALA_REGULER);
+        }
     }
 
     /**
@@ -645,6 +649,153 @@ class SupervisiInstrumenSeeder extends Seeder
                         'fokus_perilaku' => 'Menyertakan Lembar Kerja Peserta Didik (LKPD), bahan bacaan guru/murid, glosarium, dan daftar pustaka',
                         'perilaku_dianjurkan' => 'LKPD interaktif, memandu penyelidikan, dan ramah anak.',
                         'perilaku_dihindari' => 'Lampiran kosong atau hanya berupa bank soal pilihan ganda.',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * 3 Instrumen Resmi SK Dirjen Pendis No. 6334 Tahun 2021 (Lampiran 1–3).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function kma6334Instruments(): array
+    {
+        return [
+            [
+                'kode' => 'KMA-PERENCANAAN',
+                'nama' => 'INSTRUMEN SUPERVISI PERENCANAAN PEMBELAJARAN MI (LAMPIRAN 1 SK 6334)',
+                'deskripsi' => 'Instrumen resmi Juknis Supervisi Pembelajaran MI (SK Dirjen Pendis No. 6334/2021 Lampiran 1) untuk menelaah perencanaan pembelajaran berbasis kecakapan Abad 21, tematik integrated, moderasi, dan TIK.',
+                'aspek' => [
+                    [
+                        'nama_aspek' => 'Perencanaan Proses Pembelajaran Efektif',
+                        'fokus_perilaku' => 'Guru menyusun perencanaan yang menggambarkan proses pembelajaran yang efektif dan berpusat pada peserta didik',
+                        'perilaku_dianjurkan' => 'Tujuan, langkah pembelajaran, media, dan evaluasi tersusun sistematis, logis, serta realistis dilaksanakan.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pembelajaran Tematik Integrated Kontekstual & Moderat',
+                        'fokus_perilaku' => 'Guru menyusun perencanaan pembelajaran tematik integrated yang efektif, kontekstual, bermakna, humanis, metakognitif, dan moderat',
+                        'perilaku_dianjurkan' => 'Mengaitkan lintas muatan pelajaran secara bermakna dengan nilai kemanusiaan, refleksi belajar, serta moderasi beragama.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (a): Penguatan Pendidikan Karakter & Akhlaqul Karimah',
+                        'fokus_perilaku' => 'Guru merencanakan penguatan pendidikan karakter dan pembiasaan akhlaqul karimah peserta didik',
+                        'perilaku_dianjurkan' => 'Memuat pembiasaan adab, religiusitas, jujur, disiplin, tanggung jawab, dan keteladanan selama proses pembelajaran.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (b): Budaya Literasi, Numerasi, Sains & Sosial Budaya',
+                        'fokus_perilaku' => 'Guru merencanakan pembelajaran yang membiasakan peserta didik menerapkan budaya literasi, numerasi, sains, dan sosial budaya',
+                        'perilaku_dianjurkan' => 'Mencantumkan stimulan membaca, bernalar numerik, eksperimen ilmiah sederhana, dan konteks sosial-budaya madrasah.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (c): Kecakapan 4C (Kritis, Kolaboratif, Komunikatif, Kreatif)',
+                        'fokus_perilaku' => 'Guru merancang aktivitas belajar yang melatih berpikir kritis, kolaboratif, komunikatif, dan kreatif (4C)',
+                        'perilaku_dianjurkan' => 'Aktivitas kelompok mendorong diskusi terbuka, presentasi karya, dan menghasilkan gagasan baru.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (d): Keterampilan Pemecahan Masalah',
+                        'fokus_perilaku' => 'Guru merancang situasi belajar yang melatih peserta didik terampil memecahkan masalah nyata',
+                        'perilaku_dianjurkan' => 'Menghadirkan studi kasus atau persoalan kontekstual yang diselesaikan murid secara bertahap.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pendekatan Saintifik & Variasi Model Aktif',
+                        'fokus_perilaku' => 'Guru merencanakan pendekatan saintifik dengan variasi model (kolaboratif antar mapel, Problem Solving, Discovery Learning, Project Based Learning, Inquiry)',
+                        'perilaku_dianjurkan' => 'Langkah 5M terintegrasi dengan sintaks model aktif yang sesuai karakteristik materi MI.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pemanfaatan TIK & Sumber Daya Lingkungan Belajar',
+                        'fokus_perilaku' => 'Guru menyusun perencanaan pembelajaran berbasis TIK dan/atau pemanfaatan sumber daya di sekitar lingkungan belajar',
+                        'perilaku_dianjurkan' => 'Memanfaatkan media digital interaktif atau benda konkret/lingkungan sekitar madrasah sebagai sumber belajar.',
+                    ],
+                    [
+                        'nama_aspek' => 'Integrasi Penilaian Proses dan Hasil Belajar',
+                        'fokus_perilaku' => 'Guru menyusun perencanaan penilaian yang mengintegrasikan penilaian proses dan hasil belajar',
+                        'perilaku_dianjurkan' => 'Tersedia rubrik sikap, unjuk kerja/keterampilan selama proses, serta tes/asesmen capaian kompetensi.',
+                    ],
+                ],
+            ],
+            [
+                'kode' => 'KMA-PELAKSANAAN',
+                'nama' => 'INSTRUMEN SUPERVISI PELAKSANAAN PEMBELAJARAN MI (LAMPIRAN 2 SK 6334)',
+                'deskripsi' => 'Instrumen resmi Juknis Supervisi Pembelajaran MI (SK Dirjen Pendis No. 6334/2021 Lampiran 2) untuk observasi kelas praktik pembelajaran abad 21, saintifik, TIK, dan penilaian proses.',
+                'aspek' => [
+                    [
+                        'nama_aspek' => 'Pembelajaran Kontekstual, Bermakna, Humanis, Metakognitif & Moderat',
+                        'fokus_perilaku' => 'Guru melaksanakan proses pembelajaran kontekstual, bermakna, humanis, metakognitif, dan moderat',
+                        'perilaku_dianjurkan' => 'Memperlakukan murid secara ramah dan adil, mengajak refleksi cara berpikirnya, dan menanamkan sikap moderat.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (a): Penguatan Karakter & Akhlaqul Karimah di Kelas',
+                        'fokus_perilaku' => 'Guru menumbuhkan kecakapan karakter dan keteladanan akhlaqul karimah sepanjang pembelajaran',
+                        'perilaku_dianjurkan' => 'Membuka dengan doa/apersepsi nilai moral serta membiasakan santun berbahasa dan saling menghargai.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (b): Literasi, Numerasi, Sains & Sosial Budaya',
+                        'fokus_perilaku' => 'Guru memfasilitasi pembiasaan literasi, numerasi, sains, dan kepekaan sosial budaya selama belajar',
+                        'perilaku_dianjurkan' => 'Murid aktif membaca sumber beragam, mengolah data sederhana, dan mengamati fenomena nyata.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (c): Aktivitas Berpikir Kritis, Kolaborasi, Komunikasi & Kreativitas',
+                        'fokus_perilaku' => 'Guru mengaktifkan keterampilan 4C peserta didik dalam interaksi belajar mengajar',
+                        'perilaku_dianjurkan' => 'Memberi ruang tanya jawab mendalam, kerja tim lintas kemampuan, presentasi, dan produk kreatif murid.',
+                    ],
+                    [
+                        'nama_aspek' => 'Abad 21 (d): Praktik Pemecahan Masalah oleh Murid',
+                        'fokus_perilaku' => 'Guru membimbing peserta didik berlatih memecahkan masalah secara mandiri maupun kelompok',
+                        'perilaku_dianjurkan' => 'Memberi scaffolding terukur saat murid merumuskan solusi tanpa langsung mendikte jawaban.',
+                    ],
+                    [
+                        'nama_aspek' => 'Tematik Integrated Saintifik & Variasi Model Pembelajaran',
+                        'fokus_perilaku' => 'Guru melaksanakan pembelajaran tematik integrated dengan pendekatan saintifik dan variasi model (Problem Solving, Discovery, PjBL, Inquiry)',
+                        'perilaku_dianjurkan' => 'Sintaks model pembelajaran berjalan utuh mulai eksplorasi, kolaborasi, hingga pengomunikasian hasil.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pemanfaatan TIK & Sumber Daya Lingkungan Belajar',
+                        'fokus_perilaku' => 'Guru memanfaatkan TIK dan/atau sumber daya lingkungan sekitar dalam pelaksanaan pembelajaran',
+                        'perilaku_dianjurkan' => 'Media ajar digital/alat peraga konkret dioperasikan efektif untuk memperjelas konsep.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pelaksanaan Penilaian Proses Pembelajaran',
+                        'fokus_perilaku' => 'Guru melaksanakan penilaian autentik terhadap proses belajar peserta didik di kelas',
+                        'perilaku_dianjurkan' => 'Mengamati partisipasi murid dengan lembar observasi/ceklist dan memberi umpan balik langsung.',
+                    ],
+                ],
+            ],
+            [
+                'kode' => 'KMA-PENILAIAN',
+                'nama' => 'INSTRUMEN SUPERVISI PENILAIAN PEMBELAJARAN MI (LAMPIRAN 3 SK 6334)',
+                'deskripsi' => 'Instrumen resmi Juknis Supervisi Pembelajaran MI (SK Dirjen Pendis No. 6334/2021 Lampiran 3) untuk menelaah penyusunan instrumen, soal HOTS bermoderasi, TIK penilaian, analisis, dan tindak lanjut.',
+                'aspek' => [
+                    [
+                        'nama_aspek' => 'Kesesuaian Instrumen Penilaian dengan KI-KD / CP & Tujuan',
+                        'fokus_perilaku' => 'Guru menyusun instrumen penilaian (soal/alat penilaian) yang selaras dengan KI-KD / CP dan tujuan pembelajaran',
+                        'perilaku_dianjurkan' => 'Tersedia kisi-kisi, indikator soal, kunci/rubrik penskoran yang valid mengukur ketercapaian tujuan.',
+                    ],
+                    [
+                        'nama_aspek' => 'Penyusunan Soal HOTS Integratif Literasi & Karakter',
+                        'fokus_perilaku' => 'Guru menyusun soal Higher Order Thinking Skills (HOTS) yang mengintegrasikan literasi dan karakter akhlaqul karimah',
+                        'perilaku_dianjurkan' => 'Butir soal memakai stimulus teks/data bermakna pada level C4–C6 tanpa bias akhlak.',
+                    ],
+                    [
+                        'nama_aspek' => 'Sensitivitas Moderasi, Toleransi & Komitmen Kebangsaan',
+                        'fokus_perilaku' => 'Guru menyusun soal yang menghormati perbedaan suku dan ras, menjunjung toleransi, moderasi, serta komitmen kebangsaan',
+                        'perilaku_dianjurkan' => 'Konten teks/ilustrasi instrumen bebas stereotip, intoleransi, atau ujaran diskriminatif.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pelaksanaan Penilaian Berbasis TIK & Sumber Lingkungan',
+                        'fokus_perilaku' => 'Guru melaksanakan penilaian dengan memanfaatkan TIK dan/atau sumber daya di sekitar lingkungan belajar',
+                        'perilaku_dianjurkan' => 'Menggunakan kuis digital, CBT, portofolio proyek lingkungan, atau asesmen kinerja terstruktur.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pelaksanaan Analisis Hasil Penilaian',
+                        'fokus_perilaku' => 'Guru melaksanakan analisis butir soal serta ketuntasan hasil penilaian peserta didik secara berkala',
+                        'perilaku_dianjurkan' => 'Terdapat rekap ketuntasan per KD/TP, analisis daya serap, dan pemetaan kesulitan belajar murid.',
+                    ],
+                    [
+                        'nama_aspek' => 'Pelaksanaan Tindak Lanjut Hasil Penilaian',
+                        'fokus_perilaku' => 'Guru menyusun dan melaksanakan program remedial serta pengayaan sebagai tindak lanjut analisis hasil penilaian',
+                        'perilaku_dianjurkan' => 'Ada catatan bukti pelaksanaan remedial terbimbing bagi yang belum tuntas dan pengayaan bagi yang melampaui.',
                     ],
                 ],
             ],

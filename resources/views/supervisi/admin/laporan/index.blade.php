@@ -21,11 +21,29 @@
             <option value="semester" {{ ($selectedScope ?? 'semester') === 'semester' ? 'selected' : '' }}>Progres 1 Semester</option>
             <option value="tahun" {{ ($selectedScope ?? 'semester') === 'tahun' ? 'selected' : '' }}>Progres 1 Tahun</option>
         </select>
+        <select name="supervisor_teacher_id" aria-label="Filter Supervisor" class="w-full sm:w-auto px-3 py-2 text-xs border-2 border-black rounded-lg bg-white font-bold">
+            <option value="all" {{ ($selectedSupervisorId ?? 'all') === 'all' ? 'selected' : '' }}>Semua Supervisor</option>
+            @foreach(($supervisors ?? collect()) as $supOpt)
+                <option value="{{ $supOpt->teacher_id }}" {{ (string) ($selectedSupervisorId ?? 'all') === (string) $supOpt->teacher_id ? 'selected' : '' }}>{{ $supOpt->teacher?->user?->name }}</option>
+            @endforeach
+        </select>
+        <select name="kategori" aria-label="Filter Kategori Instrumen" class="w-full sm:w-auto px-3 py-2 text-xs border-2 border-black rounded-lg bg-white font-bold">
+            <option value="all" {{ ($selectedKategori ?? 'all') === 'all' ? 'selected' : '' }}>Semua Instrumen</option>
+            <option value="standar14" {{ ($selectedKategori ?? 'all') === 'standar14' ? 'selected' : '' }}>14 Form Standar</option>
+            <option value="kma_6334" {{ ($selectedKategori ?? 'all') === 'kma_6334' ? 'selected' : '' }}>3 Form KMA 6334</option>
+        </select>
+        <select name="ketercapaian" aria-label="Filter Predikat" class="w-full sm:w-auto px-3 py-2 text-xs border-2 border-black rounded-lg bg-white font-bold">
+            <option value="all" {{ ($selectedKetercapaian ?? 'all') === 'all' ? 'selected' : '' }}>Semua Predikat</option>
+            @foreach(['Baik Sekali', 'Baik', 'Cukup', 'Kurang'] as $pred)
+                <option value="{{ $pred }}" {{ ($selectedKetercapaian ?? 'all') === $pred ? 'selected' : '' }}>{{ $pred }}</option>
+            @endforeach
+        </select>
         <button type="submit" class="px-3 py-2 bg-slate-900 text-white text-xs font-black rounded-lg border-2 border-black cursor-pointer">Filter</button>
     </form>
 
     <div class="flex flex-wrap gap-2">
         <a href="{{ route('supervisi.admin.laporan.print-rekap', ['academic_year_id' => $selectedYearId]) }}" target="_blank" class="px-3 py-2 bg-[#20C997] text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000]">🖨️ Cetak Rekap</a>
+        <a href="{{ route('supervisi.admin.laporan.print-bab-3c', ['academic_year_id' => $selectedYearId]) }}" target="_blank" class="px-3 py-2 bg-amber-200 hover:bg-amber-300 text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000]">📜 Laporan Bab III C (SK 6334)</a>
         <a href="{{ route('supervisi.admin.laporan.print-instrumen', ['academic_year_id' => $selectedYearId, 'status' => $selectedStatus]) }}" target="_blank" class="px-3 py-2 bg-violet-200 hover:bg-violet-300 text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000]">📑 Cetak Per Instrumen (1 PDF)</a>
         <a href="{{ route('supervisi.admin.laporan.export-excel', ['academic_year_id' => $selectedYearId, 'status' => $selectedStatus]) }}" class="px-3 py-2 bg-[#FFD43B] text-black text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000]">📊 Export Excel</a>
         <a href="{{ route('supervisi.admin.laporan.batch-all', ['academic_year_id' => $selectedYearId]) }}" class="px-3 py-2 bg-[#5294FF] text-white text-xs font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_#000]">📚 Batch Multi-Sheet</a>
@@ -58,6 +76,7 @@
                     @php
                         $sahKepala = $j->signatures->firstWhere('signer_role', 'kepala') !== null;
                         $prog = $portfolioProgressMap[$j->teacher_id] ?? null;
+                        $kmaProg = $kmaProgressMap[$j->teacher_id] ?? null;
                     @endphp
                     <tr class="odd:bg-white even:bg-slate-50">
                         <td class="p-2 border border-black text-center"><input type="checkbox" name="selected_ids[]" value="{{ $j->id }}"></td>
@@ -70,6 +89,9 @@
                                 <span class="px-2 py-0.5 rounded border text-[10px] font-black {{ $prog['badge_class'] }}">{{ $prog['label'] }}</span>
                             @else
                                 -
+                            @endif
+                            @if($kmaProg && $kmaProg['total_forms'] > 0)
+                                <div class="text-[10px] font-bold text-slate-600 mt-0.5">KMA: {{ $kmaProg['done_count'] }}/{{ $kmaProg['total_forms'] }}</div>
                             @endif
                         </td>
                         <td class="p-2 border border-black text-center">

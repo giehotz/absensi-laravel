@@ -141,6 +141,8 @@ class JadwalController extends Controller
      */
     private function formOptions(): array
     {
+        SupervisiSupervisor::ensureHeadmastersSynced();
+
         $activeYear = AcademicYear::activeSemester();
         $academicYears = AcademicYear::query()->orderByDesc('start_date')->get();
         $teachers = Teacher::with('user')->excludeKepala()->get()->sortBy(fn (Teacher $t) => $t->user?->name ?? '')->values();

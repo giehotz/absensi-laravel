@@ -28,7 +28,7 @@ class TindakLanjutController extends Controller
                 ->with('error', 'Formulir Tindak Lanjut & Refleksi hanya dapat diakses setelah observasi kelas selesai dinilai.');
         }
 
-        $jadwal->load(['academicYear', 'teacher.user', 'schoolClass', 'subject', 'hasils.jenisPenilaian', 'tindakLanjut', 'coachingTirtas']);
+        $jadwal->load(['academicYear', 'teacher.user', 'schoolClass', 'subject', 'hasils.jenisPenilaian', 'hasils.detailHasils', 'tindakLanjut', 'coachingTirtas']);
         $coachingPasca = $jadwal->coachingTirtas->firstWhere('tahap', SupervisiCoachingTirta::TAHAP_PASCA);
 
         return view('supervisi.supervisor.tindak_lanjut', compact('jadwal', 'coachingPasca', 'portalPrefix'));
@@ -99,23 +99,57 @@ class TindakLanjutController extends Controller
         $this->guard->ensureNotLocked($jadwal);
         $portalPrefix = $this->resolvePortalPrefix($request);
 
+        if (! $jadwal->hasils()->whereHas('detailHasils')->exists()) {
+            return redirect()->back()
+                ->with('error', 'Isi minimal satu komponen observasi Form B terlebih dahulu sebelum menyusun Coaching TIRTA.');
+        }
+
         $validated = $request->validate([
             'tujuan_coaching' => ['required', 'string'],
             'identifikasi_kondisi' => ['nullable', 'string'],
             'rencana_aksi' => ['nullable', 'string'],
             'tanggung_jawab' => ['nullable', 'string'],
+            'catatan_coach' => ['nullable', 'string'],
+            'aksi' => ['nullable', 'in:draft,submitted'],
         ]);
+
+        $aksi = ($validated['aksi'] ?? 'submitted') === 'draft'
+            ? SupervisiCoachingTirta::STATUS_DRAFT
+            : SupervisiCoachingTirta::STATUS_SUBMITTED;
+
+        $existing = SupervisiCoachingTirta::where('jadwal_id', $jadwal->id)
+            ->where('tahap', SupervisiCoachingTirta::TAHAP_PASCA)
+            ->first();
+
+        $nextStatus = $aksi;
+        if ($existing && $existing->status === SupervisiCoachingTirta::STATUS_CONFIRMED && $aksi === SupervisiCoachingTirta::STATUS_SUBMITTED) {
+            $nextStatus = SupervisiCoachingTirta::STATUS_CONFIRMED;
+        }
 
         SupervisiCoachingTirta::updateOrCreate(
             [
                 'jadwal_id' => $jadwal->id,
                 'tahap' => SupervisiCoachingTirta::TAHAP_PASCA,
             ],
-            $validated
+            [
+                'tujuan_coaching' => $validated['tujuan_coaching'],
+                'identifikasi_kondisi' => $validated['identifikasi_kondisi'] ?? null,
+                'rencana_aksi' => $validated['rencana_aksi'] ?? null,
+                'tanggung_jawab' => $validated['tanggung_jawab'] ?? null,
+                'catatan_coach' => $validated['catatan_coach'] ?? null,
+                'status' => $nextStatus,
+                'submitted_at' => $nextStatus !== SupervisiCoachingTirta::STATUS_DRAFT
+                    ? ($existing?->submitted_at ?? now())
+                    : $existing?->submitted_at,
+            ]
         );
 
+        $msg = $nextStatus === SupervisiCoachingTirta::STATUS_DRAFT
+            ? 'Draf Coaching TIRTA Pasca-Observasi disimpan.'
+            : 'Hasil wawancara Coaching TIRTA berhasil disimpan dan dikirim untuk konfirmasi Guru.';
+
         return redirect()->route("supervisi.{$portalPrefix}.tindak-lanjut.show", $jadwal)
-            ->with('success', 'Catatan Coaching TIRTA Pasca-Observasi berhasil disimpan.');
+            ->with('success', $msg);
     }
 
     private function resolvePortalPrefix(Request $request): string
