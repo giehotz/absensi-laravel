@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Cbt\CbtQuestionBank;
 use App\Models\Ujian\UjianPanitia;
 use App\Models\Ujian\UjianPengawasMapping;
 use Illuminate\Database\Eloquent\Builder;
@@ -269,5 +270,10 @@ class Teacher extends Model
     public function assessmentPackages(): HasMany
     {
         return $this->hasMany(AssessmentPackage::class);
+    }
+
+    public function cbtQuestionBanks(): HasMany
+    {
+        return $this->hasMany(CbtQuestionBank::class, 'teacher_id');
     }
 }

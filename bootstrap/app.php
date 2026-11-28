@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Middleware\AuthenticateApiClient;
+use App\Http\Middleware\EnsureCbtManageAccess;
+use App\Http\Middleware\EnsureCbtStudent;
 use App\Http\Middleware\EnsureIsMbgOfficer;
 use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureSupervisiRole;
@@ -22,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'mbg.officer' => EnsureIsMbgOfficer::class,
             'api.client' => AuthenticateApiClient::class,
             'supervisi.role' => EnsureSupervisiRole::class,
+            'cbt.manage' => EnsureCbtManageAccess::class,
+            'cbt.student' => EnsureCbtStudent::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

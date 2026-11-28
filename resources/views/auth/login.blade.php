@@ -131,6 +131,14 @@
                 </span>
             </div>
 
+            <!-- Mode CBT-Only Toggle -->
+            <label class="flex items-center gap-2.5 p-2.5 bg-[#FFF9DB] border-2 border-black rounded-lg cursor-pointer select-none">
+                <input type="checkbox" name="cbt_only" value="1" {{ old('cbt_only', ($cbtMode ?? false)) ? 'checked' : '' }} class="w-4 h-4 rounded border-2 border-black text-[#5294FF] focus:ring-0 cursor-pointer shrink-0">
+                <span class="text-xs font-bold text-black leading-tight">
+                    Mode Ujian CBT <span class="font-medium text-slate-600">(langsung ke Portal Ujian Siswa)</span>
+                </span>
+            </label>
+
             <!-- Submit Button -->
             <button type="submit" class="w-full neo-btn bg-[#5294FF] hover:bg-[#3b82f6] text-white py-3 text-xs sm:text-sm uppercase tracking-wider font-heading font-black flex items-center justify-center gap-2 cursor-pointer shadow-[3px_3px_0px_0px_#000]">
                 <span>Masuk Sekarang</span>

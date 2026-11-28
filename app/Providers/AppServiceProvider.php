@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Models\AttendanceSetting;
+use App\Models\Cbt\CbtQuestionBank;
+use App\Policies\CbtQuestionBankPolicy;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -26,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Carbon::setLocale(config('app.locale', 'id'));
+        Gate::policy(CbtQuestionBank::class, CbtQuestionBankPolicy::class);
 
         View::composer(['layouts.*', 'auth.*', 'welcome'], function ($view) {
             static $setting = false;

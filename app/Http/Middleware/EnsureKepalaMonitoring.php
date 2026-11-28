@@ -52,6 +52,7 @@ class EnsureKepalaMonitoring
             'ujian.pengawas.swap.candidates',
             'mbg.dashboard',
             'mbg.distributions.*',
+            'cbt.users.unlock',
         )) {
             abort(403, 'Akses Ditolak: Fitur tersebut dikhususkan untuk Administrator atau petugas yang berwenang.');
         }

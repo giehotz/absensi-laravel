@@ -3,6 +3,9 @@
 namespace App\Models;
 
 use App\Enums\StudentDataSource;
+use App\Models\Cbt\CbtExamLog;
+use App\Models\Cbt\CbtStudentDuration;
+use App\Models\Cbt\CbtStudentScore;
 use App\Services\QrCodeService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -134,6 +137,21 @@ class Student extends Model
     public function auditedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'audited_by');
+    }
+
+    public function cbtDurations(): HasMany
+    {
+        return $this->hasMany(CbtStudentDuration::class, 'student_id');
+    }
+
+    public function cbtScores(): HasMany
+    {
+        return $this->hasMany(CbtStudentScore::class, 'student_id');
+    }
+
+    public function cbtExamLogs(): HasMany
+    {
+        return $this->hasMany(CbtExamLog::class, 'student_id');
     }
 
     /**

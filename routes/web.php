@@ -54,5 +54,8 @@ require base_path('routes/ujian.php');
 // Modul Terisolasi: Supervisi Guru & Kepala Madrasah
 require base_path('routes/supervisi.php');
 
+// Modul Terisolasi: Computer Based Test (CBT)
+require base_path('routes/cbt.php');
+
 // Rute Publik: Verifikasi Keabsahan Kartu Tanda Pelajar (Scan QR Depan)
 Route::get('validasi/siswa/{identifier}', [PublicVerificationController::class, 'verifyStudent'])->name('public.verify.student');
